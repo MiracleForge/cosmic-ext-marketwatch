@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+//
 // Inspired by cosmic-ext-applet-tempest
 // https://codeberg.org/VintageTechie/cosmic-ext-applet-tempest
 
