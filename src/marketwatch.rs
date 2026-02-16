@@ -72,28 +72,54 @@ struct YahooQuote {
     symbol: String,
 }
 
+use cosmic::iced::Color;
+
+pub struct VariationStyle {
+    pub color: Color,
+    pub icon: &'static str,
+}
+
 impl MarketQuote {
     pub fn formatted_price(&self) -> String {
         match self.currency.as_str() {
             "USD" => format!("${:.2}", self.price),
-
             "BRL" => {
                 let value = format!("{:.2}", self.price).replace(".", ",");
                 format!("R$ {}", value)
             }
-
             "EUR" => {
                 let value = format!("{:.2}", self.price).replace(".", ",");
                 format!("{} €", value)
             }
-
             "JPY" => format!("¥{:.0}", self.price),
-
             code => format!("{} {:.2}", code, self.price),
         }
     }
-}
-//
+
+    pub fn formatted_variation(&self) -> String {
+        format!(
+            "{} {:.2}%",
+            self.variation_icon(),
+            self.change_percent.abs()
+        )
+    }
+
+    pub fn variation_icon(&self) -> &'static str {
+        if self.change >= 0.0 { "▲" } else { "▼" }
+    }
+
+    pub fn is_positive(&self) -> bool {
+        self.change >= 0.0
+    }
+
+    pub fn variation_color(&self) -> Color {
+        if self.is_positive() {
+            Color::from_rgb(0.13, 0.77, 0.37) // verde
+        } else {
+            Color::from_rgb(0.94, 0.27, 0.27) // vermelho
+        }
+    }
+} //
 // FETCH FUNCTIONS
 //
 

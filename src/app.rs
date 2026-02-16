@@ -4,8 +4,10 @@ use crate::fl;
 use crate::marketwatch::{MarketQuote, fetch_most_active};
 
 use cosmic::cosmic_config::{self, CosmicConfigEntry, cosmic_config_derive::CosmicConfigEntry};
-use cosmic::iced::Alignment;
-use cosmic::iced::{Limits, Subscription, window::Id};
+use cosmic::theme::Text;
+
+use cosmic::iced::{Alignment, Color, Limits, Subscription, window::Id};
+
 use cosmic::iced_futures::Subscription as IcedSubscription;
 use cosmic::iced_winit::commands::popup::{destroy_popup, get_popup};
 use cosmic::prelude::*;
@@ -99,9 +101,8 @@ impl cosmic::Application for AppModel {
     }
 
     fn view(&self) -> Element<'_, Self::Message> {
-        use cosmic::iced::Alignment;
-
         let content = if let Some(current_stoke) = self.market_quotes.get(self.current_index) {
+            let color = current_stoke.variation_color();
             widget::row()
                 .align_y(Alignment::Center)
                 .spacing(12)
@@ -111,11 +112,8 @@ impl cosmic::Application for AppModel {
                         .symbolic(true),
                 )
                 .push(widget::text(current_stoke.symbol.clone()))
-                .push(widget::text(current_stoke.formatted_price()))
-                .push(widget::text(format!(
-                    "{:.2}%",
-                    current_stoke.change_percent
-                )))
+                .push(widget::text(current_stoke.formatted_price()).class(Text::Color(color)))
+                .push(widget::text(current_stoke.formatted_variation()).class(Text::Color(color)))
         } else {
             widget::row()
                 .align_y(Alignment::Center)
