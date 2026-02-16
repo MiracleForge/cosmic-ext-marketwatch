@@ -4,6 +4,7 @@ use crate::fl;
 use crate::marketwatch::{MarketQuote, fetch_most_active};
 
 use cosmic::cosmic_config::{self, CosmicConfigEntry, cosmic_config_derive::CosmicConfigEntry};
+use cosmic::iced::font::Weight;
 use cosmic::theme::Text;
 
 use cosmic::iced::{Alignment, Color, Limits, Subscription, window::Id};
@@ -106,20 +107,25 @@ impl cosmic::Application for AppModel {
             widget::row()
                 .align_y(Alignment::Center)
                 .spacing(12)
+                .width(cosmic::iced::Length::Fixed(250.0))
                 .push(
-                    widget::icon::from_name("display-symbolic")
+                    widget::icon::from_name("org.gnome.PowerStats-symbolic")
                         .size(16)
                         .symbolic(true),
                 )
-                .push(widget::text(current_stoke.symbol.clone()))
+                .push(widget::horizontal_space().width(cosmic::iced::Length::Fill))
+                .push(widget::text::heading(current_stoke.symbol.clone()))
+                .push(widget::horizontal_space().width(cosmic::iced::Length::Fill))
                 .push(widget::text(current_stoke.formatted_price()).class(Text::Color(color)))
+                .push(widget::horizontal_space().width(cosmic::iced::Length::Fill))
                 .push(widget::text(current_stoke.formatted_variation()).class(Text::Color(color)))
         } else {
             widget::row()
                 .align_y(Alignment::Center)
-                .spacing(6)
+                .spacing(16)
+                .width(cosmic::iced::Length::Fixed(250.0))
                 .push(
-                    widget::icon::from_name("display-symbolic")
+                    widget::icon::from_name("process-working-symbolic")
                         .size(16)
                         .symbolic(true),
                 )
