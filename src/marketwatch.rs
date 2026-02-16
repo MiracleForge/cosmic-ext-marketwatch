@@ -70,11 +70,16 @@ struct YahooQuote {
 }
 
 //
-// FETCH FUNCTION
+// FETCH FUNCTIONS
 //
 
-pub async fn fetch_most_active() -> Result<Vec<MarketQuote>, reqwest::Error> {
-    let url = "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=5&scrIds=most_actives";
+pub async fn fetch_most_active(count: u64) -> Result<Vec<MarketQuote>, reqwest::Error> {
+    println!("Starting fet most active");
+    tracing::info!("Starting feth Most active {}", count);
+    let url = format!(
+        "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count={}&scrIds=most_actives",
+        count
+    );
 
     let response = http_client().get(url).send().await?;
 

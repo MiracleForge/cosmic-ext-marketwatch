@@ -60,13 +60,15 @@ pub enum PopupTab {
 #[derive(Debug, Clone, CosmicConfigEntry, PartialEq, Serialize, Deserialize)]
 #[version = 1]
 pub struct Config {
-    pub refresh_interval_minutes: u64,
+    pub alerts_enabled: bool,
+    pub count_stokes_at_once: u64,
     #[serde(default)]
     pub default_tab: PopupTab,
+    pub panel_stoke_rotation_interval: u64,
+    pub refresh_interval_minutes: u64,
     #[serde(default = "default_show_icon_in_panel")]
     pub show_icon_in_panel: bool,
     pub stock_exchange: StockExchange,
-    pub alerts_enabled: bool,
 }
 
 fn default_show_icon_in_panel() -> bool {
@@ -76,11 +78,13 @@ fn default_show_icon_in_panel() -> bool {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            show_icon_in_panel: true,
-            default_tab: PopupTab::default(),
-            refresh_interval_minutes: 15,
-            stock_exchange: StockExchange::default(),
             alerts_enabled: false,
+            count_stokes_at_once: 5,
+            default_tab: PopupTab::default(),
+            panel_stoke_rotation_interval: 60,
+            refresh_interval_minutes: 15,
+            show_icon_in_panel: true,
+            stock_exchange: StockExchange::default(),
         }
     }
 }
