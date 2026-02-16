@@ -13,12 +13,6 @@ use cosmic::{Action, widget};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-/// System-wide time format preference from COSMIC time applet.
-#[derive(Debug, Clone, Default, PartialEq, Eq, CosmicConfigEntry, Deserialize, Serialize)]
-pub struct TimeAppletConfig {
-    #[serde(default)]
-    pub military_time: bool,
-}
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub struct AppModel {
@@ -117,8 +111,9 @@ impl cosmic::Application for AppModel {
                         .symbolic(true),
                 )
                 .push(widget::text(current_stoke.symbol.clone()))
+                .push(widget::text(current_stoke.formatted_price()))
                 .push(widget::text(format!(
-                    "({:.2}%)",
+                    "{:.2}%",
                     current_stoke.change_percent
                 )))
         } else {

@@ -30,11 +30,12 @@ fn http_client() -> &'static reqwest::Client {
 
 #[derive(Debug, Clone)]
 pub struct MarketQuote {
-    pub symbol: String,
-    pub name: String,
-    pub price: f64,
     pub change: f64,
     pub change_percent: f64,
+    pub currency: String,
+    pub name: String,
+    pub price: f64,
+    pub symbol: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -54,21 +55,38 @@ struct ScreenerResult {
 
 #[derive(Debug, Deserialize)]
 struct YahooQuote {
-    symbol: String,
-
-    #[serde(rename = "shortName")]
-    short_name: Option<String>,
-
-    #[serde(rename = "regularMarketPrice")]
-    regular_market_price: Option<f64>,
+    currency: Option<String>,
 
     #[serde(rename = "regularMarketChange")]
     regular_market_change: Option<f64>,
 
     #[serde(rename = "regularMarketChangePercent")]
     regular_market_change_percent: Option<f64>,
+
+    #[serde(rename = "regularMarketPrice")]
+    regular_market_price: Option<f64>,
+
+    #[serde(rename = "shortName")]
+    short_name: Option<String>,
+
+    symbol: String,
 }
 
+impl MarketQuote {
+    pub fn currency_symbol(&self) -> &str {
+        match self.currency.as_str() {
+            "USD" => "$",
+            "BRL" => "R$",
+            "EUR" => "€",
+            "JPY" => "¥",
+            code => code,
+        }
+    }
+
+    pub fn formatted_price(&self) -> String {
+        format!("{} {:.2}", self.currency_symbol(), self.price)
+    }
+}
 //
 // FETCH FUNCTIONS
 //
@@ -82,8 +100,8 @@ pub async fn fetch_most_active(count: u64) -> Result<Vec<MarketQuote>, reqwest::
     );
 
     let response = http_client().get(url).send().await?;
-
     let data: ScreenerResponse = response.json().await?;
+    println!("parset data: {:#?}", data);
 
     let quotes: Vec<MarketQuote> = data
         .finance
@@ -97,6 +115,7 @@ pub async fn fetch_most_active(count: u64) -> Result<Vec<MarketQuote>, reqwest::
             price: q.regular_market_price.unwrap_or(0.0),
             change: q.regular_market_change.unwrap_or(0.0),
             change_percent: q.regular_market_change_percent.unwrap_or(0.0),
+            currency: q.currency.unwrap_or_else(|| "USD".to_string()),
         })
         .collect();
 
