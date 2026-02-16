@@ -73,18 +73,24 @@ struct YahooQuote {
 }
 
 impl MarketQuote {
-    pub fn currency_symbol(&self) -> &str {
-        match self.currency.as_str() {
-            "USD" => "$",
-            "BRL" => "R$",
-            "EUR" => "€",
-            "JPY" => "¥",
-            code => code,
-        }
-    }
-
     pub fn formatted_price(&self) -> String {
-        format!("{} {:.2}", self.currency_symbol(), self.price)
+        match self.currency.as_str() {
+            "USD" => format!("${:.2}", self.price),
+
+            "BRL" => {
+                let value = format!("{:.2}", self.price).replace(".", ",");
+                format!("R$ {}", value)
+            }
+
+            "EUR" => {
+                let value = format!("{:.2}", self.price).replace(".", ",");
+                format!("{} €", value)
+            }
+
+            "JPY" => format!("¥{:.0}", self.price),
+
+            code => format!("{} {:.2}", code, self.price),
+        }
     }
 }
 //
