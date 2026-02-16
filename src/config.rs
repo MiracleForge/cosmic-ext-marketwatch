@@ -4,50 +4,6 @@ use cosmic::cosmic_config::{self, CosmicConfigEntry, cosmic_config_derive::Cosmi
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub enum StockExchange {
-    #[default]
-    Ibovespa,
-    SP500,
-}
-
-impl StockExchange {
-    pub fn symbol(&self) -> &'static str {
-        match self {
-            Self::Ibovespa => "^BVSP",
-            Self::SP500 => "^GSPC",
-        }
-    }
-
-    pub fn currency(&self) -> &'static str {
-        match self {
-            Self::Ibovespa => "BRL",
-            Self::SP500 => "USD",
-        }
-    }
-
-    pub fn currency_symbol(&self) -> &'static str {
-        match self {
-            Self::Ibovespa => "R$",
-            Self::SP500 => "$",
-        }
-    }
-
-    pub fn format_price(&self, value: f64) -> String {
-        match self {
-            Self::Ibovespa => format!("{} {:.2}", self.currency_symbol(), value),
-            Self::SP500 => format!("{} {:.2}", self.currency_symbol(), value),
-        }
-    }
-
-    pub fn display_name(&self) -> &'static str {
-        match self {
-            Self::Ibovespa => "Ibovespa",
-            Self::SP500 => "S&P 500",
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PopupTab {
     #[default]
     Current,
@@ -55,6 +11,42 @@ pub enum PopupTab {
     Hourly,
     Forecast,
     Settings,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RefreshInterval {
+    #[serde(rename = "5min")]
+    FiveMinutes,
+    #[serde(rename = "10min")]
+    TenMinutes,
+    #[serde(rename = "15min")]
+    FifteenMinutes,
+    #[serde(rename = "30min")]
+    ThirtyMinutes,
+    #[serde(rename = "60min")]
+    OneHour,
+}
+
+impl RefreshInterval {
+    pub fn as_minutes(&self) -> u64 {
+        match self {
+            RefreshInterval::FiveMinutes => 5,
+            RefreshInterval::TenMinutes => 10,
+            RefreshInterval::FifteenMinutes => 15,
+            RefreshInterval::ThirtyMinutes => 30,
+            RefreshInterval::OneHour => 60,
+        }
+    }
+
+    pub fn as_seconds(&self) -> u64 {
+        self.as_minutes() * 60
+    }
+}
+
+impl Default for RefreshInterval {
+    fn default() -> Self {
+        RefreshInterval::FifteenMinutes
+    }
 }
 
 #[derive(Debug, Clone, CosmicConfigEntry, PartialEq, Serialize, Deserialize)]
@@ -66,10 +58,9 @@ pub struct Config {
     pub default_tab: PopupTab,
     pub is_using_system_colors: bool,
     pub panel_stoke_rotation_interval: u64,
-    pub refresh_interval_minutes: u64,
+    pub refresh_interval: RefreshInterval,
     #[serde(default = "default_show_icon_in_panel")]
     pub show_icon_in_panel: bool,
-    pub stock_exchange: StockExchange,
 }
 
 fn default_show_icon_in_panel() -> bool {
@@ -84,9 +75,8 @@ impl Default for Config {
             default_tab: PopupTab::default(),
             is_using_system_colors: false,
             panel_stoke_rotation_interval: 60,
-            refresh_interval_minutes: 15,
+            refresh_interval: RefreshInterval::default(),
             show_icon_in_panel: true,
-            stock_exchange: StockExchange::default(),
         }
     }
 }

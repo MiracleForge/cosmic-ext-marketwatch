@@ -31,6 +31,7 @@ pub struct AppModel {
 #[derive(Debug, Clone)]
 pub enum Message {
     Tick,
+    RefreshMarket,
     TogglePopup,
     PopupClosed(Id),
     UpdateConfig(Config),
@@ -85,12 +86,12 @@ impl cosmic::Application for AppModel {
 
     fn subscription(&self) -> Subscription<Self::Message> {
         let interval_minutes = self.config.panel_stoke_rotation_interval;
-
+        let refresh_interval = self.config.refresh_interval.as_seconds();
         // Periodic stoke rotation refresh
         let rotate = IcedSubscription::run_with_id(
-            (std::any::TypeId::of::<Self>(), interval_minutes),
+            (std::any::TypeId::of::<Self>(), "rotate", interval_minutes),
             async_stream::stream! {
-                let interval = Duration::from_secs(6);
+                let interval = Duration::from_secs(interval_minutes);
                 loop {
                     tokio::time::sleep(interval).await;
                     yield Message::Tick;
@@ -98,7 +99,18 @@ impl cosmic::Application for AppModel {
             },
         );
 
-        Subscription::batch([rotate])
+        let refresh = IcedSubscription::run_with_id(
+            (std::any::TypeId::of::<Self>(), "refresh", interval_minutes),
+            async_stream::stream! {
+                let interval = Duration::from_secs(refresh_interval);
+                loop {
+                    tokio::time::sleep(interval).await;
+                    yield Message::RefreshMarket;
+                }
+            },
+        );
+
+        Subscription::batch([rotate, refresh])
     }
 
     fn view(&self) -> Element<'_, Self::Message> {
@@ -193,6 +205,14 @@ impl cosmic::Application for AppModel {
 
             Message::MarketLoaded(data) => {
                 self.market_quotes = data;
+            }
+
+            Message::RefreshMarket => {
+                let count = self.config.count_stokes_at_once;
+
+                return Task::perform(fetch_most_active(count), |result| {
+                    Action::App(Message::MarketLoaded(result.unwrap_or_default()))
+                });
             }
 
             Message::UpdateConfig(config) => {

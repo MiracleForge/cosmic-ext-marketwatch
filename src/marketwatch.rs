@@ -114,9 +114,9 @@ impl MarketQuote {
 
     pub fn variation_color(&self) -> Color {
         if self.is_positive() {
-            Color::from_rgb(0.13, 0.77, 0.37) // verde
+            Color::from_rgb(0.13, 0.77, 0.37)
         } else {
-            Color::from_rgb(0.94, 0.27, 0.27) // vermelho
+            Color::from_rgb(0.94, 0.27, 0.27)
         }
     }
 } //
