@@ -1,15 +1,15 @@
+// SPDX-License-Identifier: GPL-3.0-only
+use crate::components::applet::{self};
 use crate::components::header::header;
 use crate::components::maincard::maincard;
-// SPDX-License-Identifier: GPL-3.0-only
 use crate::config::{Config, PopupTab};
 use crate::marketwatch::{MarketQuote, fetch_most_active};
 
 use cosmic::cosmic_config::{self, CosmicConfigEntry, cosmic_config_derive::CosmicConfigEntry};
-use cosmic::iced::{Alignment, Length, Limits, Subscription, window::Id};
+use cosmic::iced::{Length, Limits, Subscription, window::Id};
 use cosmic::iced_futures::Subscription as IcedSubscription;
 use cosmic::iced_winit::commands::popup::{destroy_popup, get_popup};
 use cosmic::prelude::*;
-use cosmic::theme::Text;
 use cosmic::{Action, widget};
 
 use std::time::Duration;
@@ -91,7 +91,7 @@ impl cosmic::Application for AppModel {
     fn subscription(&self) -> Subscription<Self::Message> {
         let interval_minutes = self.config.panel_stoke_rotation_interval;
         let refresh_interval = self.config.refresh_interval.as_seconds();
-        // Periodic stoke rotation refresh
+
         let rotate = IcedSubscription::run_with_id(
             (std::any::TypeId::of::<Self>(), "rotate", interval_minutes),
             async_stream::stream! {
@@ -107,11 +107,10 @@ impl cosmic::Application for AppModel {
             (std::any::TypeId::of::<Self>(), "refresh", refresh_interval),
             async_stream::stream! {
                 let interval = Duration::from_secs(refresh_interval);
-
                 tokio::time::sleep(interval).await;
                 loop {
-                yield Message::RefreshMarket;
-                tokio::time::sleep(interval).await;
+                    yield Message::RefreshMarket;
+                    tokio::time::sleep(interval).await;
                 }
             },
         );
@@ -120,48 +119,25 @@ impl cosmic::Application for AppModel {
     }
 
     fn view(&self) -> Element<'_, Self::Message> {
-        let content = if let Some(current_stoke) = self.market_quotes.get(self.current_index) {
-            let color = current_stoke.variation_color();
-            widget::row()
-                .align_y(Alignment::Center)
-                .spacing(12)
-                .width(cosmic::iced::Length::Fixed(250.0))
-                .push(
-                    widget::icon::from_name("org.gnome.PowerStats-symbolic")
-                        .size(16)
-                        .symbolic(true),
-                )
-                .push(widget::horizontal_space().width(cosmic::iced::Length::Fill))
-                .push(widget::text::heading(current_stoke.symbol.clone()))
-                .push(widget::horizontal_space().width(cosmic::iced::Length::Fill))
-                .push(widget::text(current_stoke.formatted_price()).class(Text::Color(color)))
-                .push(widget::horizontal_space().width(cosmic::iced::Length::Fill))
-                .push(widget::text(current_stoke.formatted_variation()).class(Text::Color(color)))
-        } else {
-            widget::row()
-                .align_y(Alignment::Center)
-                .spacing(16)
-                .width(cosmic::iced::Length::Fixed(250.0))
-                .push(
-                    widget::icon::from_name("process-working-symbolic")
-                        .size(16)
-                        .symbolic(true),
-                )
-                .push(widget::text("Loading..."))
-        };
+        let content =
+            applet::build_applet_content(&self.config, &self.market_quotes, self.current_index);
 
-        let button = widget::button::custom(content)
-            .class(cosmic::theme::Button::AppletIcon)
-            .on_press(Message::TogglePopup);
-
-        widget::autosize::autosize(button, self.applet_id.clone()).into()
+        widget::autosize::autosize(
+            widget::button::custom(content)
+                .class(cosmic::theme::Button::AppletIcon)
+                .on_press(Message::TogglePopup),
+            self.applet_id.clone(),
+        )
+        .into()
     }
 
     fn view_window(&self, _id: Id) -> Element<'_, Self::Message> {
-        let mut content = widget::column().padding(0).spacing(6).width(Length::Fill);
-
-        content = content.push(header());
-        content = content.push(maincard(&self.market_quotes));
+        let content = widget::column()
+            .padding(0)
+            .spacing(6)
+            .width(Length::Fill)
+            .push(header())
+            .push(maincard(&self.market_quotes));
 
         self.core.applet.popup_container(content).into()
     }
@@ -205,7 +181,6 @@ impl cosmic::Application for AppModel {
 
             Message::RefreshMarket => {
                 let count = self.config.count_stokes_at_once;
-
                 return Task::perform(fetch_most_active(count), |result| {
                     Action::App(Message::MarketLoaded(result.unwrap_or_default()))
                 });
@@ -216,11 +191,11 @@ impl cosmic::Application for AppModel {
             }
 
             Message::PreviusWallet => {
-                println!("Changue to previeus user collection of stokes");
+                println!("Change to previous user collection of stocks");
             }
 
             Message::NextWallet => {
-                println!("Change to next user cllection of stokes");
+                println!("Change to next user collection of stocks");
             }
 
             Message::OpenConfigBUtton => {
