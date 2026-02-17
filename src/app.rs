@@ -37,6 +37,9 @@ pub enum Message {
     UpdateConfig(Config),
     ToggleExampleRow(bool),
     MarketLoaded(Vec<MarketQuote>),
+    PreviusWallet,
+    NextWallet,
+    OpenConfigBUtton,
 }
 
 impl cosmic::Application for AppModel {
@@ -100,12 +103,14 @@ impl cosmic::Application for AppModel {
         );
 
         let refresh = IcedSubscription::run_with_id(
-            (std::any::TypeId::of::<Self>(), "refresh", interval_minutes),
+            (std::any::TypeId::of::<Self>(), "refresh", refresh_interval),
             async_stream::stream! {
                 let interval = Duration::from_secs(refresh_interval);
+
+                tokio::time::sleep(interval).await;
                 loop {
-                    tokio::time::sleep(interval).await;
-                    yield Message::RefreshMarket;
+                yield Message::RefreshMarket;
+                tokio::time::sleep(interval).await;
                 }
             },
         );
@@ -152,7 +157,34 @@ impl cosmic::Application for AppModel {
     }
 
     fn view_window(&self, _id: Id) -> Element<'_, Self::Message> {
-        let mut content = widget::list_column().padding(10).spacing(6);
+        let mut content = widget::list_column().padding(0).spacing(0);
+
+        let top_row = widget::row()
+            .spacing(8)
+            .align_y(cosmic::iced::Alignment::Center)
+            .push(
+                widget::button::icon(widget::icon::from_name("go-previous-symbolic"))
+                    .on_press(Message::PreviusWallet)
+                    .padding(6),
+            )
+            .push(
+                widget::button::icon(widget::icon::from_name("go-next-symbolic"))
+                    .on_press(Message::NextWallet)
+                    .padding(6),
+            )
+            .push(widget::horizontal_space())
+            .push(
+                widget::button::icon(widget::icon::from_name("view-refresh-symbolic"))
+                    .on_press(Message::RefreshMarket)
+                    .padding(6),
+            )
+            .push(
+                widget::button::icon(widget::icon::from_name("emblem-system-symbolic"))
+                    .on_press(Message::OpenConfigBUtton)
+                    .padding(6),
+            );
+
+        content = content.add(top_row);
 
         if self.market_quotes.is_empty() {
             content = content.add(widget::text("Loading market data..."));
@@ -217,6 +249,18 @@ impl cosmic::Application for AppModel {
 
             Message::UpdateConfig(config) => {
                 self.config = config;
+            }
+
+            Message::PreviusWallet => {
+                println!("Changue to previeus user collection of stokes");
+            }
+
+            Message::NextWallet => {
+                println!("Change to next user cllection of stokes");
+            }
+
+            Message::OpenConfigBUtton => {
+                println!("Opening config button");
             }
 
             Message::ToggleExampleRow(toggled) => {
