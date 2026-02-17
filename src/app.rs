@@ -40,6 +40,7 @@ pub enum Message {
     NextWallet,
     SelectedOverviewTab(PopupTab),
     OpenConfigBUtton,
+    ToggleShowOnlyIcon(bool),
 }
 
 impl cosmic::Application for AppModel {
@@ -137,7 +138,7 @@ impl cosmic::Application for AppModel {
             .spacing(6)
             .width(Length::Fill)
             .push(header())
-            .push(maincard(&self.market_quotes));
+            .push(maincard(self.active_tab, &self.market_quotes, &self.config));
 
         self.core.applet.popup_container(content).into()
     }
@@ -199,7 +200,15 @@ impl cosmic::Application for AppModel {
             }
 
             Message::OpenConfigBUtton => {
-                println!("Opening config button");
+                self.active_tab = match self.active_tab {
+                    PopupTab::Settings => PopupTab::Overview,
+                    _ => PopupTab::Settings,
+                };
+            }
+
+            Message::ToggleShowOnlyIcon(new_value) => {
+                self.config.show_only_icon = new_value;
+                println!("show_only_icon: {}", self.config.show_only_icon);
             }
 
             Message::ToggleExampleRow(toggled) => {

@@ -4,9 +4,21 @@ use cosmic::theme::Text;
 use cosmic::widget;
 
 use crate::app::Message;
+use crate::config::{Config, PopupTab};
 use crate::marketwatch::MarketQuote;
 
-pub fn maincard(market_quotes: &[MarketQuote]) -> Element<'static, Message> {
+pub fn maincard(
+    active_tab: PopupTab,
+    market_quotes: &[MarketQuote],
+    config: &Config,
+) -> Element<'static, Message> {
+    match active_tab {
+        PopupTab::Settings => render_settings_tab(config),
+        _ => render_quotes(market_quotes),
+    }
+}
+
+fn render_quotes(market_quotes: &[MarketQuote]) -> Element<'static, Message> {
     let mut content = widget::column()
         .spacing(12)
         .width(Length::Fill)
@@ -52,5 +64,30 @@ pub fn maincard(market_quotes: &[MarketQuote]) -> Element<'static, Message> {
                 }),
         );
     }
+
     content.into()
+}
+
+fn section_header(label: String) -> Element<'static, Message> {
+    widget::text(label).size(12).class(Text::Accent).into()
+}
+
+fn render_settings_tab(config: &Config) -> Element<'static, Message> {
+    widget::column()
+        .spacing(12)
+        .padding([8, 12])
+        .width(Length::Fill)
+        .push(section_header("Settings".into()))
+        .push(
+            widget::row()
+                .width(Length::Fill)
+                .align_y(Alignment::Center)
+                .push(widget::text("Show only icon"))
+                .push(widget::horizontal_space())
+                .push(
+                    widget::toggler(config.show_only_icon).on_toggle(Message::ToggleShowOnlyIcon),
+                ),
+        )
+        .push(section_header("Settings2".into()))
+        .into()
 }
