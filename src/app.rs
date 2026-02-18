@@ -19,12 +19,12 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub struct AppModel {
     active_tab: PopupTab,
     core: cosmic::Core,
+    config_handler: Option<cosmic::cosmic_config::Config>,
     popup: Option<Id>,
     applet_id: widget::Id,
     market_quotes: Vec<MarketQuote>,
     config: Config,
     current_index: usize,
-    example_row: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -34,7 +34,6 @@ pub enum Message {
     TogglePopup,
     PopupClosed(Id),
     UpdateConfig(Config),
-    ToggleExampleRow(bool),
     MarketLoaded(Vec<MarketQuote>),
     PreviusWallet,
     NextWallet,
@@ -62,23 +61,22 @@ impl cosmic::Application for AppModel {
         core: cosmic::Core,
         _flags: Self::Flags,
     ) -> (Self, Task<cosmic::Action<Self::Message>>) {
-        let config = cosmic_config::Config::new(Self::APP_ID, Config::VERSION)
-            .map(|context| match Config::get_entry(&context) {
-                Ok(config) => config,
-                Err((_errors, config)) => config,
-            })
+        let config_handler = cosmic::cosmic_config::Config::new(Self::APP_ID, Config::VERSION).ok();
+        let config = config_handler
+            .as_ref()
+            .and_then(|h| Config::get_entry(h).ok())
             .unwrap_or_default();
 
         let count = config.count_stokes_at_once;
 
         let app = AppModel {
             core,
+            config_handler,
             popup: None,
             active_tab: PopupTab::Overview,
             applet_id: widget::Id::unique(),
             market_quotes: Vec::new(),
             config,
-            example_row: false,
             current_index: 0,
         };
 
@@ -147,6 +145,7 @@ impl cosmic::Application for AppModel {
         match message {
             Message::TogglePopup => {
                 return if let Some(p) = self.popup.take() {
+                    self.active_tab = PopupTab::Overview;
                     destroy_popup(p)
                 } else {
                     let new_id = Id::unique();
@@ -208,16 +207,14 @@ impl cosmic::Application for AppModel {
 
             Message::ToggleShowOnlyIcon(new_value) => {
                 self.config.show_only_icon = new_value;
-                println!("show_only_icon: {}", self.config.show_only_icon);
-            }
-
-            Message::ToggleExampleRow(toggled) => {
-                self.example_row = toggled;
+                self.applet_id = widget::Id::unique(); // reset do cache do autosize
+                self::AppModel::save_config(&self);
             }
 
             Message::PopupClosed(id) => {
                 if self.popup.as_ref() == Some(&id) {
                     self.popup = None;
+                    self.active_tab = PopupTab::Overview;
                 }
             }
 
@@ -231,5 +228,16 @@ impl cosmic::Application for AppModel {
 
     fn style(&self) -> Option<cosmic::iced_runtime::Appearance> {
         Some(cosmic::applet::style())
+    }
+}
+
+impl AppModel {
+    // by cosmic-ext-applet-tempest
+    fn save_config(&self) {
+        if let Some(ref handler) = self.config_handler {
+            if let Err(e) = self.config.write_entry(handler) {
+                tracing::error!("Failed to save config: {}", e);
+            }
+        }
     }
 }

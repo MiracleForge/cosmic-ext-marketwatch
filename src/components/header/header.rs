@@ -19,7 +19,7 @@ pub fn header() -> Element<'static, Message> {
         .width(Length::Fill)
         .push(icon_button("go-previous-symbolic", Message::PreviusWallet))
         .push(icon_button("go-next-symbolic", Message::NextWallet))
-        .push(widget::text::heading("Default"))
+        .push(widget::text::heading("Trending"))
         .push(widget::horizontal_space())
         .push(icon_button("view-refresh-symbolic", Message::RefreshMarket))
         .push(icon_button(
