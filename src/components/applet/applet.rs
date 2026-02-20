@@ -10,7 +10,11 @@ pub fn build_applet_content(
     config: &Config,
     market_quotes: &[MarketQuote],
     current_index: usize,
+    error_message: &Option<String>,
 ) -> widget::Row<'static, Message> {
+    if error_message.is_some() {
+        return build_error_display();
+    }
     if config.show_only_icon {
         return build_icon_only();
     }
@@ -63,4 +67,15 @@ fn build_loading_display() -> widget::Row<'static, Message> {
                 .symbolic(true),
         )
         .push(widget::text("Loading..."))
+}
+
+fn build_error_display() -> widget::Row<'static, Message> {
+    base_row()
+        .spacing(8)
+        .push(
+            widget::icon::from_name("dialog-error-symbolic")
+                .size(16)
+                .symbolic(true),
+        )
+        .push(widget::text("Error"))
 }

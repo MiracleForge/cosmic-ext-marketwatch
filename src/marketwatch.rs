@@ -153,3 +153,15 @@ pub async fn fetch_most_active(count: u64) -> Result<Vec<MarketQuote>, reqwest::
 
     Ok(quotes)
 }
+
+pub fn user_friendly_error_message(err: &str) -> &'static str {
+    if err.contains("dns error") || err.contains("failed to lookup") {
+        "You're offline. Please check your internet connection."
+    } else if err.contains("timeout") {
+        "The request took too long. Try again in a moment."
+    } else if err.contains("connection refused") {
+        "Unable to reach the server right now."
+    } else {
+        "Something went wrong while fetching market data."
+    }
+}

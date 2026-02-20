@@ -25,6 +25,7 @@ pub struct AppModel {
     market_quotes: Vec<MarketQuote>,
     config: Config,
     current_index: usize,
+    error_message: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -34,7 +35,7 @@ pub enum Message {
     TogglePopup,
     PopupClosed(Id),
     UpdateConfig(Config),
-    MarketLoaded(Vec<MarketQuote>),
+    MarketLoaded(Result<Vec<MarketQuote>, String>),
     PreviusWallet,
     NextWallet,
     SelectedOverviewTab(PopupTab),
@@ -78,10 +79,11 @@ impl cosmic::Application for AppModel {
             market_quotes: Vec::new(),
             config,
             current_index: 0,
+            error_message: None,
         };
 
         let task = Task::perform(fetch_most_active(count), |result| {
-            cosmic::Action::App(Message::MarketLoaded(result.unwrap_or_default()))
+            cosmic::Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
         });
 
         (app, task)
@@ -118,8 +120,12 @@ impl cosmic::Application for AppModel {
     }
 
     fn view(&self) -> Element<'_, Self::Message> {
-        let content =
-            applet::build_applet_content(&self.config, &self.market_quotes, self.current_index);
+        let content = applet::build_applet_content(
+            &self.config,
+            &self.market_quotes,
+            self.current_index,
+            &self.error_message,
+        );
 
         widget::autosize::autosize(
             widget::button::custom(content)
@@ -136,7 +142,12 @@ impl cosmic::Application for AppModel {
             .spacing(6)
             .width(Length::Fill)
             .push(header())
-            .push(maincard(self.active_tab, &self.market_quotes, &self.config));
+            .push(maincard(
+                self.active_tab,
+                &self.market_quotes,
+                &self.config,
+                &self.error_message,
+            ));
 
         self.core.applet.popup_container(content).into()
     }
@@ -175,14 +186,21 @@ impl cosmic::Application for AppModel {
                 }
             }
 
-            Message::MarketLoaded(data) => {
-                self.market_quotes = data;
-            }
+            Message::MarketLoaded(result) => match result {
+                Ok(data) => {
+                    self.market_quotes = data;
+                    self.error_message = None;
+                }
+                Err(err) => {
+                    self.error_message = Some(err);
+                    self.market_quotes.clear();
+                }
+            },
 
             Message::RefreshMarket => {
                 let count = self.config.count_stokes_at_once;
                 return Task::perform(fetch_most_active(count), |result| {
-                    Action::App(Message::MarketLoaded(result.unwrap_or_default()))
+                    Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
                 });
             }
 
