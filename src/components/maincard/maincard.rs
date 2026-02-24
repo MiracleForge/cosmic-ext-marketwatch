@@ -5,7 +5,7 @@ use cosmic::theme::Text;
 use cosmic::widget;
 
 use crate::app::Message;
-use crate::config::{Config, PopupTab};
+use crate::config::{Config, PopupTab, RefreshInterval};
 
 pub fn maincard<'a>(
     active_tab: PopupTab,
@@ -127,7 +127,7 @@ fn render_settings_tab<'a>(config: &'a Config) -> Element<'a, Message> {
         .spacing(12)
         .padding([8, 12])
         .width(Length::Fill)
-        .push(section_header("Settings"))
+        .push(section_header("PANEL"))
         .push(
             widget::row()
                 .width(Length::Fill)
@@ -138,6 +138,64 @@ fn render_settings_tab<'a>(config: &'a Config) -> Element<'a, Message> {
                     widget::toggler(config.show_only_icon).on_toggle(Message::ToggleShowOnlyIcon),
                 ),
         )
-        .push(section_header("Settings2"))
+        .push(section_header("REFRESH"))
+        .push(refresh_row(config))
+        .push(section_header("SUPPORT"))
+        .push(
+            widget::row()
+                .width(Length::Fill)
+                .align_y(Alignment::Center)
+                .push(widget::text("VERSION"))
+                .push(widget::horizontal_space())
+                .push(widget::button::standard(crate::fl!("settings-tip-kofi"))),
+        )
         .into()
+}
+
+fn refresh_row<'a>(config: &'a Config) -> Element<'a, Message> {
+    let intervals = [
+        ("5 min", RefreshInterval::FiveMinutes),
+        ("10 min", RefreshInterval::TenMinutes),
+        ("15 min", RefreshInterval::FifteenMinutes),
+        ("30 min", RefreshInterval::ThirtyMinutes),
+        ("1h", RefreshInterval::OneHour),
+    ];
+
+    let mut row = widget::row()
+        .spacing(0)
+        .width(Length::Fill)
+        .height(Length::Shrink);
+
+    for (label, value) in intervals {
+        row = row.push(
+            widget::container(refresh_button(label, value, config.refresh_interval))
+                .width(Length::FillPortion(1)),
+        );
+    }
+
+    row.into()
+}
+
+fn refresh_button<'a>(
+    label: &'static str,
+    value: RefreshInterval,
+    current: RefreshInterval,
+) -> Element<'a, Message> {
+    let selected = value == current;
+
+    let content = widget::container(widget::text(label))
+        .width(Length::Fill)
+        .align_x(cosmic::iced::alignment::Horizontal::Center);
+
+    let button = widget::button::custom(content)
+        .class(if selected {
+            cosmic::theme::Button::Suggested
+        } else {
+            cosmic::theme::Button::Standard
+        })
+        .width(Length::Fill)
+        .padding([8, 0])
+        .on_press(Message::SetRefreshInterval(value));
+
+    button.into()
 }

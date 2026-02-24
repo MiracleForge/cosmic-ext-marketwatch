@@ -2,10 +2,10 @@
 use crate::components::applet::{self};
 use crate::components::header::header;
 use crate::components::maincard::maincard;
-use crate::config::{Config, PopupTab};
+use crate::config::{Config, PopupTab, RefreshInterval};
 use crate::marketwatch::{MarketQuote, fetch_most_active};
 
-use cosmic::cosmic_config::{self, CosmicConfigEntry, cosmic_config_derive::CosmicConfigEntry};
+use cosmic::cosmic_config::CosmicConfigEntry;
 use cosmic::iced::{Length, Limits, Subscription, window::Id};
 use cosmic::iced_futures::Subscription as IcedSubscription;
 use cosmic::iced_winit::commands::popup::{destroy_popup, get_popup};
@@ -41,6 +41,7 @@ pub enum Message {
     SelectedOverviewTab(PopupTab),
     OpenConfigBUtton,
     ToggleShowOnlyIcon(bool),
+    SetRefreshInterval(RefreshInterval),
 }
 
 impl cosmic::Application for AppModel {
@@ -208,6 +209,10 @@ impl cosmic::Application for AppModel {
                 self.config = config;
             }
 
+            Message::SetRefreshInterval(interval) => {
+                self.config.refresh_interval = interval;
+                self::AppModel::save_config(&self);
+            }
             Message::PreviusWallet => {
                 println!("Change to previous user collection of stocks");
             }

@@ -9,6 +9,8 @@ use std::sync::OnceLock;
 const USER_AGENT: &str =
     "(cosmic-ext-marketwatch, https://github.com/MiracleForge/cosmic-marketwatch)";
 
+const GET_STOKS_BY_SYMBOL: &str =
+    "https://query1.finance.yahoo.com/v8/finance/chart/AAPL?range=5d&interval=1m";
 //
 // HTTP CLIENT
 //
