@@ -9,6 +9,7 @@ use cosmic::cosmic_config::CosmicConfigEntry;
 use cosmic::iced::{Length, Limits, Subscription, window::Id};
 use cosmic::iced_futures::Subscription as IcedSubscription;
 use cosmic::iced_winit::commands::popup::{destroy_popup, get_popup};
+use cosmic::iced_winit::graphics::image::image_rs::open;
 use cosmic::prelude::*;
 use cosmic::{Action, widget};
 
@@ -24,6 +25,7 @@ pub struct AppModel {
     applet_id: widget::Id,
     market_quotes: Vec<MarketQuote>,
     news_items: Vec<YahooNews>,
+    news_expanded: bool,
     config: Config,
     current_index: usize,
     error_message: Option<String>,
@@ -42,8 +44,10 @@ pub enum Message {
     NextWallet,
     SelectedOverviewTab(PopupTab),
     OpenConfigBUtton,
+    OpenNewsLink(String),
     ToggleShowOnlyIcon(bool),
     ToggleShowNews(bool),
+    ToggleNewsExpanded,
     SetRefreshInterval(RefreshInterval),
 }
 
@@ -82,6 +86,7 @@ impl cosmic::Application for AppModel {
             applet_id: widget::Id::unique(),
             market_quotes: Vec::new(),
             news_items: Vec::new(),
+            news_expanded: false,
             config,
             current_index: 0,
             error_message: None,
@@ -151,6 +156,7 @@ impl cosmic::Application for AppModel {
                 self.active_tab,
                 &self.market_quotes,
                 &self.news_items,
+                self.news_expanded,
                 &self.config,
                 &self.error_message,
             ));
@@ -220,6 +226,10 @@ impl cosmic::Application for AppModel {
                 }
             },
 
+            Message::OpenNewsLink(url) => {
+                let _ = std::process::Command::new("xdg-open").arg(url).spawn();
+            }
+
             Message::RefreshMarket => {
                 let count = self.config.count_stokes_at_once;
                 return Task::perform(fetch_most_active(count), |result| {
@@ -273,6 +283,10 @@ impl cosmic::Application for AppModel {
                     self.news_items.clear();
                     self::AppModel::save_config(&self);
                 }
+            }
+
+            Message::ToggleNewsExpanded => {
+                self.news_expanded = !self.news_expanded;
             }
 
             Message::PopupClosed(id) => {

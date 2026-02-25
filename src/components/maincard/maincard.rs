@@ -7,16 +7,25 @@ use cosmic::widget;
 use crate::app::Message;
 use crate::config::{Config, PopupTab, RefreshInterval};
 
+const NEWS_PREVIEW_COUNT: usize = 3;
+
 pub fn maincard<'a>(
     active_tab: PopupTab,
     market_quotes: &'a [MarketQuote],
     news_items: &'a [YahooNews],
+    news_expanded: bool,
     config: &'a Config,
     error_message: &'a Option<String>,
 ) -> Element<'a, Message> {
     match active_tab {
         PopupTab::Settings => render_settings_tab(config),
-        _ => render_quotes(market_quotes, news_items, config, error_message),
+        _ => render_quotes(
+            market_quotes,
+            news_items,
+            news_expanded,
+            config,
+            error_message,
+        ),
     }
 }
 
@@ -42,6 +51,7 @@ fn derive_state<'a>(
 fn render_quotes<'a>(
     market_quotes: &'a [MarketQuote],
     news_items: &'a [YahooNews],
+    news_expanded: bool,
     config: &'a Config,
     error_message: &'a Option<String>,
 ) -> Element<'a, Message> {
@@ -55,7 +65,6 @@ fn render_quotes<'a>(
 
         QuotesState::Error(err) => {
             let friendly = user_friendly_error_message(err);
-
             content
                 .push(
                     widget::column()
@@ -74,15 +83,89 @@ fn render_quotes<'a>(
 
         QuotesState::Ready(quotes) => {
             let col = render_quotes_list(content, quotes);
-
             if config.show_news {
-                let col = col.push(section_header("NEWS")).push(divider());
-                render_news_list(col, news_items).into()
+                col.push(render_news_section(news_items, news_expanded))
+                    .into()
             } else {
                 col.into()
             }
         }
     }
+}
+
+fn render_news_section<'a>(news: &'a [YahooNews], expanded: bool) -> Element<'a, Message> {
+    let has_more = news.len() > NEWS_PREVIEW_COUNT;
+
+    let header_row = widget::row()
+        .align_y(Alignment::Center)
+        .width(Length::Fill)
+        .push(widget::text("NEWS").size(12).class(Text::Accent))
+        .push(widget::horizontal_space())
+        .push_maybe(if has_more {
+            Some(
+                widget::button::standard(if expanded {
+                    "Show less ▲"
+                } else {
+                    "Show more ▼"
+                })
+                .on_press(Message::ToggleNewsExpanded),
+            )
+        } else {
+            None
+        });
+
+    let news_content: Element<'a, Message> = if news.is_empty() {
+        widget::text("No news available.")
+            .size(12)
+            .class(Text::Accent)
+            .into()
+    } else {
+        let visible = if expanded {
+            news
+        } else {
+            &news[..NEWS_PREVIEW_COUNT.min(news.len())]
+        };
+
+        let cards = widget::column()
+            .spacing(6)
+            .width(Length::Fill)
+            .extend(visible.iter().map(|item| news_card(item)));
+
+        if expanded {
+            widget::scrollable(cards)
+                .height(Length::Fixed(300.0))
+                .into()
+        } else {
+            cards.into()
+        }
+    };
+
+    widget::column()
+        .spacing(8)
+        .width(Length::Fill)
+        .push(section_divider())
+        .push(header_row)
+        .push(news_content)
+        .into()
+}
+
+fn news_card<'a>(item: &'a YahooNews) -> Element<'a, Message> {
+    let content = widget::column()
+        .spacing(4)
+        .padding([8, 10])
+        .width(Length::Fill)
+        .push(widget::text(&item.title).size(13))
+        .push(
+            widget::text(item.publisher.as_deref().unwrap_or("Unknown"))
+                .size(11)
+                .class(Text::Accent),
+        );
+
+    widget::button::custom(content)
+        .class(cosmic::theme::Button::MenuItem)
+        .width(Length::Fill)
+        .on_press(Message::OpenNewsLink(item.link.clone()))
+        .into()
 }
 
 fn render_quotes_list<'a>(
@@ -119,45 +202,23 @@ fn render_quotes_list<'a>(
     content
 }
 
-fn render_news_list<'a>(
-    mut content: widget::Column<'a, Message>,
-    news: &'a [YahooNews],
-) -> widget::Column<'a, Message> {
-    if news.is_empty() {
-        return content.push(widget::text("No news available.").class(Text::Accent));
-    }
-
-    for item in news {
-        let row = widget::row()
-            .align_y(Alignment::Center)
-            .width(Length::Fill)
-            .push(
-                widget::container(
-                    widget::column()
-                        .spacing(2)
-                        .push(widget::text(&item.title).size(13))
-                        .push(
-                            widget::text(item.publisher.as_deref().unwrap_or("Unknown"))
-                                .size(11)
-                                .class(Text::Accent),
-                        ),
-                )
-                .width(Length::Fill)
-                .align_x(Alignment::Start),
-            );
-
-        content = content.push(row).push(divider());
-    }
-
-    content
-}
-
 fn divider<'a>() -> Element<'a, Message> {
     widget::container(widget::horizontal_space())
         .width(Length::Fill)
         .height(1)
         .style(|theme: &cosmic::Theme| widget::container::Style {
             background: Some(cosmic::iced::Color::from(theme.cosmic().accent_color()).into()),
+            ..Default::default()
+        })
+        .into()
+}
+
+fn section_divider<'a>() -> Element<'a, Message> {
+    widget::container(widget::horizontal_space())
+        .width(Length::Fill)
+        .height(1)
+        .style(|theme: &cosmic::Theme| widget::container::Style {
+            background: Some(cosmic::iced::Color::from(theme.cosmic().palette.neutral_5).into()),
             ..Default::default()
         })
         .into()
