@@ -1,4 +1,4 @@
-use crate::marketwatch::{MarketQuote, user_friendly_error_message};
+use crate::marketwatch::{MarketQuote, YahooNews, user_friendly_error_message};
 use cosmic::iced::{Alignment, Length};
 use cosmic::prelude::*;
 use cosmic::theme::Text;
@@ -10,12 +10,13 @@ use crate::config::{Config, PopupTab, RefreshInterval};
 pub fn maincard<'a>(
     active_tab: PopupTab,
     market_quotes: &'a [MarketQuote],
+    news_items: &'a [YahooNews],
     config: &'a Config,
     error_message: &'a Option<String>,
 ) -> Element<'a, Message> {
     match active_tab {
         PopupTab::Settings => render_settings_tab(config),
-        _ => render_quotes(market_quotes, error_message),
+        _ => render_quotes(market_quotes, news_items, config, error_message),
     }
 }
 
@@ -40,6 +41,8 @@ fn derive_state<'a>(
 
 fn render_quotes<'a>(
     market_quotes: &'a [MarketQuote],
+    news_items: &'a [YahooNews],
+    config: &'a Config,
     error_message: &'a Option<String>,
 ) -> Element<'a, Message> {
     let content = widget::column()
@@ -69,14 +72,23 @@ fn render_quotes<'a>(
                 .into()
         }
 
-        QuotesState::Ready(quotes) => render_quotes_list(content, quotes),
+        QuotesState::Ready(quotes) => {
+            let col = render_quotes_list(content, quotes);
+
+            if config.show_news {
+                let col = col.push(section_header("NEWS")).push(divider());
+                render_news_list(col, news_items).into()
+            } else {
+                col.into()
+            }
+        }
     }
 }
 
 fn render_quotes_list<'a>(
     mut content: widget::Column<'a, Message>,
     market_quotes: &'a [MarketQuote],
-) -> Element<'a, Message> {
+) -> widget::Column<'a, Message> {
     for quote in market_quotes {
         let color = quote.variation_color();
 
@@ -104,7 +116,40 @@ fn render_quotes_list<'a>(
         content = content.push(row).push(divider());
     }
 
-    content.into()
+    content
+}
+
+fn render_news_list<'a>(
+    mut content: widget::Column<'a, Message>,
+    news: &'a [YahooNews],
+) -> widget::Column<'a, Message> {
+    if news.is_empty() {
+        return content.push(widget::text("No news available.").class(Text::Accent));
+    }
+
+    for item in news {
+        let row = widget::row()
+            .align_y(Alignment::Center)
+            .width(Length::Fill)
+            .push(
+                widget::container(
+                    widget::column()
+                        .spacing(2)
+                        .push(widget::text(&item.title).size(13))
+                        .push(
+                            widget::text(item.publisher.as_deref().unwrap_or("Unknown"))
+                                .size(11)
+                                .class(Text::Accent),
+                        ),
+                )
+                .width(Length::Fill)
+                .align_x(Alignment::Start),
+            );
+
+        content = content.push(row).push(divider());
+    }
+
+    content
 }
 
 fn divider<'a>() -> Element<'a, Message> {
@@ -137,6 +182,14 @@ fn render_settings_tab<'a>(config: &'a Config) -> Element<'a, Message> {
                 .push(
                     widget::toggler(config.show_only_icon).on_toggle(Message::ToggleShowOnlyIcon),
                 ),
+        )
+        .push(
+            widget::row()
+                .width(Length::Fill)
+                .align_y(Alignment::Center)
+                .push(widget::text("Show news"))
+                .push(widget::horizontal_space())
+                .push(widget::toggler(config.show_news).on_toggle(Message::ToggleShowNews)),
         )
         .push(section_header("REFRESH"))
         .push(refresh_row(config))

@@ -59,6 +59,7 @@ pub struct Config {
     pub panel_stoke_rotation_interval: u64,
     pub refresh_interval: RefreshInterval,
     #[serde(default = "default_show_icon_in_panel")]
+    pub show_news: bool,
     pub show_only_icon: bool,
 }
 
@@ -76,6 +77,7 @@ impl Default for Config {
             panel_stoke_rotation_interval: 60,
             refresh_interval: RefreshInterval::default(),
             show_only_icon: true,
+            show_news: true,
         }
     }
 }

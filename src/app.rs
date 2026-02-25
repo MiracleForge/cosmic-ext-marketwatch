@@ -3,7 +3,7 @@ use crate::components::applet::{self};
 use crate::components::header::header;
 use crate::components::maincard::maincard;
 use crate::config::{Config, PopupTab, RefreshInterval};
-use crate::marketwatch::{MarketQuote, fetch_most_active};
+use crate::marketwatch::{MarketQuote, YahooNews, fetch_most_active, fetch_news_for_symbols};
 
 use cosmic::cosmic_config::CosmicConfigEntry;
 use cosmic::iced::{Length, Limits, Subscription, window::Id};
@@ -23,6 +23,7 @@ pub struct AppModel {
     popup: Option<Id>,
     applet_id: widget::Id,
     market_quotes: Vec<MarketQuote>,
+    news_items: Vec<YahooNews>,
     config: Config,
     current_index: usize,
     error_message: Option<String>,
@@ -36,11 +37,13 @@ pub enum Message {
     PopupClosed(Id),
     UpdateConfig(Config),
     MarketLoaded(Result<Vec<MarketQuote>, String>),
+    NewsLoaded(Result<Vec<YahooNews>, String>),
     PreviusWallet,
     NextWallet,
     SelectedOverviewTab(PopupTab),
     OpenConfigBUtton,
     ToggleShowOnlyIcon(bool),
+    ToggleShowNews(bool),
     SetRefreshInterval(RefreshInterval),
 }
 
@@ -78,6 +81,7 @@ impl cosmic::Application for AppModel {
             active_tab: PopupTab::Overview,
             applet_id: widget::Id::unique(),
             market_quotes: Vec::new(),
+            news_items: Vec::new(),
             config,
             current_index: 0,
             error_message: None,
@@ -146,6 +150,7 @@ impl cosmic::Application for AppModel {
             .push(maincard(
                 self.active_tab,
                 &self.market_quotes,
+                &self.news_items,
                 &self.config,
                 &self.error_message,
             ));
@@ -189,12 +194,29 @@ impl cosmic::Application for AppModel {
 
             Message::MarketLoaded(result) => match result {
                 Ok(data) => {
+                    let symbols: Vec<String> =
+                        data.iter().take(3).map(|q| q.symbol.clone()).collect();
                     self.market_quotes = data;
                     self.error_message = None;
+
+                    if self.config.show_news {
+                        return Task::perform(fetch_news_for_symbols(symbols, 3), |result| {
+                            Action::App(Message::NewsLoaded(result.map_err(|e| e.to_string())))
+                        });
+                    }
                 }
                 Err(err) => {
                     self.error_message = Some(err);
                     self.market_quotes.clear();
+                }
+            },
+
+            Message::NewsLoaded(result) => match result {
+                Ok(news) => {
+                    self.news_items = news;
+                }
+                Err(err) => {
+                    tracing::warn!("Failed to load news: {}", err);
                 }
             },
 
@@ -230,8 +252,27 @@ impl cosmic::Application for AppModel {
 
             Message::ToggleShowOnlyIcon(new_value) => {
                 self.config.show_only_icon = new_value;
-                self.applet_id = widget::Id::unique(); // reset do cache do autosize
+                self.applet_id = widget::Id::unique();
                 self::AppModel::save_config(&self);
+            }
+
+            Message::ToggleShowNews(new_value) => {
+                self.config.show_news = new_value;
+                if new_value {
+                    let symbols: Vec<String> = self
+                        .market_quotes
+                        .iter()
+                        .take(3)
+                        .map(|q| q.symbol.clone())
+                        .collect();
+                    self::AppModel::save_config(&self);
+                    return Task::perform(fetch_news_for_symbols(symbols, 3), |result| {
+                        Action::App(Message::NewsLoaded(result.map_err(|e| e.to_string())))
+                    });
+                } else {
+                    self.news_items.clear();
+                    self::AppModel::save_config(&self);
+                }
             }
 
             Message::PopupClosed(id) => {

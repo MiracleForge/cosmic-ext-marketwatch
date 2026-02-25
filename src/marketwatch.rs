@@ -3,6 +3,7 @@
 // Inspired by cosmic-ext-applet-tempest
 // https://codeberg.org/VintageTechie/cosmic-ext-applet-tempest
 
+use cosmic::iced::Color;
 use serde::Deserialize;
 use std::sync::OnceLock;
 
@@ -74,7 +75,19 @@ struct YahooQuote {
     symbol: String,
 }
 
-use cosmic::iced::Color;
+#[derive(Debug, Clone, Deserialize)]
+pub struct YahooNews {
+    pub title: String,
+    pub link: String,
+    pub publisher: Option<String>,
+    #[serde(rename = "providerPublishTime")]
+    pub publish_time: Option<u64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct SearchResponse {
+    news: Option<Vec<YahooNews>>,
+}
 
 pub struct VariationStyle {
     pub color: Color,
@@ -154,6 +167,29 @@ pub async fn fetch_most_active(count: u64) -> Result<Vec<MarketQuote>, reqwest::
         .collect();
 
     Ok(quotes)
+}
+
+pub async fn fetch_news_for_symbols(
+    symbols: Vec<String>,
+    news_per_symbol: u64,
+) -> Result<Vec<YahooNews>, reqwest::Error> {
+    let mut all_news = Vec::new();
+
+    for symbol in symbols.iter().take(3) {
+        let url = format!(
+            "https://query1.finance.yahoo.com/v1/finance/search?q={}&newsCount={}&quotesCount=0",
+            symbol, news_per_symbol
+        );
+
+        let response = http_client().get(&url).send().await?;
+        let data: SearchResponse = response.json().await?;
+
+        if let Some(news) = data.news {
+            all_news.extend(news);
+        }
+    }
+
+    Ok(all_news)
 }
 
 pub fn user_friendly_error_message(err: &str) -> &'static str {
