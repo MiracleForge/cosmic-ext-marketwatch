@@ -9,7 +9,6 @@ use cosmic::cosmic_config::CosmicConfigEntry;
 use cosmic::iced::{Length, Limits, Subscription, window::Id};
 use cosmic::iced_futures::Subscription as IcedSubscription;
 use cosmic::iced_winit::commands::popup::{destroy_popup, get_popup};
-use cosmic::iced_winit::graphics::image::image_rs::open;
 use cosmic::prelude::*;
 use cosmic::{Action, widget};
 

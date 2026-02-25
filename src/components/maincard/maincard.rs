@@ -82,7 +82,13 @@ fn render_quotes<'a>(
         }
 
         QuotesState::Ready(quotes) => {
-            let col = render_quotes_list(content, quotes);
+            // Cabeçalho da categoria MARKET com accent divider abaixo
+            let col = content
+                .push(category_header("MARKET"))
+                .push(category_divider());
+
+            let col = render_quotes_list(col, quotes);
+
             if config.show_news {
                 col.push(render_news_section(news_items, news_expanded))
                     .into()
@@ -143,7 +149,7 @@ fn render_news_section<'a>(news: &'a [YahooNews], expanded: bool) -> Element<'a,
     widget::column()
         .spacing(8)
         .width(Length::Fill)
-        .push(section_divider())
+        .push(category_divider())
         .push(header_row)
         .push(news_content)
         .into()
@@ -196,13 +202,14 @@ fn render_quotes_list<'a>(
                 .align_x(Alignment::End),
             );
 
-        content = content.push(row).push(divider());
+        content = content.push(row).push(item_divider());
     }
 
     content
 }
 
-fn divider<'a>() -> Element<'a, Message> {
+/// Divisor entre categorias (accent color)
+fn category_divider<'a>() -> Element<'a, Message> {
     widget::container(widget::horizontal_space())
         .width(Length::Fill)
         .height(1)
@@ -213,7 +220,8 @@ fn divider<'a>() -> Element<'a, Message> {
         .into()
 }
 
-fn section_divider<'a>() -> Element<'a, Message> {
+/// Divisor entre itens dentro de uma categoria (neutro/sutil)
+fn item_divider<'a>() -> Element<'a, Message> {
     widget::container(widget::horizontal_space())
         .width(Length::Fill)
         .height(1)
@@ -224,7 +232,8 @@ fn section_divider<'a>() -> Element<'a, Message> {
         .into()
 }
 
-fn section_header<'a>(label: &'a str) -> Element<'a, Message> {
+/// Cabeçalho de categoria (ex: "MARKET", "NEWS")
+fn category_header<'a>(label: &'a str) -> Element<'a, Message> {
     widget::text(label).size(12).class(Text::Accent).into()
 }
 
@@ -233,7 +242,7 @@ fn render_settings_tab<'a>(config: &'a Config) -> Element<'a, Message> {
         .spacing(12)
         .padding([8, 12])
         .width(Length::Fill)
-        .push(section_header("PANEL"))
+        .push(category_header("PANEL"))
         .push(
             widget::row()
                 .width(Length::Fill)
@@ -252,9 +261,9 @@ fn render_settings_tab<'a>(config: &'a Config) -> Element<'a, Message> {
                 .push(widget::horizontal_space())
                 .push(widget::toggler(config.show_news).on_toggle(Message::ToggleShowNews)),
         )
-        .push(section_header("REFRESH"))
+        .push(category_header("REFRESH"))
         .push(refresh_row(config))
-        .push(section_header("SUPPORT"))
+        .push(category_header("SUPPORT"))
         .push(
             widget::row()
                 .width(Length::Fill)
