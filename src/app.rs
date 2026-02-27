@@ -213,7 +213,18 @@ impl cosmic::Application for AppModel {
                 &self.stock_search_input,
                 &self.stock_search_results,
             ));
-        self.core.applet.popup_container(content).into()
+
+        self.core
+            .applet
+            .popup_container(content)
+            .limits(
+                Limits::NONE
+                    .min_width(480.0)
+                    .max_width(480.0)
+                    .min_height(200.0)
+                    .max_height(1080.0),
+            )
+            .into()
     }
 
     fn update(&mut self, message: Self::Message) -> Task<cosmic::Action<Self::Message>> {
