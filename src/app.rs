@@ -384,13 +384,17 @@ impl cosmic::Application for AppModel {
                 self.stock_search_input.clear();
                 self.stock_search_results.clear();
                 self.rename_mode = false;
-                self.error_message = None; // <-- adicione isso
+                self.error_message = None;
+
+                // 🔥 IMPORTANTE: limpa dados antigos
+                self.market_quotes.clear();
+                self.news_items.clear();
 
                 if index > 0 {
-                    self.market_quotes.clear();
                     if let Some(wallet) = self.wallets.get(index - 1) {
                         if !wallet.symbols.is_empty() {
                             let symbols = wallet.symbols.clone();
+
                             return Task::perform(fetch_by_symbols(symbols), |result| {
                                 Action::App(Message::MarketLoaded(
                                     result.map_err(|e| e.to_string()),
@@ -398,14 +402,17 @@ impl cosmic::Application for AppModel {
                             });
                         }
                     }
+
+                    // carteira vazia
+                    return Task::none();
                 } else {
                     let count = self.config.count_stokes_at_once;
+
                     return Task::perform(fetch_most_active(count), |result| {
                         Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
                     });
                 }
             }
-
             Message::PreviusWallet => {
                 let total = self.wallets.len() + 1;
                 if total <= 1 {

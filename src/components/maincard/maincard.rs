@@ -36,6 +36,9 @@ pub fn maincard<'a>(
                 render_wallet(
                     wallet_symbols,
                     market_quotes,
+                    news_items,
+                    news_expanded,
+                    config,
                     stock_search_input,
                     stock_search_results,
                     error_message,
@@ -48,6 +51,9 @@ pub fn maincard<'a>(
 fn render_wallet<'a>(
     symbols: &'a [String],
     quotes: &'a [MarketQuote],
+    news_items: &'a [YahooNews],
+    news_expanded: bool,
+    config: &'a Config,
     search_input: &'a str,
     search_results: &'a [String],
     _error_message: &'a Option<String>,
@@ -153,6 +159,11 @@ fn render_wallet<'a>(
         }
     }
 
+    // 🔥 NEWS AGORA TAMBÉM APARECE NO WALLET
+    if config.show_news {
+        col = col.push(render_news_section(news_items, news_expanded));
+    }
+
     col.into()
 }
 
@@ -192,20 +203,7 @@ fn render_quotes<'a>(
 
         QuotesState::Error(err) => {
             let friendly = user_friendly_error_message(err);
-            content
-                .push(
-                    widget::column()
-                        .spacing(8)
-                        .align_x(Alignment::Center)
-                        .push(
-                            widget::icon::from_name("dialog-error-symbolic")
-                                .size(24)
-                                .symbolic(true),
-                        )
-                        .push(widget::text("Connection Problem").class(Text::Accent))
-                        .push(widget::text(friendly)),
-                )
-                .into()
+            content.push(widget::text(friendly)).into()
         }
 
         QuotesState::Ready(quotes) => {
