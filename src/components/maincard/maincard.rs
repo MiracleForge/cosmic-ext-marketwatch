@@ -50,7 +50,7 @@ fn render_wallet<'a>(
     quotes: &'a [MarketQuote],
     search_input: &'a str,
     search_results: &'a [String],
-    error_message: &'a Option<String>,
+    _error_message: &'a Option<String>,
 ) -> Element<'a, Message> {
     let mut col = widget::column()
         .spacing(12)
@@ -63,7 +63,6 @@ fn render_wallet<'a>(
             .width(Length::Fill),
     );
 
-    // Resultados do autocomplete
     if !search_results.is_empty() {
         let results_col = widget::column()
             .spacing(2)
@@ -92,16 +91,65 @@ fn render_wallet<'a>(
                 let row = widget::row()
                     .align_y(Alignment::Center)
                     .width(Length::Fill)
-                    .push(widget::text(symbol).width(Length::Fill))
                     .push(
-                        widget::button::icon(widget::icon::from_name("list-remove-symbolic"))
-                            .on_press(Message::RemoveStockFromWallet(symbol.clone()))
-                            .padding([4, 8]),
+                        widget::container(widget::text::heading(symbol).class(Text::Default))
+                            .width(Length::FillPortion(2))
+                            .align_x(Alignment::Start),
+                    )
+                    .push(
+                        widget::container(widget::text("Loading..."))
+                            .width(Length::FillPortion(2))
+                            .align_x(Alignment::Center),
+                    )
+                    .push(
+                        widget::container(
+                            widget::button::icon(widget::icon::from_name("list-remove-symbolic"))
+                                .on_press(Message::RemoveStockFromWallet(symbol.clone()))
+                                .padding([4, 8]),
+                        )
+                        .width(Length::FillPortion(1))
+                        .align_x(Alignment::End),
                     );
                 col = col.push(row).push(item_divider());
             }
         } else {
-            col = render_quotes_list(col, quotes);
+            for quote in quotes {
+                let color = quote.variation_color();
+                let row = widget::row()
+                    .align_y(Alignment::Center)
+                    .width(Length::Fill)
+                    .push(
+                        widget::container(
+                            widget::text::heading(&quote.symbol).class(Text::Default),
+                        )
+                        .width(Length::FillPortion(2))
+                        .align_x(Alignment::Start),
+                    )
+                    .push(
+                        widget::container(
+                            widget::text(quote.formatted_price()).class(Text::Color(color)),
+                        )
+                        .width(Length::FillPortion(2))
+                        .align_x(Alignment::Center),
+                    )
+                    .push(
+                        widget::container(
+                            widget::text(quote.formatted_variation()).class(Text::Color(color)),
+                        )
+                        .width(Length::FillPortion(1))
+                        .align_x(Alignment::Center),
+                    )
+                    .push(
+                        widget::container(
+                            widget::button::icon(widget::icon::from_name("list-remove-symbolic"))
+                                .on_press(Message::RemoveStockFromWallet(quote.symbol.clone()))
+                                .padding([4, 8]),
+                        )
+                        .width(Length::FillPortion(1))
+                        .align_x(Alignment::End),
+                    );
+                col = col.push(row).push(item_divider());
+            }
         }
     }
 

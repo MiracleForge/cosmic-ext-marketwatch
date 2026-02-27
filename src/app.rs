@@ -6,8 +6,8 @@ use crate::components::wallet::wallet::{load_wallets, save_wallets};
 use crate::components::wallet::{Wallet, wallet};
 use crate::config::{Config, PopupTab, RefreshInterval};
 use crate::marketwatch::{
-    MarketQuote, YahooNews, fetch_most_active, fetch_news_for_symbols, search_symbols,
-    user_friendly_error_message,
+    MarketQuote, YahooNews, fetch_by_symbols, fetch_most_active, fetch_news_for_symbols,
+    search_symbols, user_friendly_error_message,
 };
 
 use cosmic::cosmic_config::CosmicConfigEntry;
@@ -34,7 +34,7 @@ pub struct AppModel {
     current_index: usize,
     error_message: Option<String>,
     wallets: Vec<Wallet>,
-    current_wallet_index: usize, // 0 = Trending, 1+ = carteiras do usuário
+    current_wallet_index: usize, // 0 = Trending, 1+ = user wallets
 
     rename_mode: bool,
     rename_input: String,
@@ -375,6 +375,7 @@ impl cosmic::Application for AppModel {
                     .push(Wallet::new(format!("Carteira {}", index)));
                 self.current_wallet_index = self.wallets.len();
                 self.market_quotes.clear();
+                self.error_message = None; // <-- adicione isso
                 save_wallets(&self.wallets);
             }
 
@@ -383,13 +384,18 @@ impl cosmic::Application for AppModel {
                 self.stock_search_input.clear();
                 self.stock_search_results.clear();
                 self.rename_mode = false;
+                self.error_message = None; // <-- adicione isso
 
                 if index > 0 {
                     self.market_quotes.clear();
-
                     if let Some(wallet) = self.wallets.get(index - 1) {
                         if !wallet.symbols.is_empty() {
-                            let _symbols = wallet.symbols.clone();
+                            let symbols = wallet.symbols.clone();
+                            return Task::perform(fetch_by_symbols(symbols), |result| {
+                                Action::App(Message::MarketLoaded(
+                                    result.map_err(|e| e.to_string()),
+                                ))
+                            });
                         }
                     }
                 } else {
@@ -475,6 +481,13 @@ impl cosmic::Application for AppModel {
                         wallet.symbols.push(symbol);
                         save_wallets(&self.wallets);
                     }
+                    // refaz o fetch com os símbolos atualizados
+                    let symbols = self.wallets[self.current_wallet_index - 1].symbols.clone();
+                    self.stock_search_input.clear();
+                    self.stock_search_results.clear();
+                    return Task::perform(fetch_by_symbols(symbols), |result| {
+                        Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
+                    });
                 }
                 self.stock_search_input.clear();
                 self.stock_search_results.clear();

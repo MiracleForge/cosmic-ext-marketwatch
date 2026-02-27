@@ -95,6 +95,18 @@ pub struct VariationStyle {
     pub icon: &'static str,
 }
 
+#[derive(Debug, Deserialize)]
+struct QuoteSearchResponse {
+    quotes: Option<Vec<QuoteSearchItem>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct QuoteSearchItem {
+    symbol: String,
+    #[serde(rename = "shortname")]
+    short_name: Option<String>,
+}
+
 impl MarketQuote {
     pub fn formatted_price(&self) -> String {
         match self.currency.as_str() {
@@ -135,7 +147,8 @@ impl MarketQuote {
             Color::from_rgb(0.94, 0.27, 0.27)
         }
     }
-} //
+}
+//
 // FETCH FUNCTIONS
 //
 
@@ -205,18 +218,6 @@ pub fn user_friendly_error_message(err: &str) -> &'static str {
     }
 }
 
-#[derive(Debug, Deserialize)]
-struct QuoteSearchResponse {
-    quotes: Option<Vec<QuoteSearchItem>>,
-}
-
-#[derive(Debug, Deserialize)]
-struct QuoteSearchItem {
-    symbol: String,
-    #[serde(rename = "shortname")]
-    short_name: Option<String>,
-}
-
 pub async fn search_symbols(query: String) -> Result<Vec<String>, reqwest::Error> {
     let url = format!(
         "https://query1.finance.yahoo.com/v1/finance/search?q={}&quotesCount=6&newsCount=0",
@@ -240,4 +241,79 @@ pub async fn search_symbols(query: String) -> Result<Vec<String>, reqwest::Error
         .collect();
 
     Ok(symbols)
+}
+
+#[derive(Debug, Deserialize)]
+struct QuoteResponse {
+    #[serde(rename = "quoteResponse")]
+    quote_response: QuoteResponseInner,
+}
+
+#[derive(Debug, Deserialize)]
+struct QuoteResponseInner {
+    result: Option<Vec<YahooQuote>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ChartResponse {
+    chart: Chart,
+}
+
+#[derive(Debug, Deserialize)]
+struct Chart {
+    result: Option<Vec<ChartResult>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ChartResult {
+    meta: ChartMeta,
+}
+
+#[derive(Debug, Deserialize)]
+struct ChartMeta {
+    symbol: String,
+    currency: Option<String>,
+    regularMarketPrice: Option<f64>,
+    chartPreviousClose: Option<f64>,
+}
+pub async fn fetch_by_symbols(symbols: Vec<String>) -> Result<Vec<MarketQuote>, reqwest::Error> {
+    let mut quotes = Vec::new();
+
+    for symbol in symbols {
+        let url = format!(
+            "https://query1.finance.yahoo.com/v8/finance/chart/{}?range=1d&interval=1d",
+            symbol
+        );
+
+        println!("URL: {}", url);
+
+        let response = http_client().get(&url).send().await?;
+        let data: ChartResponse = response.json().await?;
+
+        if let Some(results) = data.chart.result {
+            if let Some(result) = results.first() {
+                let meta = &result.meta;
+
+                let price = meta.regularMarketPrice.unwrap_or(0.0);
+                let previous = meta.chartPreviousClose.unwrap_or(price);
+                let change = price - previous;
+                let change_percent = if previous != 0.0 {
+                    (change / previous) * 100.0
+                } else {
+                    0.0
+                };
+
+                quotes.push(MarketQuote {
+                    symbol: meta.symbol.clone(),
+                    name: meta.symbol.clone(),
+                    price,
+                    change,
+                    change_percent,
+                    currency: meta.currency.clone().unwrap_or("USD".to_string()),
+                });
+            }
+        }
+    }
+
+    Ok(quotes)
 }
