@@ -11,22 +11,101 @@ const NEWS_PREVIEW_COUNT: usize = 3;
 
 pub fn maincard<'a>(
     active_tab: PopupTab,
+    current_wallet_index: usize,
+    wallet_symbols: &'a [String],
     market_quotes: &'a [MarketQuote],
     news_items: &'a [YahooNews],
     news_expanded: bool,
     config: &'a Config,
     error_message: &'a Option<String>,
+    stock_search_input: &'a str,
+    stock_search_results: &'a [String],
 ) -> Element<'a, Message> {
     match active_tab {
         PopupTab::Settings => render_settings_tab(config),
-        _ => render_quotes(
-            market_quotes,
-            news_items,
-            news_expanded,
-            config,
-            error_message,
-        ),
+        _ => {
+            if current_wallet_index == 0 {
+                render_quotes(
+                    market_quotes,
+                    news_items,
+                    news_expanded,
+                    config,
+                    error_message,
+                )
+            } else {
+                render_wallet(
+                    wallet_symbols,
+                    market_quotes,
+                    stock_search_input,
+                    stock_search_results,
+                    error_message,
+                )
+            }
+        }
     }
+}
+
+fn render_wallet<'a>(
+    symbols: &'a [String],
+    quotes: &'a [MarketQuote],
+    search_input: &'a str,
+    search_results: &'a [String],
+    error_message: &'a Option<String>,
+) -> Element<'a, Message> {
+    let mut col = widget::column()
+        .spacing(12)
+        .width(Length::Fill)
+        .padding([8, 12]);
+
+    col = col.push(category_header("ADICIONAR ATIVO")).push(
+        widget::text_input("Ex: AAPL, PETR4...", search_input)
+            .on_input(Message::StockSearchInput)
+            .width(Length::Fill),
+    );
+
+    // Resultados do autocomplete
+    if !search_results.is_empty() {
+        let results_col = widget::column()
+            .spacing(2)
+            .extend(search_results.iter().map(|label| {
+                widget::button::standard(label.as_str())
+                    .on_press(Message::AddStockToWallet(label.clone()))
+                    .width(Length::Fill)
+                    .into()
+            }));
+        col = col.push(results_col);
+    }
+
+    if symbols.is_empty() && quotes.is_empty() {
+        col = col.push(category_divider()).push(
+            widget::text("Nenhum ativo adicionado ainda.")
+                .size(12)
+                .class(cosmic::theme::Text::Accent),
+        );
+    } else {
+        col = col
+            .push(category_header("MINHA CARTEIRA"))
+            .push(category_divider());
+
+        if quotes.is_empty() {
+            for symbol in symbols {
+                let row = widget::row()
+                    .align_y(Alignment::Center)
+                    .width(Length::Fill)
+                    .push(widget::text(symbol).width(Length::Fill))
+                    .push(
+                        widget::button::icon(widget::icon::from_name("list-remove-symbolic"))
+                            .on_press(Message::RemoveStockFromWallet(symbol.clone()))
+                            .padding([4, 8]),
+                    );
+                col = col.push(row).push(item_divider());
+            }
+        } else {
+            col = render_quotes_list(col, quotes);
+        }
+    }
+
+    col.into()
 }
 
 enum QuotesState<'a> {
@@ -82,7 +161,6 @@ fn render_quotes<'a>(
         }
 
         QuotesState::Ready(quotes) => {
-            // Cabeçalho da categoria MARKET com accent divider abaixo
             let col = content
                 .push(category_header("MARKET"))
                 .push(category_divider());
@@ -208,7 +286,6 @@ fn render_quotes_list<'a>(
     content
 }
 
-/// Divisor entre categorias (accent color)
 fn category_divider<'a>() -> Element<'a, Message> {
     widget::container(widget::horizontal_space())
         .width(Length::Fill)
@@ -220,7 +297,6 @@ fn category_divider<'a>() -> Element<'a, Message> {
         .into()
 }
 
-/// Divisor entre itens dentro de uma categoria (neutro/sutil)
 fn item_divider<'a>() -> Element<'a, Message> {
     widget::container(widget::horizontal_space())
         .width(Length::Fill)
@@ -232,7 +308,6 @@ fn item_divider<'a>() -> Element<'a, Message> {
         .into()
 }
 
-/// Cabeçalho de categoria (ex: "MARKET", "NEWS")
 fn category_header<'a>(label: &'a str) -> Element<'a, Message> {
     widget::text(label).size(12).class(Text::Accent).into()
 }

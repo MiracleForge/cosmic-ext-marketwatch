@@ -4,7 +4,8 @@
 // https://codeberg.org/VintageTechie/cosmic-ext-applet-tempest
 
 use cosmic::iced::Color;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 use std::sync::OnceLock;
 
 const USER_AGENT: &str =
@@ -202,4 +203,41 @@ pub fn user_friendly_error_message(err: &str) -> &'static str {
     } else {
         "Something went wrong while fetching market data."
     }
+}
+
+#[derive(Debug, Deserialize)]
+struct QuoteSearchResponse {
+    quotes: Option<Vec<QuoteSearchItem>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct QuoteSearchItem {
+    symbol: String,
+    #[serde(rename = "shortname")]
+    short_name: Option<String>,
+}
+
+pub async fn search_symbols(query: String) -> Result<Vec<String>, reqwest::Error> {
+    let url = format!(
+        "https://query1.finance.yahoo.com/v1/finance/search?q={}&quotesCount=6&newsCount=0",
+        query
+    );
+
+    let response = http_client().get(&url).send().await?;
+    let data: QuoteSearchResponse = response.json().await?;
+
+    let symbols = data
+        .quotes
+        .unwrap_or_default()
+        .into_iter()
+        .map(|q| {
+            let label = q
+                .short_name
+                .map(|n| format!("{} — {}", q.symbol, n))
+                .unwrap_or(q.symbol.clone());
+            label
+        })
+        .collect();
+
+    Ok(symbols)
 }

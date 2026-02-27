@@ -2,9 +2,12 @@
 use crate::components::applet::{self};
 use crate::components::header::header;
 use crate::components::maincard::maincard;
+use crate::components::wallet::wallet::{load_wallets, save_wallets};
+use crate::components::wallet::{Wallet, wallet};
 use crate::config::{Config, PopupTab, RefreshInterval};
 use crate::marketwatch::{
-    MarketQuote, YahooNews, fetch_most_active, fetch_news_for_symbols, user_friendly_error_message,
+    MarketQuote, YahooNews, fetch_most_active, fetch_news_for_symbols, search_symbols,
+    user_friendly_error_message,
 };
 
 use cosmic::cosmic_config::CosmicConfigEntry;
@@ -30,6 +33,15 @@ pub struct AppModel {
     config: Config,
     current_index: usize,
     error_message: Option<String>,
+    wallets: Vec<Wallet>,
+    current_wallet_index: usize, // 0 = Trending, 1+ = carteiras do usuário
+
+    rename_mode: bool,
+    rename_input: String,
+
+    stock_search_input: String,
+    stock_search_results: Vec<String>,
+    stock_search_loading: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -51,6 +63,24 @@ pub enum Message {
     ToggleNewsExpanded,
     SetRefreshInterval(RefreshInterval),
     SetNumberOfNewsBySymbols(String),
+
+    // wallet navegation
+    SwitchWallet(usize),
+
+    // wallet management
+    AddWallet,
+    DeleteCurrentWallet,
+    RenameWallet(String),
+    ConfirmRenameWallet,
+    ToggleRenameMode,
+
+    // Stocks on wallet
+    AddStockToWallet(String),
+    RemoveStockFromWallet(String),
+
+    // Autocomplete
+    StockSearchInput(String),
+    StockSearchResults(Result<Vec<String>, String>),
 }
 
 impl cosmic::Application for AppModel {
@@ -92,6 +122,13 @@ impl cosmic::Application for AppModel {
             config,
             current_index: 0,
             error_message: None,
+            wallets: load_wallets(),
+            current_wallet_index: 0,
+            rename_mode: false,
+            rename_input: String::new(),
+            stock_search_input: String::new(),
+            stock_search_results: Vec::new(),
+            stock_search_loading: false,
         };
 
         let task = Task::perform(fetch_most_active(count), |result| {
@@ -153,16 +190,29 @@ impl cosmic::Application for AppModel {
             .padding(0)
             .spacing(6)
             .width(Length::Fill)
-            .push(header())
+            .push(header(
+                self.current_wallet_index,
+                self.wallets
+                    .get(self.current_wallet_index.saturating_sub(1))
+                    .map(|w| w.name.as_str()),
+                self.rename_mode,
+                &self.rename_input,
+            ))
             .push(maincard(
                 self.active_tab,
+                self.current_wallet_index,
+                self.wallets
+                    .get(self.current_wallet_index.saturating_sub(1))
+                    .map(|w| w.symbols.as_slice())
+                    .unwrap_or(&[]),
                 &self.market_quotes,
                 &self.news_items,
                 self.news_expanded,
                 &self.config,
                 &self.error_message,
+                &self.stock_search_input,
+                &self.stock_search_results,
             ));
-
         self.core.applet.popup_container(content).into()
     }
 
@@ -258,14 +308,6 @@ impl cosmic::Application for AppModel {
                 }
             }
 
-            Message::PreviusWallet => {
-                println!("Change to previous user collection of stocks");
-            }
-
-            Message::NextWallet => {
-                println!("Change to next user collection of stocks");
-            }
-
             Message::OpenConfigBUtton => {
                 self.active_tab = match self.active_tab {
                     PopupTab::Settings => PopupTab::Overview,
@@ -314,6 +356,139 @@ impl cosmic::Application for AppModel {
 
             Message::SelectedOverviewTab(tab) => {
                 self.active_tab = tab;
+            }
+
+            Message::AddWallet => {
+                let index = self.wallets.len() + 1;
+                self.wallets
+                    .push(Wallet::new(format!("Carteira {}", index)));
+                self.current_wallet_index = self.wallets.len();
+                self.market_quotes.clear();
+                save_wallets(&self.wallets);
+            }
+
+            Message::SwitchWallet(index) => {
+                self.current_wallet_index = index;
+                self.stock_search_input.clear();
+                self.stock_search_results.clear();
+                self.rename_mode = false;
+
+                if index > 0 {
+                    self.market_quotes.clear();
+
+                    if let Some(wallet) = self.wallets.get(index - 1) {
+                        if !wallet.symbols.is_empty() {
+                            let _symbols = wallet.symbols.clone();
+                        }
+                    }
+                } else {
+                    let count = self.config.count_stokes_at_once;
+                    return Task::perform(fetch_most_active(count), |result| {
+                        Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
+                    });
+                }
+            }
+
+            Message::PreviusWallet => {
+                let total = self.wallets.len() + 1;
+                if total <= 1 {
+                    return Task::none();
+                }
+                let new_index = if self.current_wallet_index == 0 {
+                    total - 1
+                } else {
+                    self.current_wallet_index - 1
+                };
+                return self.update(Message::SwitchWallet(new_index));
+            }
+
+            Message::NextWallet => {
+                let total = self.wallets.len() + 1;
+                if total <= 1 {
+                    return Task::none();
+                }
+                let new_index = (self.current_wallet_index + 1) % total;
+                return self.update(Message::SwitchWallet(new_index));
+            }
+
+            Message::ToggleRenameMode => {
+                self.rename_mode = !self.rename_mode;
+                if self.rename_mode && self.current_wallet_index > 0 {
+                    self.rename_input = self.wallets[self.current_wallet_index - 1].name.clone();
+                }
+            }
+
+            Message::RenameWallet(val) => {
+                self.rename_input = val;
+            }
+
+            Message::ConfirmRenameWallet => {
+                if self.current_wallet_index > 0 && !self.rename_input.trim().is_empty() {
+                    self.wallets[self.current_wallet_index - 1].name =
+                        self.rename_input.trim().to_string();
+                    save_wallets(&self.wallets);
+                }
+                self.rename_mode = false;
+            }
+
+            Message::StockSearchInput(val) => {
+                self.stock_search_input = val.clone();
+                if val.len() >= 2 {
+                    self.stock_search_loading = true;
+                    return Task::perform(search_symbols(val), |result| {
+                        Action::App(Message::StockSearchResults(
+                            result.map_err(|e| e.to_string()),
+                        ))
+                    });
+                } else {
+                    self.stock_search_results.clear();
+                }
+            }
+
+            Message::StockSearchResults(result) => {
+                self.stock_search_loading = false;
+                if let Ok(results) = result {
+                    self.stock_search_results = results;
+                }
+            }
+
+            Message::AddStockToWallet(symbol_label) => {
+                let symbol = symbol_label
+                    .split(" — ")
+                    .next()
+                    .unwrap_or(&symbol_label)
+                    .to_string();
+                if self.current_wallet_index > 0 {
+                    let wallet = &mut self.wallets[self.current_wallet_index - 1];
+                    if !wallet.symbols.contains(&symbol) {
+                        wallet.symbols.push(symbol);
+                        save_wallets(&self.wallets);
+                    }
+                }
+                self.stock_search_input.clear();
+                self.stock_search_results.clear();
+            }
+
+            Message::RemoveStockFromWallet(symbol) => {
+                if self.current_wallet_index > 0 {
+                    self.wallets[self.current_wallet_index - 1]
+                        .symbols
+                        .retain(|s| s != &symbol);
+                    save_wallets(&self.wallets);
+                }
+            }
+
+            Message::DeleteCurrentWallet => {
+                if self.current_wallet_index > 0 {
+                    self.wallets.remove(self.current_wallet_index - 1);
+                    self.current_wallet_index = 0;
+                    save_wallets(&self.wallets);
+
+                    let count = self.config.count_stokes_at_once;
+                    return Task::perform(fetch_most_active(count), |result| {
+                        Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
+                    });
+                }
             }
         }
 

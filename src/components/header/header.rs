@@ -1,8 +1,7 @@
+use crate::app::Message;
 use cosmic::iced::{Alignment, Length};
 use cosmic::prelude::*;
 use cosmic::widget;
-
-use crate::app::Message;
 
 fn icon_button(icon: &str, message: Message) -> Element<'static, Message> {
     widget::button::icon(widget::icon::from_name(icon))
@@ -11,7 +10,42 @@ fn icon_button(icon: &str, message: Message) -> Element<'static, Message> {
         .into()
 }
 
-pub fn header() -> Element<'static, Message> {
+pub fn header<'a>(
+    current_index: usize,
+    wallet_name: Option<&'a str>,
+    rename_mode: bool,
+    rename_input: &'a str,
+) -> Element<'a, Message> {
+    let title: Element<'a, Message> = if current_index == 0 {
+        widget::text::heading("Trending").into()
+    } else if rename_mode {
+        widget::row()
+            .spacing(4)
+            .align_y(Alignment::Center)
+            .push(
+                widget::text_input("Nome da carteira", rename_input)
+                    .on_input(Message::RenameWallet)
+                    .on_submit(|_| Message::ConfirmRenameWallet)
+                    .width(Length::Fixed(140.0)),
+            )
+            .push(icon_button(
+                "object-select-symbolic",
+                Message::ConfirmRenameWallet,
+            ))
+            .into()
+    } else {
+        let name = wallet_name.unwrap_or("Carteira");
+        widget::row()
+            .spacing(4)
+            .align_y(Alignment::Center)
+            .push(widget::text::heading(name))
+            .push(icon_button(
+                "document-edit-symbolic",
+                Message::ToggleRenameMode,
+            ))
+            .into()
+    };
+
     widget::row()
         .spacing(8)
         .padding([8, 12])
@@ -19,8 +53,17 @@ pub fn header() -> Element<'static, Message> {
         .width(Length::Fill)
         .push(icon_button("go-previous-symbolic", Message::PreviusWallet))
         .push(icon_button("go-next-symbolic", Message::NextWallet))
-        .push(widget::text::heading("Trending"))
+        .push(title)
         .push(widget::horizontal_space())
+        .push_maybe(if current_index > 0 {
+            Some(icon_button(
+                "user-trash-symbolic",
+                Message::DeleteCurrentWallet,
+            ))
+        } else {
+            None
+        })
+        .push(icon_button("list-add-symbolic", Message::AddWallet))
         .push(icon_button("view-refresh-symbolic", Message::RefreshMarket))
         .push(icon_button(
             "emblem-system-symbolic",
