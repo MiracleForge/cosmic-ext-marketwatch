@@ -175,7 +175,7 @@ pub async fn fetch_news_for_symbols(
 ) -> Result<Vec<YahooNews>, reqwest::Error> {
     let mut all_news = Vec::new();
 
-    for symbol in symbols.iter().take(3) {
+    for symbol in symbols.iter() {
         let url = format!(
             "https://query1.finance.yahoo.com/v1/finance/search?q={}&newsCount={}&quotesCount=0",
             symbol, news_per_symbol

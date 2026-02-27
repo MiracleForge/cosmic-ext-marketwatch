@@ -53,6 +53,7 @@ impl Default for RefreshInterval {
 pub struct Config {
     pub alerts_enabled: bool,
     pub count_stokes_at_once: u64,
+    pub count_news_by_simbol: u64,
     #[serde(default)]
     pub default_tab: PopupTab,
     pub is_using_system_colors: bool,
@@ -72,6 +73,7 @@ impl Default for Config {
         Self {
             alerts_enabled: false,
             count_stokes_at_once: 5,
+            count_news_by_simbol: 5,
             default_tab: PopupTab::default(),
             is_using_system_colors: false,
             panel_stoke_rotation_interval: 60,

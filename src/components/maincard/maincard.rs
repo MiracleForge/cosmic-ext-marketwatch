@@ -261,6 +261,18 @@ fn render_settings_tab<'a>(config: &'a Config) -> Element<'a, Message> {
                 .push(widget::horizontal_space())
                 .push(widget::toggler(config.show_news).on_toggle(Message::ToggleShowNews)),
         )
+        .push(
+            widget::row()
+                .width(Length::Fill)
+                .align_y(Alignment::Center)
+                .push(widget::text("News per stock"))
+                .push(widget::horizontal_space())
+                .push(
+                    widget::text_input("5", config.count_news_by_simbol.to_string())
+                        .on_input(Message::SetNumberOfNewsBySymbols)
+                        .width(cosmic::iced::Length::Fixed(60.0)),
+                ),
+        )
         .push(category_header("REFRESH"))
         .push(refresh_row(config))
         .push(category_header("SUPPORT"))

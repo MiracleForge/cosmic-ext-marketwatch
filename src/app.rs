@@ -3,7 +3,9 @@ use crate::components::applet::{self};
 use crate::components::header::header;
 use crate::components::maincard::maincard;
 use crate::config::{Config, PopupTab, RefreshInterval};
-use crate::marketwatch::{MarketQuote, YahooNews, fetch_most_active, fetch_news_for_symbols};
+use crate::marketwatch::{
+    MarketQuote, YahooNews, fetch_most_active, fetch_news_for_symbols, user_friendly_error_message,
+};
 
 use cosmic::cosmic_config::CosmicConfigEntry;
 use cosmic::iced::{Length, Limits, Subscription, window::Id};
@@ -48,6 +50,7 @@ pub enum Message {
     ToggleShowNews(bool),
     ToggleNewsExpanded,
     SetRefreshInterval(RefreshInterval),
+    SetNumberOfNewsBySymbols(String),
 }
 
 impl cosmic::Application for AppModel {
@@ -205,9 +208,12 @@ impl cosmic::Application for AppModel {
                     self.error_message = None;
 
                     if self.config.show_news {
-                        return Task::perform(fetch_news_for_symbols(symbols, 3), |result| {
-                            Action::App(Message::NewsLoaded(result.map_err(|e| e.to_string())))
-                        });
+                        return Task::perform(
+                            fetch_news_for_symbols(symbols, self.config.count_news_by_simbol),
+                            |result| {
+                                Action::App(Message::NewsLoaded(result.map_err(|e| e.to_string())))
+                            },
+                        );
                     }
                 }
                 Err(err) => {
@@ -221,7 +227,7 @@ impl cosmic::Application for AppModel {
                     self.news_items = news;
                 }
                 Err(err) => {
-                    tracing::warn!("Failed to load news: {}", err);
+                    tracing::warn!("{}", user_friendly_error_message(&err));
                 }
             },
 
@@ -244,6 +250,14 @@ impl cosmic::Application for AppModel {
                 self.config.refresh_interval = interval;
                 self::AppModel::save_config(&self);
             }
+
+            Message::SetNumberOfNewsBySymbols(val) => {
+                if let Ok(n) = val.parse::<u64>() {
+                    self.config.count_news_by_simbol = n;
+                    self::AppModel::save_config(&self);
+                }
+            }
+
             Message::PreviusWallet => {
                 println!("Change to previous user collection of stocks");
             }
@@ -275,9 +289,12 @@ impl cosmic::Application for AppModel {
                         .map(|q| q.symbol.clone())
                         .collect();
                     self::AppModel::save_config(&self);
-                    return Task::perform(fetch_news_for_symbols(symbols, 3), |result| {
-                        Action::App(Message::NewsLoaded(result.map_err(|e| e.to_string())))
-                    });
+                    return Task::perform(
+                        fetch_news_for_symbols(symbols, self.config.count_news_by_simbol),
+                        |result| {
+                            Action::App(Message::NewsLoaded(result.map_err(|e| e.to_string())))
+                        },
+                    );
                 } else {
                     self.news_items.clear();
                     self::AppModel::save_config(&self);
