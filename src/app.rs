@@ -2,8 +2,8 @@
 use crate::components::applet::{self};
 use crate::components::header::header;
 use crate::components::maincard::maincard;
+use crate::components::wallet::Wallet;
 use crate::components::wallet::wallet::{load_wallets, save_wallets};
-use crate::components::wallet::{Wallet, wallet};
 use crate::config::{Config, PopupTab, RefreshInterval};
 use crate::marketwatch::{
     MarketQuote, YahooNews, fetch_by_symbols, fetch_most_active, fetch_news_for_symbols,
@@ -297,7 +297,31 @@ impl cosmic::Application for AppModel {
             }
 
             Message::RefreshMarket => {
+                self.current_index = 0;
+                self.market_quotes.clear();
+                self.news_items.clear();
+                self.error_message = None;
+
+                // on wallet ?
+                if self.current_wallet_index > 0 {
+                    if let Some(wallet) = self.wallets.get(self.current_wallet_index - 1) {
+                        if !wallet.symbols.is_empty() {
+                            let symbols = wallet.symbols.clone();
+
+                            return Task::perform(fetch_by_symbols(symbols), |result| {
+                                Action::App(Message::MarketLoaded(
+                                    result.map_err(|e| e.to_string()),
+                                ))
+                            });
+                        }
+                    }
+
+                    return Task::none();
+                }
+
+                // on treeding
                 let count = self.config.count_stokes_at_once;
+
                 return Task::perform(fetch_most_active(count), |result| {
                     Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
                 });
