@@ -234,9 +234,9 @@ fn render_news_section<'a>(news: &'a [YahooNews], expanded: bool) -> Element<'a,
         .push_maybe(if has_more {
             Some(
                 widget::button::standard(if expanded {
-                    "View all ▲"
-                } else {
                     "Collapse ▼"
+                } else {
+                    "View all ▲"
                 })
                 .on_press(Message::ToggleNewsExpanded),
             )

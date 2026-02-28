@@ -115,7 +115,7 @@ impl cosmic::Application for AppModel {
         let count = config.count_stokes_at_once;
         let saved_index = config.last_wallet_index;
 
-        let safe_index = if saved_index < wallets.len() + 1 {
+        let safe_index = if saved_index <= wallets.len() {
             saved_index
         } else {
             0
@@ -290,12 +290,17 @@ impl cosmic::Application for AppModel {
 
             Message::MarketLoaded(result) => match result {
                 Ok(data) => {
-                    let symbols: Vec<String> =
-                        data.iter().take(3).map(|q| q.symbol.clone()).collect();
                     self.market_quotes = data;
                     self.error_message = None;
 
                     if self.config.show_news {
+                        let symbols: Vec<String> = self
+                            .market_quotes
+                            .iter()
+                            .take(3)
+                            .map(|q| q.symbol.clone())
+                            .collect();
+
                         return Task::perform(
                             fetch_news_for_symbols(symbols, self.config.count_news_by_simbol),
                             |result| {
@@ -329,7 +334,6 @@ impl cosmic::Application for AppModel {
                 self.news_items.clear();
                 self.error_message = None;
 
-                // on wallet ?
                 if self.current_wallet_index > 0 {
                     if let Some(wallet) = self.wallets.get(self.current_wallet_index - 1) {
                         if !wallet.symbols.is_empty() {
@@ -346,7 +350,6 @@ impl cosmic::Application for AppModel {
                     return Task::none();
                 }
 
-                // on treeding
                 let count = self.config.count_stokes_at_once;
 
                 return Task::perform(fetch_most_active(count), |result| {
@@ -360,20 +363,20 @@ impl cosmic::Application for AppModel {
 
             Message::SetRefreshInterval(interval) => {
                 self.config.refresh_interval = interval;
-                self::AppModel::save_config(&self);
+                self.save_config();
             }
 
             Message::SetNumberOfNewsBySymbols(val) => {
                 if let Ok(n) = val.parse::<u64>() {
                     self.config.count_news_by_simbol = n;
-                    self::AppModel::save_config(&self);
+                    self.save_config();
                 }
             }
 
             Message::SetStokeRotationInterval(val) => {
                 if let Ok(n) = val.parse::<u64>() {
                     self.config.panel_stoke_rotation_interval = n;
-                    self::AppModel::save_config(&self);
+                    self.save_config();
                 }
             }
 
@@ -387,11 +390,14 @@ impl cosmic::Application for AppModel {
             Message::ToggleShowOnlyIcon(new_value) => {
                 self.config.show_only_icon = new_value;
                 self.applet_id = widget::Id::unique();
-                self::AppModel::save_config(&self);
+                self.save_config();
             }
 
             Message::ToggleShowNews(new_value) => {
                 self.config.show_news = new_value;
+
+                self.save_config();
+
                 if new_value {
                     let symbols: Vec<String> = self
                         .market_quotes
@@ -399,7 +405,7 @@ impl cosmic::Application for AppModel {
                         .take(3)
                         .map(|q| q.symbol.clone())
                         .collect();
-                    self::AppModel::save_config(&self);
+
                     return Task::perform(
                         fetch_news_for_symbols(symbols, self.config.count_news_by_simbol),
                         |result| {
@@ -408,7 +414,6 @@ impl cosmic::Application for AppModel {
                     );
                 } else {
                     self.news_items.clear();
-                    self::AppModel::save_config(&self);
                 }
             }
 
@@ -467,7 +472,6 @@ impl cosmic::Application for AppModel {
                         }
                     }
 
-                    // empty wallet
                     return Task::none();
                 } else {
                     let count = self.config.count_stokes_at_once;
@@ -501,9 +505,12 @@ impl cosmic::Application for AppModel {
             }
 
             Message::ToggleRenameMode => {
-                self.rename_mode = !self.rename_mode;
-                if self.rename_mode && self.current_wallet_index > 0 {
-                    self.rename_input = self.wallets[self.current_wallet_index - 1].name.clone();
+                if self.current_wallet_index > 0 {
+                    self.rename_mode = !self.rename_mode;
+                    if self.rename_mode {
+                        self.rename_input =
+                            self.wallets[self.current_wallet_index - 1].name.clone();
+                    }
                 }
             }
 
@@ -521,15 +528,17 @@ impl cosmic::Application for AppModel {
             }
 
             Message::StockSearchInput(val) => {
-                self.stock_search_input = val.clone();
                 if val.len() >= 2 {
                     self.stock_search_loading = true;
-                    return Task::perform(search_symbols(val), |result| {
+                    let query = val.clone();
+                    self.stock_search_input = val;
+                    return Task::perform(search_symbols(query), |result| {
                         Action::App(Message::StockSearchResults(
                             result.map_err(|e| e.to_string()),
                         ))
                     });
                 } else {
+                    self.stock_search_input = val;
                     self.stock_search_results.clear();
                 }
             }
@@ -547,6 +556,10 @@ impl cosmic::Application for AppModel {
                     .next()
                     .unwrap_or(&symbol_label)
                     .to_string();
+
+                self.stock_search_input.clear();
+                self.stock_search_results.clear();
+
                 if self.current_wallet_index > 0 {
                     let wallet = &mut self.wallets[self.current_wallet_index - 1];
                     if !wallet.symbols.contains(&symbol) {
@@ -554,14 +567,10 @@ impl cosmic::Application for AppModel {
                         save_wallets(&self.wallets);
                     }
                     let symbols = self.wallets[self.current_wallet_index - 1].symbols.clone();
-                    self.stock_search_input.clear();
-                    self.stock_search_results.clear();
                     return Task::perform(fetch_by_symbols(symbols), |result| {
                         Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
                     });
                 }
-                self.stock_search_input.clear();
-                self.stock_search_results.clear();
             }
 
             Message::RemoveStockFromWallet(symbol) => {
@@ -570,6 +579,18 @@ impl cosmic::Application for AppModel {
                         .symbols
                         .retain(|s| s != &symbol);
                     save_wallets(&self.wallets);
+
+                    let symbols = self.wallets[self.current_wallet_index - 1].symbols.clone();
+
+                    if symbols.is_empty() {
+                        self.market_quotes.clear();
+                        self.news_items.clear();
+                        return Task::none();
+                    }
+
+                    return Task::perform(fetch_by_symbols(symbols), |result| {
+                        Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
+                    });
                 }
             }
 
