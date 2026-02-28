@@ -26,7 +26,7 @@ fn http_client() -> &'static reqwest::Client {
 }
 
 //
-// DATA STRUCTURES
+// ================= DATA STRUCTURES =================
 //
 
 #[derive(Debug, Clone)]
@@ -38,6 +38,87 @@ pub struct MarketQuote {
     pub price: f64,
     pub symbol: String,
 }
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct YahooNews {
+    pub title: String,
+    pub link: String,
+    pub publisher: Option<String>,
+    #[serde(rename = "providerPublishTime")]
+    pub publish_time: Option<u64>,
+}
+
+//
+// ================= IMPLEMENTATION =================
+//
+
+impl MarketQuote {
+    pub fn formatted_price(&self) -> String {
+        self.format_currency(self.price)
+    }
+
+    fn format_currency(&self, value: f64) -> String {
+        let abs_value = value.abs();
+        let is_negative = value.is_sign_negative();
+
+        let (symbol, decimals, decimal_sep, thousand_sep, symbol_before) =
+            match self.currency.as_str() {
+                "USD" => ("$", 2, ".", ",", true),
+                "BRL" => ("R$", 2, ",", ".", true),
+                "EUR" => ("€", 2, ",", ".", false),
+                "GBP" => ("£", 2, ".", ",", true),
+                "JPY" => ("¥", 0, ".", ",", true),
+                "CHF" => ("CHF", 2, ".", "'", false),
+                "CAD" => ("C$", 2, ".", ",", true),
+                "AUD" => ("A$", 2, ".", ",", true),
+                "CNY" => ("¥", 2, ".", ",", true),
+                "INR" => ("₹", 2, ".", ",", true),
+                _ => (self.currency.as_str(), 2, ".", ",", true),
+            };
+
+        let formatted = format_number(abs_value, decimals, decimal_sep, thousand_sep);
+
+        let result = if symbol_before {
+            format!("{}{}", symbol, formatted)
+        } else {
+            format!("{} {}", formatted, symbol)
+        };
+
+        if is_negative {
+            format!("-{}", result)
+        } else {
+            result
+        }
+    }
+
+    pub fn formatted_variation(&self) -> String {
+        format!(
+            "{} {:.2}%",
+            self.variation_icon(),
+            self.change_percent.abs()
+        )
+    }
+
+    pub fn variation_icon(&self) -> &'static str {
+        if self.change >= 0.0 { "▲" } else { "▼" }
+    }
+
+    pub fn is_positive(&self) -> bool {
+        self.change >= 0.0
+    }
+
+    pub fn variation_color(&self) -> Color {
+        if self.is_positive() {
+            Color::from_rgb(0.13, 0.77, 0.37)
+        } else {
+            Color::from_rgb(0.94, 0.27, 0.27)
+        }
+    }
+}
+
+//
+// ================= DESERIALIZATION =================
+//
 
 #[derive(Debug, Deserialize)]
 struct ScreenerResponse {
@@ -73,23 +154,9 @@ struct YahooQuote {
     symbol: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
-pub struct YahooNews {
-    pub title: String,
-    pub link: String,
-    pub publisher: Option<String>,
-    #[serde(rename = "providerPublishTime")]
-    pub publish_time: Option<u64>,
-}
-
 #[derive(Debug, Deserialize)]
 struct SearchResponse {
     news: Option<Vec<YahooNews>>,
-}
-
-pub struct VariationStyle {
-    pub color: Color,
-    pub icon: &'static str,
 }
 
 #[derive(Debug, Deserialize)]
@@ -104,64 +171,47 @@ struct QuoteSearchItem {
     short_name: Option<String>,
 }
 
-impl MarketQuote {
-    pub fn formatted_price(&self) -> String {
-        match self.currency.as_str() {
-            "USD" => format!("${:.2}", self.price),
-            "BRL" => {
-                let value = format!("{:.2}", self.price).replace(".", ",");
-                format!("R$ {}", value)
-            }
-            "EUR" => {
-                let value = format!("{:.2}", self.price).replace(".", ",");
-                format!("{} €", value)
-            }
-            "JPY" => format!("¥{:.0}", self.price),
-            code => format!("{} {:.2}", code, self.price),
-        }
-    }
-
-    pub fn formatted_variation(&self) -> String {
-        format!(
-            "{} {:.2}%",
-            self.variation_icon(),
-            self.change_percent.abs()
-        )
-    }
-
-    pub fn variation_icon(&self) -> &'static str {
-        if self.change >= 0.0 { "▲" } else { "▼" }
-    }
-
-    pub fn is_positive(&self) -> bool {
-        self.change >= 0.0
-    }
-
-    pub fn variation_color(&self) -> Color {
-        if self.is_positive() {
-            Color::from_rgb(0.13, 0.77, 0.37)
-        } else {
-            Color::from_rgb(0.94, 0.27, 0.27)
-        }
-    }
+#[derive(Debug, Deserialize)]
+struct ChartResponse {
+    chart: Chart,
 }
+
+#[derive(Debug, Deserialize)]
+struct Chart {
+    result: Option<Vec<ChartResult>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ChartResult {
+    meta: ChartMeta,
+}
+
+#[derive(Debug, Deserialize)]
+struct ChartMeta {
+    symbol: String,
+    currency: Option<String>,
+
+    #[serde(rename = "regularMarketPrice")]
+    regular_market_price: Option<f64>,
+
+    #[serde(rename = "chartPreviousClose")]
+    chart_previous_close: Option<f64>,
+}
+
 //
-// FETCH FUNCTIONS
+// ================= FETCH FUNCTIONS =================
 //
 
 pub async fn fetch_most_active(count: u64) -> Result<Vec<MarketQuote>, reqwest::Error> {
-    println!("Starting fet most active");
-    tracing::info!("Starting feth Most active {}", count);
     let url = format!(
         "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count={}&scrIds=most_actives",
         count
     );
 
-    let response = http_client().get(url).send().await?;
+    let response = http_client().get(&url).send().await?;
     let data: ScreenerResponse = response.json().await?;
-    println!("parset data: {:#?}", data);
 
-    let quotes: Vec<MarketQuote> = data
+    let quotes = data
         .finance
         .result
         .unwrap_or_default()
@@ -186,7 +236,7 @@ pub async fn fetch_news_for_symbols(
 ) -> Result<Vec<YahooNews>, reqwest::Error> {
     let mut all_news = Vec::new();
 
-    for symbol in symbols.iter() {
+    for symbol in symbols {
         let url = format!(
             "https://query1.finance.yahoo.com/v1/finance/search?q={}&newsCount={}&quotesCount=0",
             symbol, news_per_symbol
@@ -203,18 +253,6 @@ pub async fn fetch_news_for_symbols(
     Ok(all_news)
 }
 
-pub fn user_friendly_error_message(err: &str) -> &'static str {
-    if err.contains("dns error") || err.contains("failed to lookup") {
-        "You're offline. Please check your internet connection."
-    } else if err.contains("timeout") {
-        "The request took too long. Try again in a moment."
-    } else if err.contains("connection refused") {
-        "Unable to reach the server right now."
-    } else {
-        "Something went wrong while fetching market data."
-    }
-}
-
 pub async fn search_symbols(query: String) -> Result<Vec<String>, reqwest::Error> {
     let url = format!(
         "https://query1.finance.yahoo.com/v1/finance/search?q={}&quotesCount=6&newsCount=0",
@@ -229,50 +267,15 @@ pub async fn search_symbols(query: String) -> Result<Vec<String>, reqwest::Error
         .unwrap_or_default()
         .into_iter()
         .map(|q| {
-            let label = q
-                .short_name
+            q.short_name
                 .map(|n| format!("{} — {}", q.symbol, n))
-                .unwrap_or(q.symbol.clone());
-            label
+                .unwrap_or(q.symbol)
         })
         .collect();
 
     Ok(symbols)
 }
 
-#[derive(Debug, Deserialize)]
-struct QuoteResponse {
-    #[serde(rename = "quoteResponse")]
-    quote_response: QuoteResponseInner,
-}
-
-#[derive(Debug, Deserialize)]
-struct QuoteResponseInner {
-    result: Option<Vec<YahooQuote>>,
-}
-
-#[derive(Debug, Deserialize)]
-struct ChartResponse {
-    chart: Chart,
-}
-
-#[derive(Debug, Deserialize)]
-struct Chart {
-    result: Option<Vec<ChartResult>>,
-}
-
-#[derive(Debug, Deserialize)]
-struct ChartResult {
-    meta: ChartMeta,
-}
-
-#[derive(Debug, Deserialize)]
-struct ChartMeta {
-    symbol: String,
-    currency: Option<String>,
-    regularMarketPrice: Option<f64>,
-    chartPreviousClose: Option<f64>,
-}
 pub async fn fetch_by_symbols(symbols: Vec<String>) -> Result<Vec<MarketQuote>, reqwest::Error> {
     let mut quotes = Vec::new();
 
@@ -282,8 +285,6 @@ pub async fn fetch_by_symbols(symbols: Vec<String>) -> Result<Vec<MarketQuote>, 
             symbol
         );
 
-        println!("URL: {}", url);
-
         let response = http_client().get(&url).send().await?;
         let data: ChartResponse = response.json().await?;
 
@@ -291,9 +292,10 @@ pub async fn fetch_by_symbols(symbols: Vec<String>) -> Result<Vec<MarketQuote>, 
             if let Some(result) = results.first() {
                 let meta = &result.meta;
 
-                let price = meta.regularMarketPrice.unwrap_or(0.0);
-                let previous = meta.chartPreviousClose.unwrap_or(price);
+                let price = meta.regular_market_price.unwrap_or(0.0);
+                let previous = meta.chart_previous_close.unwrap_or(price);
                 let change = price - previous;
+
                 let change_percent = if previous != 0.0 {
                     (change / previous) * 100.0
                 } else {
@@ -313,4 +315,50 @@ pub async fn fetch_by_symbols(symbols: Vec<String>) -> Result<Vec<MarketQuote>, 
     }
 
     Ok(quotes)
+}
+
+//
+// Utils functions
+//
+pub fn user_friendly_error_message(err: &str) -> &'static str {
+    if err.contains("dns error") || err.contains("failed to lookup") {
+        "You're offline. Please check your internet connection."
+    } else if err.contains("timeout") {
+        "The request took too long. Try again in a moment."
+    } else if err.contains("connection refused") {
+        "Unable to reach the server right now."
+    } else {
+        "Something went wrong while fetching market data."
+    }
+}
+
+fn format_number(value: f64, decimals: usize, decimal_sep: &str, thousand_sep: &str) -> String {
+    let formatted = format!("{:.*}", decimals, value);
+
+    let mut parts = formatted.split('.');
+    let integer_part = parts.next().unwrap_or("");
+    let decimal_part = parts.next();
+
+    let integer_with_sep = add_thousand_separator(integer_part, thousand_sep);
+
+    match decimal_part {
+        Some(dec) if decimals > 0 => {
+            format!("{}{}{}", integer_with_sep, decimal_sep, dec)
+        }
+        _ => integer_with_sep,
+    }
+}
+
+fn add_thousand_separator(number: &str, sep: &str) -> String {
+    let mut result = String::new();
+    let chars: Vec<char> = number.chars().rev().collect();
+
+    for (i, ch) in chars.iter().enumerate() {
+        if i > 0 && i % 3 == 0 {
+            result.push_str(sep);
+        }
+        result.push(*ch);
+    }
+
+    result.chars().rev().collect()
 }
