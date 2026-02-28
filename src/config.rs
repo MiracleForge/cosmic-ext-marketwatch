@@ -57,6 +57,7 @@ pub struct Config {
     #[serde(default)]
     pub default_tab: PopupTab,
     pub is_using_system_colors: bool,
+    pub last_wallet_index: usize,
     pub panel_stoke_rotation_interval: u64,
     pub refresh_interval: RefreshInterval,
     #[serde(default = "default_show_icon_in_panel")]
@@ -76,6 +77,7 @@ impl Default for Config {
             count_news_by_simbol: 5,
             default_tab: PopupTab::default(),
             is_using_system_colors: false,
+            last_wallet_index: 0,
             panel_stoke_rotation_interval: 20,
             refresh_interval: RefreshInterval::default(),
             show_only_icon: true,

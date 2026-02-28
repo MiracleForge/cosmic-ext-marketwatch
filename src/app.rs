@@ -104,12 +104,42 @@ impl cosmic::Application for AppModel {
         _flags: Self::Flags,
     ) -> (Self, Task<cosmic::Action<Self::Message>>) {
         let config_handler = cosmic::cosmic_config::Config::new(Self::APP_ID, Config::VERSION).ok();
+
         let config = config_handler
             .as_ref()
             .and_then(|h| Config::get_entry(h).ok())
             .unwrap_or_default();
 
+        let wallets = load_wallets();
+
         let count = config.count_stokes_at_once;
+        let saved_index = config.last_wallet_index;
+
+        let safe_index = if saved_index < wallets.len() + 1 {
+            saved_index
+        } else {
+            0
+        };
+
+        let task = if safe_index > 0 {
+            if let Some(wallet) = wallets.get(safe_index - 1) {
+                if !wallet.symbols.is_empty() {
+                    let symbols = wallet.symbols.clone();
+
+                    Task::perform(fetch_by_symbols(symbols), |result| {
+                        Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
+                    })
+                } else {
+                    Task::none()
+                }
+            } else {
+                Task::none()
+            }
+        } else {
+            Task::perform(fetch_most_active(count), |result| {
+                Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
+            })
+        };
 
         let app = AppModel {
             core,
@@ -123,18 +153,14 @@ impl cosmic::Application for AppModel {
             config,
             current_index: 0,
             error_message: None,
-            wallets: load_wallets(),
-            current_wallet_index: 0,
+            wallets,
+            current_wallet_index: safe_index,
             rename_mode: false,
             rename_input: String::new(),
             stock_search_input: String::new(),
             stock_search_results: Vec::new(),
             stock_search_loading: false,
         };
-
-        let task = Task::perform(fetch_most_active(count), |result| {
-            cosmic::Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
-        });
 
         (app, task)
     }
@@ -412,7 +438,11 @@ impl cosmic::Application for AppModel {
             }
 
             Message::SwitchWallet(index) => {
-                self.current_wallet_index = index;
+                let total = self.wallets.len() + 1;
+                let safe_index = if index < total { index } else { 0 };
+
+                self.current_wallet_index = safe_index;
+
                 self.stock_search_input.clear();
                 self.stock_search_results.clear();
                 self.rename_mode = false;
@@ -421,8 +451,11 @@ impl cosmic::Application for AppModel {
                 self.market_quotes.clear();
                 self.news_items.clear();
 
-                if index > 0 {
-                    if let Some(wallet) = self.wallets.get(index - 1) {
+                self.config.last_wallet_index = safe_index;
+                self.save_config();
+
+                if safe_index > 0 {
+                    if let Some(wallet) = self.wallets.get(safe_index - 1) {
                         if !wallet.symbols.is_empty() {
                             let symbols = wallet.symbols.clone();
 
@@ -444,6 +477,7 @@ impl cosmic::Application for AppModel {
                     });
                 }
             }
+
             Message::PreviusWallet => {
                 let total = self.wallets.len() + 1;
                 if total <= 1 {
