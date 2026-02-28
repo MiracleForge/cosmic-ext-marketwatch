@@ -76,7 +76,7 @@ impl Default for Config {
             count_news_by_simbol: 5,
             default_tab: PopupTab::default(),
             is_using_system_colors: false,
-            panel_stoke_rotation_interval: 60,
+            panel_stoke_rotation_interval: 20,
             refresh_interval: RefreshInterval::default(),
             show_only_icon: true,
             show_news: true,

@@ -41,3 +41,8 @@ Developers should install [rustup][rustup] and configure their editor to use [ru
 [rustup]: https://rustup.rs/
 [rust-analyzer]: https://rust-analyzer.github.io/
 [sccache]: https://github.com/mozilla/sccache
+
+## Data Source
+
+Market data is retrieved from Yahoo Finance public endpoints.
+This project is not affiliated with, endorsed, or sponsored by Yahoo Inc.

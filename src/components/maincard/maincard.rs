@@ -63,8 +63,8 @@ fn render_wallet<'a>(
         .width(Length::Fill)
         .padding([8, 12]);
 
-    col = col.push(category_header("ADICIONAR ATIVO")).push(
-        widget::text_input("Ex: AAPL, PETR4...", search_input)
+    col = col.push(category_header("ADD ASSET")).push(
+        widget::text_input("Search by symbol (e.g. AAPL, PETR4)", search_input)
             .on_input(Message::StockSearchInput)
             .width(Length::Fill),
     );
@@ -83,13 +83,13 @@ fn render_wallet<'a>(
 
     if symbols.is_empty() && quotes.is_empty() {
         col = col.push(category_divider()).push(
-            widget::text("Nenhum ativo adicionado ainda.")
+            widget::text("Your portfolio is empty.")
                 .size(12)
                 .class(cosmic::theme::Text::Accent),
         );
     } else {
         col = col
-            .push(category_header("MINHA CARTEIRA"))
+            .push(category_header("Your Portfolio"))
             .push(category_divider());
 
         if quotes.is_empty() {
@@ -159,7 +159,7 @@ fn render_wallet<'a>(
         }
     }
 
-    // 🔥 NEWS AGORA TAMBÉM APARECE NO WALLET
+    // news on wallet
     if config.show_news {
         col = col.push(render_news_section(news_items, news_expanded));
     }
@@ -208,7 +208,7 @@ fn render_quotes<'a>(
 
         QuotesState::Ready(quotes) => {
             let col = content
-                .push(category_header("MARKET"))
+                .push(category_header("Market Overview"))
                 .push(category_divider());
 
             let col = render_quotes_list(col, quotes);
@@ -229,14 +229,14 @@ fn render_news_section<'a>(news: &'a [YahooNews], expanded: bool) -> Element<'a,
     let header_row = widget::row()
         .align_y(Alignment::Center)
         .width(Length::Fill)
-        .push(widget::text("NEWS").size(12).class(Text::Accent))
+        .push(widget::text("Latest News").size(12).class(Text::Accent))
         .push(widget::horizontal_space())
         .push_maybe(if has_more {
             Some(
                 widget::button::standard(if expanded {
-                    "Show less ▲"
+                    "View all ▲"
                 } else {
-                    "Show more ▼"
+                    "Collapse ▼"
                 })
                 .on_press(Message::ToggleNewsExpanded),
             )
@@ -245,7 +245,7 @@ fn render_news_section<'a>(news: &'a [YahooNews], expanded: bool) -> Element<'a,
         });
 
     let news_content: Element<'a, Message> = if news.is_empty() {
-        widget::text("No news available.")
+        widget::text("No news available at the moment.")
             .size(12)
             .class(Text::Accent)
             .into()
@@ -286,7 +286,7 @@ fn news_card<'a>(item: &'a YahooNews) -> Element<'a, Message> {
         .width(Length::Fill)
         .push(widget::text(&item.title).size(13))
         .push(
-            widget::text(item.publisher.as_deref().unwrap_or("Unknown"))
+            widget::text(item.publisher.as_deref().unwrap_or("Unknown source"))
                 .size(11)
                 .class(Text::Accent),
         );
@@ -363,12 +363,12 @@ fn render_settings_tab<'a>(config: &'a Config) -> Element<'a, Message> {
         .spacing(12)
         .padding([8, 12])
         .width(Length::Fill)
-        .push(category_header("PANEL"))
+        .push(category_header("Panel"))
         .push(
             widget::row()
                 .width(Length::Fill)
                 .align_y(Alignment::Center)
-                .push(widget::text("Show only icon"))
+                .push(widget::text("Show icon only"))
                 .push(widget::horizontal_space())
                 .push(
                     widget::toggler(config.show_only_icon).on_toggle(Message::ToggleShowOnlyIcon),
@@ -378,7 +378,7 @@ fn render_settings_tab<'a>(config: &'a Config) -> Element<'a, Message> {
             widget::row()
                 .width(Length::Fill)
                 .align_y(Alignment::Center)
-                .push(widget::text("Show news"))
+                .push(widget::text("Display news"))
                 .push(widget::horizontal_space())
                 .push(widget::toggler(config.show_news).on_toggle(Message::ToggleShowNews)),
         )
@@ -386,7 +386,7 @@ fn render_settings_tab<'a>(config: &'a Config) -> Element<'a, Message> {
             widget::row()
                 .width(Length::Fill)
                 .align_y(Alignment::Center)
-                .push(widget::text("News per stock"))
+                .push(widget::text("News per asset"))
                 .push(widget::horizontal_space())
                 .push(
                     widget::text_input("5", config.count_news_by_simbol.to_string())
@@ -394,9 +394,22 @@ fn render_settings_tab<'a>(config: &'a Config) -> Element<'a, Message> {
                         .width(cosmic::iced::Length::Fixed(60.0)),
                 ),
         )
-        .push(category_header("REFRESH"))
+        .push(category_header("Refresh"))
+        .push(
+            widget::row()
+                .width(Length::Fill)
+                .align_y(Alignment::Center)
+                .push(widget::text("Stock rotation interval (seconds)"))
+                .push(widget::horizontal_space())
+                .push(
+                    widget::text_input("20", config.panel_stoke_rotation_interval.to_string())
+                        .on_input(Message::SetStokeRotationInterval)
+                        .width(cosmic::iced::Length::Fixed(60.0)),
+                ),
+        )
+        .push(widget::text("Refresh interval"))
         .push(refresh_row(config))
-        .push(category_header("SUPPORT"))
+        .push(category_header("About"))
         .push(
             widget::row()
                 .width(Length::Fill)

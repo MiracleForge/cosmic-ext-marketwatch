@@ -63,6 +63,7 @@ pub enum Message {
     ToggleNewsExpanded,
     SetRefreshInterval(RefreshInterval),
     SetNumberOfNewsBySymbols(String),
+    SetStokeRotationInterval(String),
 
     // wallet navegation
     SwitchWallet(usize),
@@ -339,6 +340,13 @@ impl cosmic::Application for AppModel {
             Message::SetNumberOfNewsBySymbols(val) => {
                 if let Ok(n) = val.parse::<u64>() {
                     self.config.count_news_by_simbol = n;
+                    self::AppModel::save_config(&self);
+                }
+            }
+
+            Message::SetStokeRotationInterval(val) => {
+                if let Ok(n) = val.parse::<u64>() {
+                    self.config.panel_stoke_rotation_interval = n;
                     self::AppModel::save_config(&self);
                 }
             }
