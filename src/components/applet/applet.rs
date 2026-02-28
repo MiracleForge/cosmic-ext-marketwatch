@@ -43,7 +43,7 @@ fn build_quote_display(quote: &MarketQuote) -> widget::Row<'static, Message> {
 
     base_row()
         .spacing(12)
-        .width(Length::Fixed(250.0))
+        .width(Length::Fixed(300.0))
         .push(
             widget::icon::from_name("org.gnome.PowerStats-symbolic")
                 .size(16)
@@ -60,7 +60,7 @@ fn build_quote_display(quote: &MarketQuote) -> widget::Row<'static, Message> {
 fn build_loading_display() -> widget::Row<'static, Message> {
     base_row()
         .spacing(12)
-        .width(Length::Fixed(250.0))
+        .width(Length::Fixed(300.0))
         .push(
             widget::icon::from_name("process-working-symbolic")
                 .size(16)

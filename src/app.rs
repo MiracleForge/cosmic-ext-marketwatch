@@ -375,7 +375,7 @@ impl cosmic::Application for AppModel {
                     .push(Wallet::new(format!("Carteira {}", index)));
                 self.current_wallet_index = self.wallets.len();
                 self.market_quotes.clear();
-                self.error_message = None; // <-- adicione isso
+                self.error_message = None;
                 save_wallets(&self.wallets);
             }
 
@@ -386,7 +386,6 @@ impl cosmic::Application for AppModel {
                 self.rename_mode = false;
                 self.error_message = None;
 
-                // 🔥 IMPORTANTE: limpa dados antigos
                 self.market_quotes.clear();
                 self.news_items.clear();
 
@@ -403,7 +402,7 @@ impl cosmic::Application for AppModel {
                         }
                     }
 
-                    // carteira vazia
+                    // empty wallet
                     return Task::none();
                 } else {
                     let count = self.config.count_stokes_at_once;
@@ -488,7 +487,6 @@ impl cosmic::Application for AppModel {
                         wallet.symbols.push(symbol);
                         save_wallets(&self.wallets);
                     }
-                    // refaz o fetch com os símbolos atualizados
                     let symbols = self.wallets[self.current_wallet_index - 1].symbols.clone();
                     self.stock_search_input.clear();
                     self.stock_search_results.clear();
