@@ -1,4 +1,6 @@
-use crate::marketwatch::{MarketQuote, YahooNews, user_friendly_error_message};
+use crate::marketwatch::{
+    MarketQuote, YahooNews, format_publish_time, user_friendly_error_message,
+};
 use cosmic::iced::{Alignment, Length};
 use cosmic::prelude::*;
 use cosmic::theme::Text;
@@ -279,18 +281,26 @@ fn render_news_section<'a>(news: &'a [YahooNews], expanded: bool) -> Element<'a,
         .into()
 }
 
-// FIX: elidable_lifetime_names
 fn news_card(item: &YahooNews) -> Element<'_, Message> {
+    let publisher = item.publisher.as_deref().unwrap_or("Unknown source");
+
+    let time_str = item
+        .publish_time
+        .map(format_publish_time)
+        .unwrap_or_default();
+
+    let meta_text = if time_str.is_empty() {
+        publisher.to_string()
+    } else {
+        format!("{publisher} · {time_str}")
+    };
+
     let content = widget::column()
         .spacing(4)
         .padding([8, 10])
         .width(Length::Fill)
         .push(widget::text(&item.title).size(13))
-        .push(
-            widget::text(item.publisher.as_deref().unwrap_or("Unknown source"))
-                .size(11)
-                .class(Text::Accent),
-        );
+        .push(widget::text(meta_text).size(11).class(Text::Accent));
 
     widget::button::custom(content)
         .class(cosmic::theme::Button::MenuItem)

@@ -34,7 +34,6 @@ pub struct MarketQuote {
     pub change: f64,
     pub change_percent: f64,
     pub currency: String,
-    // FIX: dead_code — campo reservado para uso futuro (tooltip, rename etc)
     #[allow(dead_code)]
     pub name: String,
     pub price: f64,
@@ -46,7 +45,6 @@ pub struct YahooNews {
     pub title: String,
     pub link: String,
     pub publisher: Option<String>,
-    // FIX: dead_code — campo reservado para ordenação futura por data
     #[allow(dead_code)]
     #[serde(rename = "providerPublishTime")]
     pub publish_time: Option<u64>,
@@ -82,7 +80,6 @@ impl MarketQuote {
 
         let formatted = format_number(abs_value, decimals, decimal_sep, thousand_sep);
 
-        // FIX: uninlined_format_args
         let result = if symbol_before {
             format!("{symbol}{formatted}")
         } else {
@@ -208,7 +205,6 @@ struct ChartMeta {
 //
 
 pub async fn fetch_most_active(count: u64) -> Result<Vec<MarketQuote>, reqwest::Error> {
-    // FIX: uninlined_format_args
     let url = format!(
         "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count={count}&scrIds=most_actives"
     );
@@ -242,7 +238,6 @@ pub async fn fetch_news_for_symbols(
     let mut all_news = Vec::new();
 
     for symbol in symbols {
-        // FIX: uninlined_format_args
         let url = format!(
             "https://query1.finance.yahoo.com/v1/finance/search?q={symbol}&newsCount={news_per_symbol}&quotesCount=0"
         );
@@ -259,7 +254,6 @@ pub async fn fetch_news_for_symbols(
 }
 
 pub async fn search_symbols(query: String) -> Result<Vec<String>, reqwest::Error> {
-    // FIX: uninlined_format_args
     let url = format!(
         "https://query1.finance.yahoo.com/v1/finance/search?q={query}&quotesCount=6&newsCount=0"
     );
@@ -285,7 +279,6 @@ pub async fn fetch_by_symbols(symbols: Vec<String>) -> Result<Vec<MarketQuote>, 
     let mut quotes = Vec::new();
 
     for symbol in symbols {
-        // FIX: uninlined_format_args
         let url = format!(
             "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?range=1d&interval=1d"
         );
@@ -293,7 +286,6 @@ pub async fn fetch_by_symbols(symbols: Vec<String>) -> Result<Vec<MarketQuote>, 
         let response = http_client().get(&url).send().await?;
         let data: ChartResponse = response.json().await?;
 
-        // FIX: collapsible_if
         if let Some(results) = data.chart.result
             && let Some(result) = results.first()
         {
@@ -303,7 +295,6 @@ pub async fn fetch_by_symbols(symbols: Vec<String>) -> Result<Vec<MarketQuote>, 
             let previous = meta.chart_previous_close.unwrap_or(price);
             let change = price - previous;
 
-            // FIX: if_not_else — condição positiva primeiro
             let change_percent = if previous == 0.0 {
                 0.0
             } else {
@@ -340,7 +331,6 @@ pub fn user_friendly_error_message(err: &str) -> &'static str {
 }
 
 fn format_number(value: f64, decimals: usize, decimal_sep: &str, thousand_sep: &str) -> String {
-    // FIX: uninlined_format_args
     let formatted = format!("{value:.decimals$}");
 
     let mut parts = formatted.split('.');
@@ -350,7 +340,6 @@ fn format_number(value: f64, decimals: usize, decimal_sep: &str, thousand_sep: &
     let integer_with_sep = add_thousand_separator(integer_part, thousand_sep);
 
     match decimal_part {
-        // FIX: uninlined_format_args
         Some(dec) if decimals > 0 => format!("{integer_with_sep}{decimal_sep}{dec}"),
         _ => integer_with_sep,
     }
@@ -368,4 +357,46 @@ fn add_thousand_separator(number: &str, sep: &str) -> String {
     }
 
     result.chars().rev().collect()
+}
+
+pub fn format_publish_time(timestamp: u64) -> String {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+
+    if timestamp > now {
+        return "just now".to_string();
+    }
+
+    let diff = now - timestamp;
+
+    if diff < 60 {
+        "just now".to_string()
+    } else if diff < 3600 {
+        let mins = diff / 60;
+        if mins == 1 {
+            "1 min ago".to_string()
+        } else {
+            format!("{mins} min ago")
+        }
+    } else if diff < 86400 {
+        let hours = diff / 3600;
+        if hours == 1 {
+            "1 hour ago".to_string()
+        } else {
+            format!("{hours} hours ago")
+        }
+    } else if diff < 172_800 {
+        "yesterday".to_string()
+    } else {
+        let days = diff / 86400;
+        if days < 7 {
+            format!("{days} days ago")
+        } else if days < 14 {
+            "1 week ago".to_string()
+        } else {
+            format!("{} weeks ago", days / 7)
+        }
+    }
 }
