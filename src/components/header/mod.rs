@@ -1,3 +1,3 @@
+#[allow(clippy::module_inception)]
 mod header;
-
-pub use header::header;
+pub use header::*;

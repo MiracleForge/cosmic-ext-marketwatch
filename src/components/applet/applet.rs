@@ -10,7 +10,7 @@ pub fn build_applet_content(
     config: &Config,
     market_quotes: &[MarketQuote],
     current_index: usize,
-    error_message: &Option<String>,
+    error_message: Option<&String>,
 ) -> widget::Row<'static, Message> {
     if error_message.is_some() {
         return build_error_display();

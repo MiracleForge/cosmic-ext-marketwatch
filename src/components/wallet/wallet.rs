@@ -17,14 +17,15 @@ impl Wallet {
 }
 
 pub fn data_path() -> PathBuf {
-    let base = std::env::var("XDG_DATA_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| {
+    // FIX: map_unwrap_or — usar unwrap_or_else diretamente no Result via map_or_else
+    let base = std::env::var("XDG_DATA_HOME").map_or_else(
+        |_| {
             dirs::home_dir()
                 .unwrap_or_else(|| PathBuf::from("."))
                 .join(".local/share")
-        });
-
+        },
+        PathBuf::from,
+    );
     base.join("com.github.MiracleForge.cosmic-marketwatch")
 }
 

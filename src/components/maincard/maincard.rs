@@ -9,6 +9,7 @@ use crate::config::{Config, PopupTab, RefreshInterval};
 
 const NEWS_PREVIEW_COUNT: usize = 3;
 
+#[allow(clippy::too_many_arguments)]
 pub fn maincard<'a>(
     active_tab: PopupTab,
     current_wallet_index: usize,
@@ -17,7 +18,7 @@ pub fn maincard<'a>(
     news_items: &'a [YahooNews],
     news_expanded: bool,
     config: &'a Config,
-    error_message: &'a Option<String>,
+    error_message: Option<&'a String>,
     stock_search_input: &'a str,
     stock_search_results: &'a [String],
 ) -> Element<'a, Message> {
@@ -41,13 +42,13 @@ pub fn maincard<'a>(
                     config,
                     stock_search_input,
                     stock_search_results,
-                    error_message,
                 )
             }
         }
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn render_wallet<'a>(
     symbols: &'a [String],
     quotes: &'a [MarketQuote],
@@ -56,7 +57,6 @@ fn render_wallet<'a>(
     config: &'a Config,
     search_input: &'a str,
     search_results: &'a [String],
-    _error_message: &'a Option<String>,
 ) -> Element<'a, Message> {
     let mut col = widget::column()
         .spacing(12)
@@ -159,7 +159,6 @@ fn render_wallet<'a>(
         }
     }
 
-    // news on wallet
     if config.show_news {
         col = col.push(render_news_section(news_items, news_expanded));
     }
@@ -175,7 +174,7 @@ enum QuotesState<'a> {
 
 fn derive_state<'a>(
     market_quotes: &'a [MarketQuote],
-    error_message: &'a Option<String>,
+    error_message: Option<&'a String>,
 ) -> QuotesState<'a> {
     if let Some(err) = error_message {
         QuotesState::Error(err)
@@ -191,7 +190,7 @@ fn render_quotes<'a>(
     news_items: &'a [YahooNews],
     news_expanded: bool,
     config: &'a Config,
-    error_message: &'a Option<String>,
+    error_message: Option<&'a String>,
 ) -> Element<'a, Message> {
     let content = widget::column()
         .spacing(12)
@@ -231,12 +230,13 @@ fn render_news_section<'a>(news: &'a [YahooNews], expanded: bool) -> Element<'a,
         .width(Length::Fill)
         .push(widget::text("Latest News").size(12).class(Text::Accent))
         .push(widget::horizontal_space())
+        // FIX: labels corretos — expanded = já expandido = mostrar "Collapse"
         .push_maybe(if has_more {
             Some(
                 widget::button::standard(if expanded {
-                    "Collapse ▼"
+                    "Collapse ▲"
                 } else {
-                    "View all ▲"
+                    "View all ▼"
                 })
                 .on_press(Message::ToggleNewsExpanded),
             )
@@ -279,7 +279,8 @@ fn render_news_section<'a>(news: &'a [YahooNews], expanded: bool) -> Element<'a,
         .into()
 }
 
-fn news_card<'a>(item: &'a YahooNews) -> Element<'a, Message> {
+// FIX: elidable_lifetime_names
+fn news_card(item: &YahooNews) -> Element<'_, Message> {
     let content = widget::column()
         .spacing(4)
         .padding([8, 10])
@@ -354,11 +355,13 @@ fn item_divider<'a>() -> Element<'a, Message> {
         .into()
 }
 
-fn category_header<'a>(label: &'a str) -> Element<'a, Message> {
+// FIX: elidable_lifetime_names
+fn category_header(label: &str) -> Element<'_, Message> {
     widget::text(label).size(12).class(Text::Accent).into()
 }
 
-fn render_settings_tab<'a>(config: &'a Config) -> Element<'a, Message> {
+// FIX: elidable_lifetime_names
+fn render_settings_tab(config: &Config) -> Element<'_, Message> {
     widget::column()
         .spacing(12)
         .padding([8, 12])
@@ -421,7 +424,8 @@ fn render_settings_tab<'a>(config: &'a Config) -> Element<'a, Message> {
         .into()
 }
 
-fn refresh_row<'a>(config: &'a Config) -> Element<'a, Message> {
+// FIX: elidable_lifetime_names
+fn refresh_row(config: &Config) -> Element<'_, Message> {
     let intervals = [
         ("5 min", RefreshInterval::FiveMinutes),
         ("10 min", RefreshInterval::TenMinutes),
@@ -456,7 +460,7 @@ fn refresh_button<'a>(
         .width(Length::Fill)
         .align_x(cosmic::iced::alignment::Horizontal::Center);
 
-    let button = widget::button::custom(content)
+    widget::button::custom(content)
         .class(if selected {
             cosmic::theme::Button::Suggested
         } else {
@@ -464,7 +468,6 @@ fn refresh_button<'a>(
         })
         .width(Length::Fill)
         .padding([8, 0])
-        .on_press(Message::SetRefreshInterval(value));
-
-    button.into()
+        .on_press(Message::SetRefreshInterval(value))
+        .into()
 }

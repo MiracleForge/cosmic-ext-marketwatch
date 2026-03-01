@@ -34,6 +34,8 @@ pub struct MarketQuote {
     pub change: f64,
     pub change_percent: f64,
     pub currency: String,
+    // FIX: dead_code — campo reservado para uso futuro (tooltip, rename etc)
+    #[allow(dead_code)]
     pub name: String,
     pub price: f64,
     pub symbol: String,
@@ -44,6 +46,8 @@ pub struct YahooNews {
     pub title: String,
     pub link: String,
     pub publisher: Option<String>,
+    // FIX: dead_code — campo reservado para ordenação futura por data
+    #[allow(dead_code)]
     #[serde(rename = "providerPublishTime")]
     pub publish_time: Option<u64>,
 }
@@ -78,14 +82,15 @@ impl MarketQuote {
 
         let formatted = format_number(abs_value, decimals, decimal_sep, thousand_sep);
 
+        // FIX: uninlined_format_args
         let result = if symbol_before {
-            format!("{}{}", symbol, formatted)
+            format!("{symbol}{formatted}")
         } else {
-            format!("{} {}", formatted, symbol)
+            format!("{formatted} {symbol}")
         };
 
         if is_negative {
-            format!("-{}", result)
+            format!("-{result}")
         } else {
             result
         }
@@ -203,9 +208,9 @@ struct ChartMeta {
 //
 
 pub async fn fetch_most_active(count: u64) -> Result<Vec<MarketQuote>, reqwest::Error> {
+    // FIX: uninlined_format_args
     let url = format!(
-        "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count={}&scrIds=most_actives",
-        count
+        "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count={count}&scrIds=most_actives"
     );
 
     let response = http_client().get(&url).send().await?;
@@ -237,9 +242,9 @@ pub async fn fetch_news_for_symbols(
     let mut all_news = Vec::new();
 
     for symbol in symbols {
+        // FIX: uninlined_format_args
         let url = format!(
-            "https://query1.finance.yahoo.com/v1/finance/search?q={}&newsCount={}&quotesCount=0",
-            symbol, news_per_symbol
+            "https://query1.finance.yahoo.com/v1/finance/search?q={symbol}&newsCount={news_per_symbol}&quotesCount=0"
         );
 
         let response = http_client().get(&url).send().await?;
@@ -254,9 +259,9 @@ pub async fn fetch_news_for_symbols(
 }
 
 pub async fn search_symbols(query: String) -> Result<Vec<String>, reqwest::Error> {
+    // FIX: uninlined_format_args
     let url = format!(
-        "https://query1.finance.yahoo.com/v1/finance/search?q={}&quotesCount=6&newsCount=0",
-        query
+        "https://query1.finance.yahoo.com/v1/finance/search?q={query}&quotesCount=6&newsCount=0"
     );
 
     let response = http_client().get(&url).send().await?;
@@ -280,37 +285,39 @@ pub async fn fetch_by_symbols(symbols: Vec<String>) -> Result<Vec<MarketQuote>, 
     let mut quotes = Vec::new();
 
     for symbol in symbols {
+        // FIX: uninlined_format_args
         let url = format!(
-            "https://query1.finance.yahoo.com/v8/finance/chart/{}?range=1d&interval=1d",
-            symbol
+            "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?range=1d&interval=1d"
         );
 
         let response = http_client().get(&url).send().await?;
         let data: ChartResponse = response.json().await?;
 
-        if let Some(results) = data.chart.result {
-            if let Some(result) = results.first() {
-                let meta = &result.meta;
+        // FIX: collapsible_if
+        if let Some(results) = data.chart.result
+            && let Some(result) = results.first()
+        {
+            let meta = &result.meta;
 
-                let price = meta.regular_market_price.unwrap_or(0.0);
-                let previous = meta.chart_previous_close.unwrap_or(price);
-                let change = price - previous;
+            let price = meta.regular_market_price.unwrap_or(0.0);
+            let previous = meta.chart_previous_close.unwrap_or(price);
+            let change = price - previous;
 
-                let change_percent = if previous != 0.0 {
-                    (change / previous) * 100.0
-                } else {
-                    0.0
-                };
+            // FIX: if_not_else — condição positiva primeiro
+            let change_percent = if previous == 0.0 {
+                0.0
+            } else {
+                (change / previous) * 100.0
+            };
 
-                quotes.push(MarketQuote {
-                    symbol: meta.symbol.clone(),
-                    name: meta.symbol.clone(),
-                    price,
-                    change,
-                    change_percent,
-                    currency: meta.currency.clone().unwrap_or("USD".to_string()),
-                });
-            }
+            quotes.push(MarketQuote {
+                symbol: meta.symbol.clone(),
+                name: meta.symbol.clone(),
+                price,
+                change,
+                change_percent,
+                currency: meta.currency.clone().unwrap_or("USD".to_string()),
+            });
         }
     }
 
@@ -333,7 +340,8 @@ pub fn user_friendly_error_message(err: &str) -> &'static str {
 }
 
 fn format_number(value: f64, decimals: usize, decimal_sep: &str, thousand_sep: &str) -> String {
-    let formatted = format!("{:.*}", decimals, value);
+    // FIX: uninlined_format_args
+    let formatted = format!("{value:.decimals$}");
 
     let mut parts = formatted.split('.');
     let integer_part = parts.next().unwrap_or("");
@@ -342,9 +350,8 @@ fn format_number(value: f64, decimals: usize, decimal_sep: &str, thousand_sep: &
     let integer_with_sep = add_thousand_separator(integer_part, thousand_sep);
 
     match decimal_part {
-        Some(dec) if decimals > 0 => {
-            format!("{}{}{}", integer_with_sep, decimal_sep, dec)
-        }
+        // FIX: uninlined_format_args
+        Some(dec) if decimals > 0 => format!("{integer_with_sep}{decimal_sep}{dec}"),
         _ => integer_with_sep,
     }
 }

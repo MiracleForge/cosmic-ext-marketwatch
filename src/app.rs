@@ -44,14 +44,10 @@ pub struct AppModel {
     stock_search_results: Vec<String>,
     stock_search_loading: bool,
 
-    /// Timestamp of the last feth for wallet index trending
     last_fetch_time: HashMap<usize, Instant>,
 
-    /// Cached Quotes by wallet for restoring without refech
     cached_quotes: HashMap<usize, Vec<MarketQuote>>,
 
-    /// Cached news by wallet for restoring without refech
-    /// News cacheadas por wallet index para restaurar sem refetch.
     cached_news: HashMap<usize, Vec<YahooNews>>,
 }
 
@@ -123,7 +119,6 @@ impl cosmic::Application for AppModel {
         let count = config.count_stokes_at_once;
         let saved_index = config.last_wallet_index;
 
-        // Índices válidos são 0..=wallets.len()
         let safe_index = if saved_index <= wallets.len() {
             saved_index
         } else {
@@ -132,13 +127,13 @@ impl cosmic::Application for AppModel {
 
         let task = if safe_index > 0 {
             if let Some(wallet) = wallets.get(safe_index - 1) {
-                if !wallet.symbols.is_empty() {
+                if wallet.symbols.is_empty() {
+                    Task::none()
+                } else {
                     let symbols = wallet.symbols.clone();
                     Task::perform(fetch_by_symbols(symbols), |result| {
                         Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
                     })
-                } else {
-                    Task::none()
                 }
             } else {
                 Task::none()
@@ -211,7 +206,7 @@ impl cosmic::Application for AppModel {
             &self.config,
             &self.market_quotes,
             self.current_index,
-            &self.error_message,
+            self.error_message.as_ref(),
         );
 
         widget::autosize::autosize(
@@ -241,13 +236,12 @@ impl cosmic::Application for AppModel {
                 self.current_wallet_index,
                 self.wallets
                     .get(self.current_wallet_index.saturating_sub(1))
-                    .map(|w| w.symbols.as_slice())
-                    .unwrap_or(&[]),
+                    .map_or(&[], |w| w.symbols.as_slice()),
                 &self.market_quotes,
                 &self.news_items,
                 self.news_expanded,
                 &self.config,
-                &self.error_message,
+                self.error_message.as_ref(),
                 &self.stock_search_input,
                 &self.stock_search_results,
             ));
@@ -265,6 +259,7 @@ impl cosmic::Application for AppModel {
             .into()
     }
 
+    #[allow(clippy::too_many_lines)]
     fn update(&mut self, message: Self::Message) -> Task<cosmic::Action<Self::Message>> {
         match message {
             Message::TogglePopup => {
@@ -304,7 +299,6 @@ impl cosmic::Application for AppModel {
                     self.market_quotes = data;
                     self.error_message = None;
 
-                    // timestamp register and saves on cache
                     let idx = self.current_wallet_index;
                     self.last_fetch_time.insert(idx, Instant::now());
                     self.cached_quotes.insert(idx, self.market_quotes.clone());
@@ -328,7 +322,6 @@ impl cosmic::Application for AppModel {
                 Err(err) => {
                     self.error_message = Some(err);
                     self.market_quotes.clear();
-                    // Invalid cache in error
                     let idx = self.current_wallet_index;
                     self.last_fetch_time.remove(&idx);
                     self.cached_quotes.remove(&idx);
@@ -363,15 +356,13 @@ impl cosmic::Application for AppModel {
                 self.cached_news.remove(&idx);
 
                 if self.current_wallet_index > 0 {
-                    if let Some(wallet) = self.wallets.get(self.current_wallet_index - 1) {
-                        if !wallet.symbols.is_empty() {
-                            let symbols = wallet.symbols.clone();
-                            return Task::perform(fetch_by_symbols(symbols), |result| {
-                                Action::App(Message::MarketLoaded(
-                                    result.map_err(|e| e.to_string()),
-                                ))
-                            });
-                        }
+                    if let Some(wallet) = self.wallets.get(self.current_wallet_index - 1)
+                        && !wallet.symbols.is_empty()
+                    {
+                        let symbols = wallet.symbols.clone();
+                        return Task::perform(fetch_by_symbols(symbols), |result| {
+                            Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
+                        });
                     }
                     return Task::none();
                 }
@@ -384,7 +375,6 @@ impl cosmic::Application for AppModel {
 
             Message::SetRefreshInterval(interval) => {
                 self.config.refresh_interval = interval;
-                // CHange the interval and clear cached
                 self.last_fetch_time.clear();
                 self.cached_quotes.clear();
                 self.cached_news.clear();
@@ -436,9 +426,8 @@ impl cosmic::Application for AppModel {
                             Action::App(Message::NewsLoaded(result.map_err(|e| e.to_string())))
                         },
                     );
-                } else {
-                    self.news_items.clear();
                 }
+                self.news_items.clear();
             }
 
             Message::ToggleNewsExpanded => {
@@ -447,8 +436,7 @@ impl cosmic::Application for AppModel {
 
             Message::AddWallet => {
                 let index = self.wallets.len() + 1;
-                self.wallets
-                    .push(Wallet::new(format!("Carteira {}", index)));
+                self.wallets.push(Wallet::new(format!("Carteira {index}")));
                 self.current_wallet_index = self.wallets.len();
                 self.market_quotes.clear();
                 self.news_items.clear();
@@ -474,8 +462,7 @@ impl cosmic::Application for AppModel {
                 let cache_valid = self
                     .last_fetch_time
                     .get(&safe_index)
-                    .map(|t| t.elapsed().as_secs() < refresh_secs)
-                    .unwrap_or(false);
+                    .is_some_and(|t| t.elapsed().as_secs() < refresh_secs);
 
                 if cache_valid {
                     if let Some(cached) = self.cached_quotes.get(&safe_index) {
@@ -490,15 +477,13 @@ impl cosmic::Application for AppModel {
                 self.market_quotes.clear();
 
                 if safe_index > 0 {
-                    if let Some(wallet) = self.wallets.get(safe_index - 1) {
-                        if !wallet.symbols.is_empty() {
-                            let symbols = wallet.symbols.clone();
-                            return Task::perform(fetch_by_symbols(symbols), |result| {
-                                Action::App(Message::MarketLoaded(
-                                    result.map_err(|e| e.to_string()),
-                                ))
-                            });
-                        }
+                    if let Some(wallet) = self.wallets.get(safe_index - 1)
+                        && !wallet.symbols.is_empty()
+                    {
+                        let symbols = wallet.symbols.clone();
+                        return Task::perform(fetch_by_symbols(symbols), |result| {
+                            Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
+                        });
                     }
                     return Task::none();
                 }
@@ -564,10 +549,9 @@ impl cosmic::Application for AppModel {
                             result.map_err(|e| e.to_string()),
                         ))
                     });
-                } else {
-                    self.stock_search_input = val;
-                    self.stock_search_results.clear();
                 }
+                self.stock_search_input = val;
+                self.stock_search_results.clear();
             }
 
             Message::StockSearchResults(result) => {
@@ -594,6 +578,7 @@ impl cosmic::Application for AppModel {
                         save_wallets(&self.wallets);
                     }
 
+                    // Novo símbolo — invalida cache desta wallet
                     let idx = self.current_wallet_index;
                     self.last_fetch_time.remove(&idx);
                     self.cached_quotes.remove(&idx);
@@ -661,10 +646,10 @@ impl cosmic::Application for AppModel {
 
 impl AppModel {
     fn save_config(&self) {
-        if let Some(ref handler) = self.config_handler {
-            if let Err(e) = self.config.write_entry(handler) {
-                tracing::error!("Failed to save config: {}", e);
-            }
+        if let Some(ref handler) = self.config_handler
+            && let Err(e) = self.config.write_entry(handler)
+        {
+            tracing::error!("Failed to save config: {}", e);
         }
     }
 }

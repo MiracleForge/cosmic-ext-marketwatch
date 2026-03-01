@@ -1,24 +1,24 @@
 // SPDX-License-Identifier: GPL-3.0-only
-
 use cosmic::cosmic_config::{self, CosmicConfigEntry, cosmic_config_derive::CosmicConfigEntry};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PopupTab {
     #[default]
-    Settings,
     Overview,
+    Settings,
     Trending,
     News,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum RefreshInterval {
     #[serde(rename = "5min")]
     FiveMinutes,
     #[serde(rename = "10min")]
     TenMinutes,
     #[serde(rename = "15min")]
+    #[default]
     FifteenMinutes,
     #[serde(rename = "30min")]
     ThirtyMinutes,
@@ -27,7 +27,7 @@ pub enum RefreshInterval {
 }
 
 impl RefreshInterval {
-    pub fn as_minutes(&self) -> u64 {
+    pub fn as_minutes(self) -> u64 {
         match self {
             RefreshInterval::FiveMinutes => 5,
             RefreshInterval::TenMinutes => 10,
@@ -37,17 +37,12 @@ impl RefreshInterval {
         }
     }
 
-    pub fn as_seconds(&self) -> u64 {
+    pub fn as_seconds(self) -> u64 {
         self.as_minutes() * 60
     }
 }
 
-impl Default for RefreshInterval {
-    fn default() -> Self {
-        RefreshInterval::FifteenMinutes
-    }
-}
-
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, CosmicConfigEntry, PartialEq, Serialize, Deserialize)]
 #[version = 1]
 pub struct Config {
@@ -60,12 +55,12 @@ pub struct Config {
     pub last_wallet_index: usize,
     pub panel_stoke_rotation_interval: u64,
     pub refresh_interval: RefreshInterval,
-    #[serde(default = "default_show_icon_in_panel")]
+    #[serde(default = "default_show_news")]
     pub show_news: bool,
     pub show_only_icon: bool,
 }
 
-fn default_show_icon_in_panel() -> bool {
+fn default_show_news() -> bool {
     true
 }
 

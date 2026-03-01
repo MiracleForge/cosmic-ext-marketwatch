@@ -1,3 +1,3 @@
+#[allow(clippy::module_inception)]
 mod applet;
-
-pub use applet::build_applet_content;
+pub use applet::*;
