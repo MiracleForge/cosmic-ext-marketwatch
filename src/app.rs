@@ -244,6 +244,7 @@ impl cosmic::Application for AppModel {
                 self.error_message.as_ref(),
                 &self.stock_search_input,
                 &self.stock_search_results,
+                self.stock_search_loading,
             ));
 
         self.core
@@ -562,6 +563,12 @@ impl cosmic::Application for AppModel {
             }
 
             Message::AddStockToWallet(symbol_label) => {
+                let is_valid = self.stock_search_results.iter().any(|r| r == &symbol_label);
+
+                if !is_valid {
+                    return Task::none();
+                }
+
                 let symbol = symbol_label
                     .split(" — ")
                     .next()
@@ -578,7 +585,7 @@ impl cosmic::Application for AppModel {
                         save_wallets(&self.wallets);
                     }
 
-                    // Novo símbolo — invalida cache desta wallet
+                    // new symbol , invalid cache for this wallet
                     let idx = self.current_wallet_index;
                     self.last_fetch_time.remove(&idx);
                     self.cached_quotes.remove(&idx);

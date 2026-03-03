@@ -23,6 +23,7 @@ pub fn maincard<'a>(
     error_message: Option<&'a String>,
     stock_search_input: &'a str,
     stock_search_results: &'a [String],
+    stock_search_loading: bool,
 ) -> Element<'a, Message> {
     match active_tab {
         PopupTab::Settings => render_settings_tab(config),
@@ -44,6 +45,7 @@ pub fn maincard<'a>(
                     config,
                     stock_search_input,
                     stock_search_results,
+                    stock_search_loading,
                 )
             }
         }
@@ -59,6 +61,7 @@ fn render_wallet<'a>(
     config: &'a Config,
     search_input: &'a str,
     search_results: &'a [String],
+    search_loading: bool,
 ) -> Element<'a, Message> {
     let mut col = widget::column()
         .spacing(12)
@@ -71,7 +74,13 @@ fn render_wallet<'a>(
             .width(Length::Fill),
     );
 
-    if !search_results.is_empty() {
+    if search_loading {
+        col = col.push(
+            widget::text("Searching...")
+                .size(12)
+                .class(cosmic::theme::Text::Accent),
+        );
+    } else if !search_results.is_empty() {
         let results_col = widget::column()
             .spacing(2)
             .extend(search_results.iter().map(|label| {
@@ -81,6 +90,12 @@ fn render_wallet<'a>(
                     .into()
             }));
         col = col.push(results_col);
+    } else if search_input.len() >= 2 {
+        col = col.push(
+            widget::text("No results found.")
+                .size(12)
+                .class(cosmic::theme::Text::Accent),
+        );
     }
 
     if symbols.is_empty() && quotes.is_empty() {
@@ -167,7 +182,6 @@ fn render_wallet<'a>(
 
     col.into()
 }
-
 enum QuotesState<'a> {
     Loading,
     Error(&'a str),
