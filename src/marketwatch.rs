@@ -209,7 +209,7 @@ pub async fn fetch_most_active(count: u64) -> Result<Vec<MarketQuote>, reqwest::
         "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count={count}&scrIds=most_actives"
     );
 
-    let response = http_client().get(&url).send().await?;
+    let response = http_client().get(&url).send().await?.error_for_status()?;
     let data: ScreenerResponse = response.json().await?;
 
     let quotes = data
@@ -242,7 +242,7 @@ pub async fn fetch_news_for_symbols(
             "https://query1.finance.yahoo.com/v1/finance/search?q={symbol}&newsCount={news_per_symbol}&quotesCount=0"
         );
 
-        let response = http_client().get(&url).send().await?;
+        let response = http_client().get(&url).send().await?.error_for_status()?;
         let data: SearchResponse = response.json().await?;
 
         if let Some(news) = data.news {
@@ -283,7 +283,7 @@ pub async fn fetch_by_symbols(symbols: Vec<String>) -> Result<Vec<MarketQuote>, 
             "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?range=1d&interval=1d"
         );
 
-        let response = http_client().get(&url).send().await?;
+        let response = http_client().get(&url).send().await?.error_for_status()?;
         let data: ChartResponse = response.json().await?;
 
         if let Some(results) = data.chart.result
@@ -325,11 +325,18 @@ pub fn user_friendly_error_message(err: &str) -> &'static str {
         "The request took too long. Try again in a moment."
     } else if err.contains("connection refused") {
         "Unable to reach the server right now."
+    } else if err.contains("429") {
+        "Too many requests. Please wait a moment before refreshing."
+    } else if err.contains("401") || err.contains("403") {
+        "Access denied. The data source may have changed."
+    } else if err.contains("404") {
+        "Market data not found. The symbol may be invalid."
+    } else if err.contains("500") || err.contains("502") || err.contains("503") {
+        "The market data service is temporarily unavailable."
     } else {
         "Something went wrong while fetching market data."
     }
 }
-
 fn format_number(value: f64, decimals: usize, decimal_sep: &str, thousand_sep: &str) -> String {
     let formatted = format!("{value:.decimals$}");
 
