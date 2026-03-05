@@ -54,7 +54,6 @@ pub fn maincard<'a>(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 fn render_wallet<'a>(
     symbols: &'a [String],
     quotes: &'a [MarketQuote],
@@ -71,124 +70,14 @@ fn render_wallet<'a>(
         .width(Length::Fill)
         .padding([8, 12]);
 
-    if asset_limit_reached {
-        col = col.push(category_header("ADD ASSET")).push(
-            widget::text(format!(
-                "Asset limit reached ({} max).",
-                MAX_ASSETS_PER_WALLET
-            ))
-            .size(12)
-            .class(cosmic::theme::Text::Accent),
-        );
-    } else {
-        col = col.push(category_header("ADD ASSET")).push(
-            widget::text_input("Search by symbol (e.g. AAPL, PETR4)", search_input)
-                .on_input(Message::StockSearchInput)
-                .width(Length::Fill),
-        );
+    col = col.push(render_add_asset_section(
+        search_input,
+        search_results,
+        search_loading,
+        asset_limit_reached,
+    ));
 
-        if search_loading {
-            col = col.push(
-                widget::text("Searching...")
-                    .size(12)
-                    .class(cosmic::theme::Text::Accent),
-            );
-        } else if !search_results.is_empty() {
-            let results_col = widget::column()
-                .spacing(2)
-                .extend(search_results.iter().map(|label| {
-                    widget::button::standard(label.as_str())
-                        .on_press(Message::AddStockToWallet(label.clone()))
-                        .width(Length::Fill)
-                        .into()
-                }));
-            col = col.push(results_col);
-        } else if search_input.len() >= 2 {
-            col = col.push(
-                widget::text("No results found.")
-                    .size(12)
-                    .class(cosmic::theme::Text::Accent),
-            );
-        }
-    }
-
-    if symbols.is_empty() && quotes.is_empty() {
-        col = col.push(category_divider()).push(
-            widget::text("Your portfolio is empty.")
-                .size(12)
-                .class(cosmic::theme::Text::Accent),
-        );
-    } else {
-        col = col
-            .push(category_header("Your Portfolio"))
-            .push(category_divider());
-
-        if quotes.is_empty() {
-            for symbol in symbols {
-                let row = widget::row()
-                    .align_y(Alignment::Center)
-                    .width(Length::Fill)
-                    .push(
-                        widget::container(widget::text::heading(symbol).class(Text::Default))
-                            .width(Length::FillPortion(2))
-                            .align_x(Alignment::Start),
-                    )
-                    .push(
-                        widget::container(widget::text("Loading..."))
-                            .width(Length::FillPortion(2))
-                            .align_x(Alignment::Center),
-                    )
-                    .push(
-                        widget::container(
-                            widget::button::icon(widget::icon::from_name("list-remove-symbolic"))
-                                .on_press(Message::RemoveStockFromWallet(symbol.clone()))
-                                .padding([4, 8]),
-                        )
-                        .width(Length::FillPortion(1))
-                        .align_x(Alignment::End),
-                    );
-                col = col.push(row).push(item_divider());
-            }
-        } else {
-            for quote in quotes {
-                let color = quote.variation_color();
-                let row = widget::row()
-                    .align_y(Alignment::Center)
-                    .width(Length::Fill)
-                    .push(
-                        widget::container(
-                            widget::text::heading(&quote.symbol).class(Text::Default),
-                        )
-                        .width(Length::FillPortion(2))
-                        .align_x(Alignment::Start),
-                    )
-                    .push(
-                        widget::container(
-                            widget::text(quote.formatted_price()).class(Text::Color(color)),
-                        )
-                        .width(Length::FillPortion(2))
-                        .align_x(Alignment::Center),
-                    )
-                    .push(
-                        widget::container(
-                            widget::text(quote.formatted_variation()).class(Text::Color(color)),
-                        )
-                        .width(Length::FillPortion(1))
-                        .align_x(Alignment::Center),
-                    )
-                    .push(
-                        widget::container(
-                            widget::button::icon(widget::icon::from_name("list-remove-symbolic"))
-                                .on_press(Message::RemoveStockFromWallet(quote.symbol.clone()))
-                                .padding([4, 8]),
-                        )
-                        .width(Length::FillPortion(1))
-                        .align_x(Alignment::End),
-                    );
-                col = col.push(row).push(item_divider());
-            }
-        }
-    }
+    col = col.push(render_portfolio_section(symbols, quotes));
 
     if config.show_news {
         col = col.push(render_news_section(news_items, news_expanded));
@@ -196,6 +85,162 @@ fn render_wallet<'a>(
 
     col.into()
 }
+
+fn render_add_asset_section<'a>(
+    search_input: &'a str,
+    search_results: &'a [String],
+    search_loading: bool,
+    asset_limit_reached: bool,
+) -> Element<'a, Message> {
+    let mut col = widget::column()
+        .spacing(12)
+        .push(category_header("ADD ASSET"));
+
+    if asset_limit_reached {
+        return col
+            .push(
+                widget::text(format!(
+                    "Asset limit reached ({MAX_ASSETS_PER_WALLET} max)."
+                ))
+                .size(12)
+                .class(cosmic::theme::Text::Accent),
+            )
+            .into();
+    }
+
+    col = col.push(
+        widget::text_input("Search by symbol (e.g. AAPL, PETR4)", search_input)
+            .on_input(Message::StockSearchInput)
+            .width(Length::Fill),
+    );
+
+    if search_loading {
+        return col
+            .push(
+                widget::text("Searching...")
+                    .size(12)
+                    .class(cosmic::theme::Text::Accent),
+            )
+            .into();
+    }
+
+    if !search_results.is_empty() {
+        let results_col = widget::column()
+            .spacing(2)
+            .extend(search_results.iter().map(|label| {
+                widget::button::standard(label.as_str())
+                    .on_press(Message::AddStockToWallet(label.clone()))
+                    .width(Length::Fill)
+                    .into()
+            }));
+
+        return col.push(results_col).into();
+    }
+
+    if search_input.len() >= 2 {
+        col = col.push(
+            widget::text("No results found.")
+                .size(12)
+                .class(cosmic::theme::Text::Accent),
+        );
+    }
+
+    col.into()
+}
+
+fn render_portfolio_section<'a>(
+    symbols: &'a [String],
+    quotes: &'a [MarketQuote],
+) -> Element<'a, Message> {
+    let mut col = widget::column().spacing(6);
+
+    if symbols.is_empty() && quotes.is_empty() {
+        return col
+            .push(category_divider())
+            .push(
+                widget::text("Your portfolio is empty.")
+                    .size(12)
+                    .class(cosmic::theme::Text::Accent),
+            )
+            .into();
+    }
+
+    col = col
+        .push(category_header("Your Portfolio"))
+        .push(category_divider());
+
+    if quotes.is_empty() {
+        for symbol in symbols {
+            col = col.push(render_loading_row(symbol)).push(item_divider());
+        }
+    } else {
+        for quote in quotes {
+            col = col.push(render_quote_row(quote)).push(item_divider());
+        }
+    }
+
+    col.into()
+}
+
+fn render_loading_row(symbol: &str) -> Element<'_, Message> {
+    widget::row()
+        .align_y(Alignment::Center)
+        .width(Length::Fill)
+        .push(
+            widget::container(widget::text::heading(symbol).class(Text::Default))
+                .width(Length::FillPortion(2))
+                .align_x(Alignment::Start),
+        )
+        .push(
+            widget::container(widget::text("Loading..."))
+                .width(Length::FillPortion(2))
+                .align_x(Alignment::Center),
+        )
+        .push(
+            widget::container(
+                widget::button::icon(widget::icon::from_name("list-remove-symbolic"))
+                    .on_press(Message::RemoveStockFromWallet(symbol.to_string()))
+                    .padding([4, 8]),
+            )
+            .width(Length::FillPortion(1))
+            .align_x(Alignment::End),
+        )
+        .into()
+}
+
+fn render_quote_row(quote: &MarketQuote) -> Element<'_, Message> {
+    let color = quote.variation_color();
+
+    widget::row()
+        .align_y(Alignment::Center)
+        .width(Length::Fill)
+        .push(
+            widget::container(widget::text::heading(&quote.symbol).class(Text::Default))
+                .width(Length::FillPortion(2))
+                .align_x(Alignment::Start),
+        )
+        .push(
+            widget::container(widget::text(quote.formatted_price()).class(Text::Color(color)))
+                .width(Length::FillPortion(2))
+                .align_x(Alignment::Center),
+        )
+        .push(
+            widget::container(widget::text(quote.formatted_variation()).class(Text::Color(color)))
+                .width(Length::FillPortion(1))
+                .align_x(Alignment::Center),
+        )
+        .push(
+            widget::container(
+                widget::button::icon(widget::icon::from_name("list-remove-symbolic"))
+                    .on_press(Message::RemoveStockFromWallet(quote.symbol.clone()))
+                    .padding([4, 8]),
+            )
+            .width(Length::FillPortion(1))
+            .align_x(Alignment::End),
+        )
+        .into()
+}
+
 enum QuotesState<'a> {
     Loading,
     Error(&'a str),
@@ -260,7 +305,6 @@ fn render_news_section<'a>(news: &'a [YahooNews], expanded: bool) -> Element<'a,
         .width(Length::Fill)
         .push(widget::text("Latest News").size(12).class(Text::Accent))
         .push(widget::horizontal_space())
-        // FIX: labels corretos — expanded = já expandido = mostrar "Collapse"
         .push_maybe(if has_more {
             Some(
                 widget::button::standard(if expanded {
@@ -393,12 +437,10 @@ fn item_divider<'a>() -> Element<'a, Message> {
         .into()
 }
 
-// FIX: elidable_lifetime_names
 fn category_header(label: &str) -> Element<'_, Message> {
     widget::text(label).size(12).class(Text::Accent).into()
 }
 
-// FIX: elidable_lifetime_names
 fn render_settings_tab(config: &Config) -> Element<'_, Message> {
     widget::column()
         .spacing(12)

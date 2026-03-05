@@ -17,7 +17,6 @@ impl Wallet {
 }
 
 pub fn data_path() -> PathBuf {
-    // FIX: map_unwrap_or — usar unwrap_or_else diretamente no Result via map_or_else
     let base = std::env::var("XDG_DATA_HOME").map_or_else(
         |_| {
             dirs::home_dir()

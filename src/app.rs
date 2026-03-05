@@ -251,7 +251,7 @@ impl cosmic::Application for AppModel {
                 self.stock_search_loading,
                 self.wallets
                     .get(self.current_wallet_index.saturating_sub(1))
-                    .map_or(false, |w| w.symbols.len() >= MAX_ASSETS_PER_WALLET),
+                    .is_some_and(|w| w.symbols.len() >= MAX_ASSETS_PER_WALLET),
             ));
 
         self.core
