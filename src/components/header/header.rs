@@ -16,6 +16,7 @@ pub fn header<'a>(
     rename_mode: bool,
     rename_input: &'a str,
     wallet_count: usize,
+    last_updated: Option<String>,
 ) -> Element<'a, Message> {
     let title: Element<'a, Message> = if current_index == 0 {
         widget::text::heading("Trending").into()
@@ -24,7 +25,7 @@ pub fn header<'a>(
             .spacing(4)
             .align_y(Alignment::Center)
             .push(
-                widget::text_input("Nome da carteira", rename_input)
+                widget::text_input("Wallet Name", rename_input)
                     .on_input(Message::RenameWallet)
                     .on_submit(|_| Message::ConfirmRenameWallet)
                     .width(Length::Fixed(140.0)),
@@ -35,7 +36,7 @@ pub fn header<'a>(
             ))
             .into()
     } else {
-        let name = wallet_name.unwrap_or("Carteira");
+        let name = wallet_name.unwrap_or("Wallet");
         widget::row()
             .spacing(4)
             .align_y(Alignment::Center)
@@ -55,28 +56,47 @@ pub fn header<'a>(
         icon_button("list-add-symbolic", Message::AddWallet)
     };
 
-    widget::row()
-        .spacing(8)
-        .padding([8, 12])
-        .align_y(Alignment::Center)
+    widget::column()
         .width(Length::Fill)
-        .push(icon_button("go-previous-symbolic", Message::PreviusWallet))
-        .push(icon_button("go-next-symbolic", Message::NextWallet))
-        .push(title)
-        .push(widget::horizontal_space())
-        .push_maybe(if current_index > 0 {
-            Some(icon_button(
-                "user-trash-symbolic",
-                Message::DeleteCurrentWallet,
-            ))
-        } else {
-            None
-        })
-        .push(add_wallet_btn)
-        .push(icon_button("view-refresh-symbolic", Message::RefreshMarket))
-        .push(icon_button(
-            "emblem-system-symbolic",
-            Message::OpenConfigBUtton,
-        ))
+        .push(top_header(last_updated))
+        .push(
+            widget::row()
+                .spacing(8)
+                .padding([8, 12])
+                .align_y(Alignment::Center)
+                .width(Length::Fill)
+                .push(icon_button("go-previous-symbolic", Message::PreviusWallet))
+                .push(icon_button("go-next-symbolic", Message::NextWallet))
+                .push(title)
+                .push(widget::horizontal_space())
+                .push_maybe(if current_index > 0 {
+                    Some(icon_button(
+                        "user-trash-symbolic",
+                        Message::DeleteCurrentWallet,
+                    ))
+                } else {
+                    None
+                })
+                .push(add_wallet_btn)
+                .push(icon_button("view-refresh-symbolic", Message::RefreshMarket))
+                .push(icon_button(
+                    "emblem-system-symbolic",
+                    Message::OpenConfigBUtton,
+                )),
+        )
         .into()
+}
+
+fn top_header(last_updated: Option<String>) -> Element<'static, Message> {
+    let text = last_updated
+        .map(|t| format!("Updated at {t}"))
+        .unwrap_or_default();
+    widget::container(
+        widget::text(text)
+            .size(11)
+            .class(cosmic::theme::Text::Default),
+    )
+    .padding([4, 12])
+    .width(Length::Fill)
+    .into()
 }

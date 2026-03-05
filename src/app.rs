@@ -7,7 +7,7 @@ use crate::components::wallet::wallet::{load_wallets, save_wallets};
 use crate::config::{Config, PopupTab, RefreshInterval};
 use crate::marketwatch::{
     MarketQuote, YahooNews, fetch_by_symbols, fetch_most_active, fetch_news_for_symbols,
-    search_symbols, user_friendly_error_message,
+    format_publish_time, search_symbols, user_friendly_error_message,
 };
 
 use cosmic::cosmic_config::CosmicConfigEntry;
@@ -222,6 +222,20 @@ impl cosmic::Application for AppModel {
     }
 
     fn view_window(&self, _id: Id) -> Element<'_, Self::Message> {
+        let last_updated = self
+            .last_fetch_time
+            .get(&self.current_wallet_index)
+            .map(|instant| {
+                let timestamp = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs()
+                    .saturating_sub(instant.elapsed().as_secs());
+                format_publish_time(timestamp)
+            });
+
+        let last_updated_ref = last_updated;
+
         let content = widget::column()
             .padding(0)
             .spacing(6)
@@ -234,6 +248,7 @@ impl cosmic::Application for AppModel {
                 self.rename_mode,
                 &self.rename_input,
                 self.wallets.len(),
+                last_updated_ref,
             ))
             .push(maincard(
                 self.active_tab,
@@ -552,6 +567,7 @@ impl cosmic::Application for AppModel {
             }
 
             Message::StockSearchInput(val) => {
+                //TODO: DEBOUNCE how to make in rust ?
                 if val.len() >= 2 {
                     self.stock_search_loading = true;
                     let query = val.clone();

@@ -10,6 +10,7 @@ use crate::app::{MAX_ASSETS_PER_WALLET, Message};
 use crate::config::{Config, PopupTab, RefreshInterval};
 
 const NEWS_PREVIEW_COUNT: usize = 3;
+const HARD_CODED_WIDTH: f32 = 300.0; // Temporary variable, while I don't know how to make the pop-up expand and retract automatically.
 
 #[allow(clippy::too_many_arguments)]
 pub fn maincard<'a>(
@@ -337,7 +338,7 @@ fn render_news_section<'a>(news: &'a [YahooNews], expanded: bool) -> Element<'a,
 
         if expanded {
             widget::scrollable(cards)
-                .height(Length::Fixed(300.0))
+                .height(Length::Fixed(HARD_CODED_WIDTH))
                 .into()
         } else {
             cards.into()
@@ -504,7 +505,6 @@ fn render_settings_tab(config: &Config) -> Element<'_, Message> {
         .into()
 }
 
-// FIX: elidable_lifetime_names
 fn refresh_row(config: &Config) -> Element<'_, Message> {
     let intervals = [
         ("5 min", RefreshInterval::FiveMinutes),
