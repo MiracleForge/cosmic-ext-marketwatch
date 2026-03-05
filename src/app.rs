@@ -22,6 +22,9 @@ use std::time::{Duration, Instant};
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
+pub const MAX_WALLETS: usize = 10;
+pub const MAX_ASSETS_PER_WALLET: usize = 10;
+
 pub struct AppModel {
     active_tab: PopupTab,
     core: cosmic::Core,
@@ -230,6 +233,7 @@ impl cosmic::Application for AppModel {
                     .map(|w| w.name.as_str()),
                 self.rename_mode,
                 &self.rename_input,
+                self.wallets.len(),
             ))
             .push(maincard(
                 self.active_tab,
@@ -245,6 +249,9 @@ impl cosmic::Application for AppModel {
                 &self.stock_search_input,
                 &self.stock_search_results,
                 self.stock_search_loading,
+                self.wallets
+                    .get(self.current_wallet_index.saturating_sub(1))
+                    .map_or(false, |w| w.symbols.len() >= MAX_ASSETS_PER_WALLET),
             ));
 
         self.core
@@ -436,8 +443,12 @@ impl cosmic::Application for AppModel {
             }
 
             Message::AddWallet => {
+                if self.wallets.len() >= MAX_WALLETS {
+                    return Task::none();
+                }
+
                 let index = self.wallets.len() + 1;
-                self.wallets.push(Wallet::new(format!("Carteira {index}")));
+                self.wallets.push(Wallet::new(format!("Wallet {index}")));
                 self.current_wallet_index = self.wallets.len();
                 self.market_quotes.clear();
                 self.news_items.clear();
@@ -580,6 +591,9 @@ impl cosmic::Application for AppModel {
 
                 if self.current_wallet_index > 0 {
                     let wallet = &mut self.wallets[self.current_wallet_index - 1];
+                    if wallet.symbols.len() >= MAX_ASSETS_PER_WALLET {
+                        return Task::none();
+                    }
                     if !wallet.symbols.contains(&symbol) {
                         wallet.symbols.push(symbol);
                         save_wallets(&self.wallets);

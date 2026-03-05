@@ -1,4 +1,4 @@
-use crate::app::Message;
+use crate::app::{MAX_WALLETS, Message};
 use cosmic::iced::{Alignment, Length};
 use cosmic::prelude::*;
 use cosmic::widget;
@@ -15,6 +15,7 @@ pub fn header<'a>(
     wallet_name: Option<&'a str>,
     rename_mode: bool,
     rename_input: &'a str,
+    wallet_count: usize,
 ) -> Element<'a, Message> {
     let title: Element<'a, Message> = if current_index == 0 {
         widget::text::heading("Trending").into()
@@ -46,6 +47,14 @@ pub fn header<'a>(
             .into()
     };
 
+    let add_wallet_btn: Element<'_, Message> = if wallet_count >= MAX_WALLETS {
+        widget::button::icon(widget::icon::from_name("list-add-symbolic"))
+            .padding([8, 12])
+            .into()
+    } else {
+        icon_button("list-add-symbolic", Message::AddWallet)
+    };
+
     widget::row()
         .spacing(8)
         .padding([8, 12])
@@ -63,7 +72,7 @@ pub fn header<'a>(
         } else {
             None
         })
-        .push(icon_button("list-add-symbolic", Message::AddWallet))
+        .push(add_wallet_btn)
         .push(icon_button("view-refresh-symbolic", Message::RefreshMarket))
         .push(icon_button(
             "emblem-system-symbolic",

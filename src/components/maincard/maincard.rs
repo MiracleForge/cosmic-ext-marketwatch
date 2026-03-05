@@ -6,7 +6,7 @@ use cosmic::prelude::*;
 use cosmic::theme::Text;
 use cosmic::widget;
 
-use crate::app::Message;
+use crate::app::{MAX_ASSETS_PER_WALLET, Message};
 use crate::config::{Config, PopupTab, RefreshInterval};
 
 const NEWS_PREVIEW_COUNT: usize = 3;
@@ -24,6 +24,7 @@ pub fn maincard<'a>(
     stock_search_input: &'a str,
     stock_search_results: &'a [String],
     stock_search_loading: bool,
+    asset_limit_reached: bool,
 ) -> Element<'a, Message> {
     match active_tab {
         PopupTab::Settings => render_settings_tab(config),
@@ -46,6 +47,7 @@ pub fn maincard<'a>(
                     stock_search_input,
                     stock_search_results,
                     stock_search_loading,
+                    asset_limit_reached,
                 )
             }
         }
@@ -62,40 +64,52 @@ fn render_wallet<'a>(
     search_input: &'a str,
     search_results: &'a [String],
     search_loading: bool,
+    asset_limit_reached: bool,
 ) -> Element<'a, Message> {
     let mut col = widget::column()
         .spacing(12)
         .width(Length::Fill)
         .padding([8, 12]);
 
-    col = col.push(category_header("ADD ASSET")).push(
-        widget::text_input("Search by symbol (e.g. AAPL, PETR4)", search_input)
-            .on_input(Message::StockSearchInput)
-            .width(Length::Fill),
-    );
+    if asset_limit_reached {
+        col = col.push(category_header("ADD ASSET")).push(
+            widget::text(format!(
+                "Asset limit reached ({} max).",
+                MAX_ASSETS_PER_WALLET
+            ))
+            .size(12)
+            .class(cosmic::theme::Text::Accent),
+        );
+    } else {
+        col = col.push(category_header("ADD ASSET")).push(
+            widget::text_input("Search by symbol (e.g. AAPL, PETR4)", search_input)
+                .on_input(Message::StockSearchInput)
+                .width(Length::Fill),
+        );
 
-    if search_loading {
-        col = col.push(
-            widget::text("Searching...")
-                .size(12)
-                .class(cosmic::theme::Text::Accent),
-        );
-    } else if !search_results.is_empty() {
-        let results_col = widget::column()
-            .spacing(2)
-            .extend(search_results.iter().map(|label| {
-                widget::button::standard(label.as_str())
-                    .on_press(Message::AddStockToWallet(label.clone()))
-                    .width(Length::Fill)
-                    .into()
-            }));
-        col = col.push(results_col);
-    } else if search_input.len() >= 2 {
-        col = col.push(
-            widget::text("No results found.")
-                .size(12)
-                .class(cosmic::theme::Text::Accent),
-        );
+        if search_loading {
+            col = col.push(
+                widget::text("Searching...")
+                    .size(12)
+                    .class(cosmic::theme::Text::Accent),
+            );
+        } else if !search_results.is_empty() {
+            let results_col = widget::column()
+                .spacing(2)
+                .extend(search_results.iter().map(|label| {
+                    widget::button::standard(label.as_str())
+                        .on_press(Message::AddStockToWallet(label.clone()))
+                        .width(Length::Fill)
+                        .into()
+                }));
+            col = col.push(results_col);
+        } else if search_input.len() >= 2 {
+            col = col.push(
+                widget::text("No results found.")
+                    .size(12)
+                    .class(cosmic::theme::Text::Accent),
+            );
+        }
     }
 
     if symbols.is_empty() && quotes.is_empty() {
