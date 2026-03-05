@@ -93,10 +93,10 @@ fn top_header(last_updated: Option<String>) -> Element<'static, Message> {
         .unwrap_or_default();
     widget::container(
         widget::text(text)
-            .size(11)
+            .size(12)
             .class(cosmic::theme::Text::Default),
     )
-    .padding([4, 12])
+    .padding([6, 12])
     .width(Length::Fill)
     .into()
 }

@@ -1,10 +1,12 @@
+use crate::app::Message;
+use crate::config::Config;
+use crate::marketwatch::MarketQuote;
 use cosmic::iced::{Alignment, Length};
 use cosmic::theme::Text;
 use cosmic::widget;
 
-use crate::app::Message;
-use crate::config::Config;
-use crate::marketwatch::MarketQuote;
+//TODO: INSTALL ICON WITH JUST INSTALL
+const ICON: &[u8] = include_bytes!("../../../resources/icon.svg");
 
 pub fn build_applet_content(
     config: &Config,
@@ -30,12 +32,12 @@ fn base_row() -> widget::Row<'static, Message> {
     widget::row().align_y(Alignment::Center)
 }
 
+fn app_icon() -> widget::Icon {
+    widget::icon(widget::icon::from_svg_bytes(ICON)).size(20)
+}
+
 fn build_icon_only() -> widget::Row<'static, Message> {
-    base_row().push(
-        widget::icon::from_name("org.gnome.PowerStats-symbolic")
-            .size(16)
-            .symbolic(true),
-    )
+    base_row().push(app_icon())
 }
 
 fn build_quote_display(quote: &MarketQuote) -> widget::Row<'static, Message> {
@@ -44,11 +46,7 @@ fn build_quote_display(quote: &MarketQuote) -> widget::Row<'static, Message> {
     base_row()
         .spacing(12)
         .width(Length::Fixed(280.0))
-        .push(
-            widget::icon::from_name("org.gnome.PowerStats-symbolic")
-                .size(16)
-                .symbolic(true),
-        )
+        .push(build_icon_only())
         .push(widget::horizontal_space().width(Length::Fill))
         .push(widget::text::heading(quote.symbol.clone()))
         .push(widget::horizontal_space().width(Length::Fill))

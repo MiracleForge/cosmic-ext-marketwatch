@@ -216,7 +216,7 @@ impl cosmic::Application for AppModel {
             widget::button::custom(content)
                 .class(cosmic::theme::Button::AppletIcon)
                 .on_press(Message::TogglePopup),
-            self.applet_id.clone(),
+            widget::Id::unique(),
         )
         .into()
     }
