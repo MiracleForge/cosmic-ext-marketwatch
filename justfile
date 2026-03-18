@@ -2,7 +2,7 @@ name := 'cosmic-marketwatch'
 appid := 'com.github.MiracleForge.cosmic-marketwatch'
 
 rootdir := ''
-prefix := '/usr'
+prefix := env('HOME') / '.local'
 
 # Installation paths
 base-dir := absolute_path(clean(rootdir / prefix))
@@ -47,16 +47,15 @@ check-json: (check '--message-format=json')
 run *args:
     env RUST_BACKTRACE=full cargo run --release {{args}}
 
-# Installs files
 install:
-    install -Dm0755 {{ cargo-target-dir / 'release' / name }} {{bin-dst}}
-    install -Dm0644 resources/app.desktop {{desktop-dst}}
-    install -Dm0644 resources/app.metainfo.xml {{appdata-dst}}
-    install -Dm0644 resources/icon.svg {{icon-dst}}
+    sudo install -Dm0755 {{ cargo-target-dir / 'release' / name }} {{bin-dst}}
+    sudo install -Dm0644 resources/app.desktop {{desktop-dst}}
+    sudo sed -i 's|Exec=.*|Exec={{bin-dst}}|' {{desktop-dst}}
+    sudo install -Dm0644 resources/app.metainfo.xml {{appdata-dst}}
+    sudo install -Dm0644 resources/icon.svg {{icon-dst}}
 
-# Uninstalls installed files
 uninstall:
-    rm {{bin-dst}} {{desktop-dst}} {{icon-dst}}
+    sudo rm {{bin-dst}} {{desktop-dst}} {{icon-dst}}
 
 # Vendor dependencies locally
 vendor:
