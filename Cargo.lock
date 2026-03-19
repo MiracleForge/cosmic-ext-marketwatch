@@ -1083,6 +1083,7 @@ version = "0.1.0"
 dependencies = [
  "async-stream",
  "dirs 5.0.1",
+ "futures",
  "futures-util",
  "i18n-embed",
  "i18n-embed-fl",

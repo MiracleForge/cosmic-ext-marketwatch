@@ -258,9 +258,7 @@ pub async fn fetch_news_for_symbols(
     symbols: Vec<String>,
     news_per_symbol: u64,
 ) -> Result<Vec<YahooNews>, reqwest::Error> {
-    let mut all_news = Vec::new();
-
-    for symbol in symbols {
+    let futures = symbols.into_iter().map(|symbol| async move {
         let url = format!(
             "https://query1.finance.yahoo.com/v1/finance/search?q={symbol}&newsCount={news_per_symbol}&quotesCount=0"
         );
@@ -268,12 +266,18 @@ pub async fn fetch_news_for_symbols(
         let response = http_client().get(&url).send().await?.error_for_status()?;
         let data: SearchResponse = response.json().await?;
 
-        if let Some(news) = data.news {
-            all_news.extend(news);
-        }
-    }
+        Ok::<Vec<YahooNews>, reqwest::Error>(data.news.unwrap_or_default())
+    });
 
-    Ok(all_news)
+    let results = futures::future::join_all(futures).await;
+
+    let news = results
+        .into_iter()
+        .filter_map(|r| r.ok())
+        .flatten()
+        .collect();
+
+    Ok(news)
 }
 
 pub async fn search_symbols(query: String) -> Result<Vec<String>, reqwest::Error> {
@@ -299,9 +303,7 @@ pub async fn search_symbols(query: String) -> Result<Vec<String>, reqwest::Error
 }
 
 pub async fn fetch_by_symbols(symbols: Vec<String>) -> Result<Vec<MarketQuote>, reqwest::Error> {
-    let mut quotes = Vec::new();
-
-    for symbol in symbols {
+    let futures = symbols.into_iter().map(|symbol| async move {
         let url = format!(
             "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?range=1d&interval=1d"
         );
@@ -309,32 +311,48 @@ pub async fn fetch_by_symbols(symbols: Vec<String>) -> Result<Vec<MarketQuote>, 
         let response = http_client().get(&url).send().await?.error_for_status()?;
         let data: ChartResponse = response.json().await?;
 
-        if let Some(results) = data.chart.result
-            && let Some(result) = results.first()
-        {
-            let meta = &result.meta;
+        let quote = data
+            .chart
+            .result
+            .unwrap_or_default()
+            .into_iter()
+            .next()
+            .and_then(|result| {
+                let meta = result.meta;
+                let price = meta.regular_market_price.unwrap_or(0.0);
+                let previous = meta.chart_previous_close.unwrap_or(price);
+                let change = price - previous;
+                let change_percent = if previous.abs() < f64::EPSILON {
+                    0.0
+                } else {
+                    (change / previous) * 100.0
+                };
 
-            let price = meta.regular_market_price.unwrap_or(0.0);
-            let previous = meta.chart_previous_close.unwrap_or(price);
-            let change = price - previous;
-
-            let change_percent = if previous == 0.0 {
-                0.0
-            } else {
-                (change / previous) * 100.0
-            };
-
-            quotes.push(MarketQuote {
-                symbol: meta.symbol.clone(),
-                name: meta.symbol.clone(),
-                price,
-                change,
-                change_percent,
-                currency: meta.currency.clone().unwrap_or("USD".to_string()),
+                Some(MarketQuote {
+                    symbol: meta.symbol.clone(),
+                    name: meta.symbol.clone(),
+                    price,
+                    change,
+                    change_percent,
+                    currency: meta.currency.unwrap_or_else(|| "USD".to_string()),
+                })
             });
-        }
-    }
 
+        Ok::<Option<MarketQuote>, reqwest::Error>(quote)
+    });
+
+    let results = futures::future::join_all(futures).await;
+
+    let quotes = results
+        .into_iter()
+        .filter_map(|r| match r {
+            Ok(quote) => quote,
+            Err(e) => {
+                tracing::warn!("Failed to feth symbol: {}", e);
+                None
+            }
+        })
+        .collect();
     Ok(quotes)
 }
 
