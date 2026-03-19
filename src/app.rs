@@ -861,36 +861,16 @@ impl AppModel {
     }
 
     fn check_and_trigger_alerts(&mut self) {
-        eprintln!("=== check_and_trigger_alerts ===");
-        eprintln!("alerts_enabled: {}", self.config.alerts_enabled);
-        eprintln!("market_quotes count: {}", self.market_quotes.len());
-        eprintln!("wallets count: {}", self.wallets.len());
-
         let mut alerts_to_remove: Vec<(usize, u64)> = Vec::new();
         for (wallet_idx, wallet) in self.wallets.iter().enumerate() {
-            eprintln!(
-                "wallet[{}] alerts count: {}",
-                wallet_idx,
-                wallet.alerts.len()
-            );
             for alert in &wallet.alerts {
-                eprintln!(
-                    "  alert: symbol={} enabled={} condition={:?}",
-                    alert.symbol, alert.enabled, alert.condition
-                );
                 if !alert.enabled {
-                    eprintln!("  → skipped (disabled)");
                     continue;
                 }
                 let Some(quote) = self.market_quotes.iter().find(|q| q.symbol == alert.symbol)
                 else {
-                    eprintln!("  → quote NOT FOUND for {}", alert.symbol);
                     continue;
                 };
-                eprintln!(
-                    "  → quote found: price={} change_percent={}",
-                    quote.price, quote.change_percent
-                );
 
                 let triggered = match &alert.condition {
                     AlertCondition::PriceAbove(target) => quote.price > target + 0.001,
@@ -900,13 +880,11 @@ impl AppModel {
                     AlertCondition::TurnPositive => quote.change_percent > 0.0,
                     AlertCondition::TurnNegative => quote.change_percent < 0.0,
                 };
-                eprintln!("  → triggered: {}", triggered);
 
                 if triggered {
-                    eprintln!("  → SENDING NOTIFICATION");
                     if self.config.alerts_enabled {
                         let msg = format!(
-                            "{} — {}\nPrice: {} | Change: {:.2}",
+                            "{} — {}\nPrice: {} | Change: {:.2} %",
                             alert.symbol,
                             Self::alert_condition_description(&alert.condition),
                             quote.formatted_price(),
@@ -927,6 +905,7 @@ impl AppModel {
             save_wallets(&self.wallets);
         }
     }
+
     fn alert_condition_description(condition: &AlertCondition) -> String {
         match condition {
             AlertCondition::PriceAbove(v) => format!("Price above {v:.2}"),
