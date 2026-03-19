@@ -740,7 +740,8 @@ fn render_settings_tab(config: &Config) -> Element<'_, Message> {
                 .push(widget::text("Disable Custom Alerts"))
                 .push(widget::horizontal_space())
                 .push(
-                    widget::toggler(config.alerts_enabled).on_toggle(Message::ToggleAlertsEnabled),
+                    widget::toggler(!config.alerts_enabled)
+                        .on_toggle(|val| Message::ToggleAlertsEnabled(!val)),
                 ),
         )
         .push(

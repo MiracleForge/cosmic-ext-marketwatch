@@ -43,10 +43,14 @@ impl RefreshInterval {
     }
 }
 
+fn default_alerts_enabled() -> bool {
+    true
+}
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, CosmicConfigEntry, PartialEq, Serialize, Deserialize)]
 #[version = 1]
 pub struct Config {
+    #[serde(default = "default_alerts_enabled")]
     pub alerts_enabled: bool,
     pub count_stokes_at_once: u64,
     pub count_news_by_simbol: u64,
@@ -68,7 +72,7 @@ fn default_show_news() -> bool {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            alerts_enabled: false,
+            alerts_enabled: true,
             count_stokes_at_once: 5,
             count_news_by_simbol: 5,
             default_tab: PopupTab::default(),
