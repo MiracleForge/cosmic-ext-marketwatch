@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-use crate::config::PriceAlert;
+use crate::marketwatch::PriceAlert;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Wallet {

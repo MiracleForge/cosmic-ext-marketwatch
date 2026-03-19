@@ -5,10 +5,10 @@ use crate::components::header::header;
 use crate::components::maincard::maincard;
 use crate::components::wallet::Wallet;
 use crate::components::wallet::wallet::{load_wallets, save_wallets};
-use crate::config::{AlertCondition, Config, PopupTab, PriceAlert, RefreshInterval};
+use crate::config::{Config, PopupTab, RefreshInterval};
 use crate::marketwatch::{
-    MarketQuote, YahooNews, fetch_by_symbols, fetch_most_active, fetch_news_for_symbols,
-    format_publish_time, search_symbols, user_friendly_error_message,
+    AlertCondition, MarketQuote, PriceAlert, YahooNews, fetch_by_symbols, fetch_most_active,
+    fetch_news_for_symbols, format_publish_time, search_symbols, user_friendly_error_message,
 };
 use cosmic::applet::cosmic_panel_config::PanelAnchor;
 use cosmic::cosmic_config::CosmicConfigEntry;
@@ -110,13 +110,8 @@ pub enum Message {
     },
 
     CloseAlertsTab,
-    AlertTriggered {
-        symbol: String,
-        condition: AlertCondition,
-    },
 
     // Alerts form state
-    AlertSelectSymbol(String),
     AlertSelectCondition(AlertCondition),
     AlertSetValue(String),
     OpenAlertsTab(String),
@@ -154,6 +149,14 @@ impl cosmic::Application for AppModel {
         let is_horizontal = matches!(core.applet.anchor, PanelAnchor::Top | PanelAnchor::Bottom);
 
         let wallets = load_wallets();
+
+        let next_alert_id = wallets
+            .iter()
+            .flat_map(|w| &w.alerts)
+            .map(|a| a.id)
+            .max()
+            .map(|max| max + 1)
+            .unwrap_or(0);
 
         let count = config.count_stokes_at_once;
         let saved_index = config.last_wallet_index;
@@ -206,7 +209,7 @@ impl cosmic::Application for AppModel {
             last_fetch_time: HashMap::new(),
             cached_quotes: HashMap::new(),
             cached_news: HashMap::new(),
-            next_alert_id: 0,
+            next_alert_id,
             alert_selected_symbol: None,
             alert_selected_condition: AlertCondition::PriceAbove(0.0),
             alert_input_value: String::new(),
@@ -537,6 +540,13 @@ impl cosmic::Application for AppModel {
                 self.error_message = None;
                 self.news_items.clear();
 
+                if self.active_tab == PopupTab::Alerts {
+                    self.active_tab = PopupTab::Overview;
+                    self.alert_selected_symbol = None;
+                    self.alert_input_value.clear();
+                    self.alert_selected_condition = AlertCondition::PriceAbove(0.0);
+                }
+
                 self.config.last_wallet_index = safe_index;
                 self.save_config();
 
@@ -691,10 +701,20 @@ impl cosmic::Application for AppModel {
 
             Message::RemoveStockFromWallet(symbol) => {
                 if self.current_wallet_index > 0 {
-                    self.wallets[self.current_wallet_index - 1]
-                        .symbols
-                        .retain(|s| s != &symbol);
+                    let wallet = &mut self.wallets[self.current_wallet_index - 1];
+                    //removem the stock
+                    wallet.symbols.retain(|s| s != &symbol);
+                    // remove the alarm
+                    wallet.alerts.retain(|a| a.symbol != symbol);
+                    // Save wallets
                     save_wallets(&self.wallets);
+
+                    // clean alet form
+                    if self.alert_selected_symbol.as_deref() == Some(&symbol) {
+                        self.alert_selected_symbol = None;
+                        self.alert_input_value.clear();
+                        self.active_tab = PopupTab::Overview;
+                    }
 
                     let idx = self.current_wallet_index;
                     self.last_fetch_time.remove(&idx);
@@ -725,6 +745,11 @@ impl cosmic::Application for AppModel {
                     self.wallets.remove(self.current_wallet_index - 1);
                     self.current_wallet_index = 0;
                     save_wallets(&self.wallets);
+
+                    self.alert_selected_symbol = None;
+                    self.alert_input_value.clear();
+                    self.alert_selected_condition = AlertCondition::PriceAbove(0.0);
+                    self.active_tab = PopupTab::Overview;
 
                     let count = self.config.count_stokes_at_once;
                     return Task::perform(fetch_most_active(count), |result| {
@@ -782,10 +807,6 @@ impl cosmic::Application for AppModel {
                 }
             }
 
-            Message::AlertSelectSymbol(symbol) => {
-                self.alert_selected_symbol = Some(symbol);
-            }
-
             Message::AlertSelectCondition(condition) => {
                 self.alert_selected_condition = condition;
             }
@@ -804,10 +825,6 @@ impl cosmic::Application for AppModel {
                 self.alert_selected_symbol = None;
                 self.alert_input_value.clear();
                 self.alert_selected_condition = AlertCondition::PriceAbove(0.0);
-            }
-
-            Message::AlertTriggered { symbol, condition } => {
-                eprintln!("AlertTriggered: symbol={symbol} condition={condition:?}");
             }
         }
 
@@ -851,10 +868,10 @@ impl AppModel {
                 };
 
                 let triggered = match &alert.condition {
-                    AlertCondition::PriceAbove(target) => quote.price > *target,
-                    AlertCondition::PriceBelow(target) => quote.price < *target,
-                    AlertCondition::VariationAbove(target) => quote.change_percent > *target,
-                    AlertCondition::VariationBelow(target) => quote.change_percent < *target,
+                    AlertCondition::PriceAbove(target) => quote.price > target + 0.001,
+                    AlertCondition::PriceBelow(target) => quote.price < target - 0.001,
+                    AlertCondition::VariationAbove(target) => quote.change_percent > target + 0.001,
+                    AlertCondition::VariationBelow(target) => quote.change_percent < target - 0.001,
                     AlertCondition::TurnPositive => quote.change_percent > 0.0,
                     AlertCondition::TurnNegative => quote.change_percent < 0.0,
                 };

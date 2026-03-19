@@ -1,5 +1,6 @@
 use crate::marketwatch::{
-    MarketQuote, YahooNews, format_publish_time, user_friendly_error_message,
+    AlertCondition, MarketQuote, PriceAlert, YahooNews, format_publish_time,
+    user_friendly_error_message,
 };
 use cosmic::Theme;
 use cosmic::iced::{Alignment, Length};
@@ -8,7 +9,7 @@ use cosmic::theme::Text;
 use cosmic::widget;
 
 use crate::app::{MAX_ASSETS_PER_WALLET, Message};
-use crate::config::{AlertCondition, Config, PopupTab, PriceAlert, RefreshInterval};
+use crate::config::{Config, PopupTab, RefreshInterval};
 
 const NEWS_PREVIEW_COUNT: usize = 3;
 const HARD_CODED_WIDTH: f32 = 300.0;
@@ -548,7 +549,6 @@ fn render_alerts_tab<'a>(
 
     col = col.push(asset_card);
 
-    // ================= FORM =================
     let condition_options = &[
         "Price Above",
         "Price Below",
@@ -562,6 +562,10 @@ fn render_alerts_tab<'a>(
     let input_for_closure = input_value.to_string();
 
     if selected_symbol.is_some() {
+        let needs_value = !matches!(
+            selected_condition,
+            AlertCondition::TurnPositive | AlertCondition::TurnNegative
+        );
         let form = widget::column()
             .spacing(10)
             .push(widget::text("Condition").size(11).class(Text::Accent))
@@ -575,26 +579,30 @@ fn render_alerts_tab<'a>(
                 widget::row()
                     .spacing(8)
                     .align_y(Alignment::Center)
-                    .push(
-                        widget::text_input("value", input_value)
-                            .on_input(Message::AlertSetValue)
-                            .width(Length::Fill),
-                    )
-                    .push(
-                        widget::button::suggested("Add") // 🔥 botão mais forte
-                            .on_press_maybe(build_add_alert_message(
-                                wallet_index,
-                                selected_symbol,
-                                selected_condition,
-                                input_value,
-                            )),
-                    ),
+                    .push_maybe(if needs_value {
+                        // ← some quando não precisa
+                        Some(
+                            widget::text_input("value", input_value)
+                                .on_input(Message::AlertSetValue)
+                                .width(Length::Fill),
+                        )
+                    } else {
+                        None
+                    })
+                    .push(widget::button::suggested("Add").on_press_maybe(
+                        build_add_alert_message(
+                            wallet_index,
+                            selected_symbol,
+                            selected_condition,
+                            input_value,
+                        ),
+                    )),
             );
 
         col = col.push(widget::container(form).padding(10).width(Length::Fill));
     }
 
-    // ================= ALERT LIST =================
+    // ALERT LIST
     col = col.push(category_divider());
 
     col = col.push(widget::text("Your Alerts").size(11).class(Text::Accent));
@@ -691,7 +699,7 @@ fn build_add_alert_message(
     );
 
     let final_condition = if needs_value {
-        let val = input_value.parse::<f64>().ok()?; // retorna None se inválido
+        let val = input_value.parse::<f64>().ok()?; // return None if invalid 
         match condition {
             AlertCondition::PriceAbove(_) => AlertCondition::PriceAbove(val),
             AlertCondition::PriceBelow(_) => AlertCondition::PriceBelow(val),

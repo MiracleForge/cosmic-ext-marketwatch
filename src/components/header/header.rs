@@ -14,7 +14,7 @@ fn icon_button(icon: &str, message: Message) -> Element<'static, Message> {
 fn icon_button_disabled(icon: &str) -> Element<'static, Message> {
     widget::button::icon(widget::icon::from_name(icon))
         .padding([8, 12])
-        .into() // sem on_press = desabilitado visualmente
+        .into()
 }
 
 pub fn header<'a>(
@@ -24,7 +24,7 @@ pub fn header<'a>(
     rename_input: &'a str,
     wallet_count: usize,
     last_updated: Option<String>,
-    active_tab: PopupTab, // ← novo parâmetro
+    active_tab: PopupTab,
 ) -> Element<'a, Message> {
     let in_alerts = active_tab == PopupTab::Alerts;
 

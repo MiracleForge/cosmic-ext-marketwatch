@@ -2,7 +2,7 @@
 //
 use cosmic::Theme;
 use cosmic::iced::Color;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 
 const USER_AGENT: &str =
@@ -49,6 +49,28 @@ pub struct YahooNews {
     #[allow(dead_code)]
     #[serde(rename = "providerPublishTime")]
     pub publish_time: Option<u64>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub enum AlertCondition {
+    // Price
+    PriceAbove(f64),
+    PriceBelow(f64),
+    // Percentual Variation
+    VariationAbove(f64),
+    VariationBelow(f64),
+    // Variation flip
+    TurnPositive,
+    TurnNegative,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct PriceAlert {
+    pub id: u64,
+    pub symbol: String,
+    pub condition: AlertCondition,
+    pub triggered: bool,
+    pub enabled: bool,
 }
 
 //
@@ -407,13 +429,4 @@ pub fn format_publish_time(timestamp: u64) -> String {
             format!("{} weeks ago", days / 7)
         }
     }
-}
-
-pub fn send_notification(symbol: &str, message: &str) {
-    let _ = notify_rust::Notification::new()
-        .summary(&format!("MarketWatch — {symbol}"))
-        .body(message)
-        .icon("utilities-system-monitor")
-        .timeout(notify_rust::Timeout::Milliseconds(6000))
-        .show();
 }

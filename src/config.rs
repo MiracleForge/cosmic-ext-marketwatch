@@ -43,28 +43,6 @@ impl RefreshInterval {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-pub enum AlertCondition {
-    // Price
-    PriceAbove(f64),
-    PriceBelow(f64),
-    // Percentual Variation
-    VariationAbove(f64),
-    VariationBelow(f64),
-    // Variation flip
-    TurnPositive,
-    TurnNegative,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct PriceAlert {
-    pub id: u64,
-    pub symbol: String,
-    pub condition: AlertCondition,
-    pub triggered: bool,
-    pub enabled: bool,
-}
-
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, CosmicConfigEntry, PartialEq, Serialize, Deserialize)]
 #[version = 1]
