@@ -785,7 +785,8 @@ fn render_settings_tab<'a>(config: &'a Config, news_input: &'a str) -> Element<'
             widget::row()
                 .width(Length::Fill)
                 .align_y(Alignment::Center)
-                .push(widget::text("VERSION"))
+                .push(widget::text("Version: "))
+                .push(widget::text(crate::app::VERSION))
                 .push(widget::horizontal_space())
                 .push(widget::button::standard(crate::fl!("settings-tip-kofi"))),
         )
