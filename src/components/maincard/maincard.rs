@@ -1,19 +1,21 @@
 use crate::marketwatch::{
     MarketQuote, YahooNews, format_publish_time, user_friendly_error_message,
 };
+use cosmic::Theme;
 use cosmic::iced::{Alignment, Length};
 use cosmic::prelude::*;
 use cosmic::theme::Text;
 use cosmic::widget;
 
 use crate::app::{MAX_ASSETS_PER_WALLET, Message};
-use crate::config::{Config, PopupTab, RefreshInterval};
+use crate::config::{AlertCondition, Config, PopupTab, PriceAlert, RefreshInterval};
 
 const NEWS_PREVIEW_COUNT: usize = 3;
-const HARD_CODED_WIDTH: f32 = 300.0; // Temporary variable, while I don't know how to make the pop-up expand and retract automatically.
+const HARD_CODED_WIDTH: f32 = 300.0;
 
 #[allow(clippy::too_many_arguments)]
 pub fn maincard<'a>(
+    theme: &Theme,
     active_tab: PopupTab,
     current_wallet_index: usize,
     wallet_symbols: &'a [String],
@@ -26,9 +28,21 @@ pub fn maincard<'a>(
     stock_search_results: &'a [String],
     stock_search_loading: bool,
     asset_limit_reached: bool,
+    wallet_alerts: &'a [PriceAlert],
+    alert_selected_symbol: Option<&'a str>,
+    alert_selected_condition: &'a AlertCondition,
+    alert_input_value: &'a str,
 ) -> Element<'a, Message> {
     match active_tab {
         PopupTab::Settings => render_settings_tab(config),
+        PopupTab::Alerts => render_alerts_tab(
+            wallet_alerts,
+            wallet_symbols,
+            alert_selected_symbol,
+            alert_selected_condition,
+            alert_input_value,
+            current_wallet_index,
+        ),
         _ => {
             if current_wallet_index == 0 {
                 render_quotes(
@@ -37,6 +51,7 @@ pub fn maincard<'a>(
                     news_expanded,
                     config,
                     error_message,
+                    theme,
                 )
             } else {
                 render_wallet(
@@ -49,6 +64,7 @@ pub fn maincard<'a>(
                     stock_search_results,
                     stock_search_loading,
                     asset_limit_reached,
+                    theme,
                 )
             }
         }
@@ -65,6 +81,7 @@ fn render_wallet<'a>(
     search_results: &'a [String],
     search_loading: bool,
     asset_limit_reached: bool,
+    theme: &Theme,
 ) -> Element<'a, Message> {
     let mut col = widget::column()
         .spacing(12)
@@ -78,7 +95,7 @@ fn render_wallet<'a>(
         asset_limit_reached,
     ));
 
-    col = col.push(render_portfolio_section(symbols, quotes));
+    col = col.push(render_portfolio_section(symbols, quotes, theme));
 
     if config.show_news {
         col = col.push(render_news_section(news_items, news_expanded));
@@ -152,6 +169,7 @@ fn render_add_asset_section<'a>(
 fn render_portfolio_section<'a>(
     symbols: &'a [String],
     quotes: &'a [MarketQuote],
+    theme: &Theme,
 ) -> Element<'a, Message> {
     let mut col = widget::column().spacing(6);
 
@@ -176,7 +194,9 @@ fn render_portfolio_section<'a>(
         }
     } else {
         for quote in quotes {
-            col = col.push(render_quote_row(quote)).push(item_divider());
+            col = col
+                .push(render_quote_row(quote, theme))
+                .push(item_divider());
         }
     }
 
@@ -209,14 +229,14 @@ fn render_loading_row(symbol: &str) -> Element<'_, Message> {
         .into()
 }
 
-fn render_quote_row(quote: &MarketQuote) -> Element<'_, Message> {
-    let color = quote.variation_color();
+fn render_quote_row(quote: &MarketQuote, theme: &Theme) -> Element<'static, Message> {
+    let color = quote.variation_color(theme);
 
     widget::row()
         .align_y(Alignment::Center)
         .width(Length::Fill)
         .push(
-            widget::container(widget::text::heading(&quote.symbol).class(Text::Default))
+            widget::container(widget::text::heading(quote.symbol.clone()).class(Text::Default))
                 .width(Length::FillPortion(2))
                 .align_x(Alignment::Start),
         )
@@ -250,12 +270,6 @@ fn render_quote_row(quote: &MarketQuote) -> Element<'_, Message> {
         .into()
 }
 
-fn icon_button(icon: &str, message: Message) -> Element<'static, Message> {
-    widget::button::icon(widget::icon::from_name(icon))
-        .on_press(message)
-        .padding([8, 12])
-        .into()
-}
 enum QuotesState<'a> {
     Loading,
     Error(&'a str),
@@ -281,6 +295,7 @@ fn render_quotes<'a>(
     news_expanded: bool,
     config: &'a Config,
     error_message: Option<&'a String>,
+    theme: &Theme,
 ) -> Element<'a, Message> {
     let content = widget::column()
         .spacing(12)
@@ -300,7 +315,7 @@ fn render_quotes<'a>(
                 .push(category_header("Market Overview"))
                 .push(category_divider());
 
-            let col = render_quotes_list(col, quotes);
+            let col = render_quotes_list(col, quotes, theme);
 
             if config.show_news {
                 col.push(render_news_section(news_items, news_expanded))
@@ -399,9 +414,10 @@ fn news_card(item: &YahooNews) -> Element<'_, Message> {
 fn render_quotes_list<'a>(
     mut content: widget::Column<'a, Message>,
     market_quotes: &'a [MarketQuote],
+    theme: &Theme,
 ) -> widget::Column<'a, Message> {
     for quote in market_quotes {
-        let color = quote.variation_color();
+        let color = quote.variation_color(theme);
 
         let row = widget::row()
             .align_y(Alignment::Center)
@@ -454,6 +470,179 @@ fn item_divider<'a>() -> Element<'a, Message> {
 
 fn category_header(label: &str) -> Element<'_, Message> {
     widget::text(label).size(12).class(Text::Accent).into()
+}
+
+fn render_alerts_tab<'a>(
+    alerts: &'a [PriceAlert],
+    symbols: &'a [String],
+    selected_symbol: Option<&'a str>,
+    selected_condition: &'a AlertCondition,
+    input_value: &'a str,
+    wallet_index: usize,
+) -> Element<'a, Message> {
+    let mut col = widget::column()
+        .spacing(12)
+        .padding([8, 12])
+        .width(Length::Fill);
+
+    col = col.push(category_header("ADD ALERT"));
+
+    // Clona pra evitar borrow escapando no closure
+    let symbol_options: Vec<String> = symbols.iter().cloned().collect();
+    let symbol_options_for_closure = symbol_options.clone();
+    let selected_idx = selected_symbol.and_then(|s| symbol_options.iter().position(|sym| sym == s));
+
+    let condition_options = &[
+        "Price Above",
+        "Price Below",
+        "Variation Above",
+        "Variation Below",
+        "Turns Positive",
+        "Turns Negative",
+    ];
+    let condition_idx = Some(condition_to_index(selected_condition));
+    let input_for_closure = input_value.to_string();
+
+    col = col.push(
+        widget::column()
+            .spacing(8)
+            .push(
+                widget::dropdown(symbol_options, selected_idx, move |idx| {
+                    Message::AlertSelectSymbol(symbol_options_for_closure[idx].clone())
+                })
+                .width(Length::Fill),
+            )
+            .push(
+                widget::dropdown(condition_options, condition_idx, move |idx| {
+                    Message::AlertSelectCondition(index_to_condition(idx, &input_for_closure))
+                })
+                .width(Length::Fill),
+            )
+            .push(
+                widget::row()
+                    .spacing(8)
+                    .align_y(Alignment::Center)
+                    .push(
+                        widget::text_input("value", input_value)
+                            .on_input(Message::AlertSetValue)
+                            .width(Length::Fill),
+                    )
+                    .push(
+                        widget::button::standard("Add").on_press_maybe(build_add_alert_message(
+                            wallet_index,
+                            selected_symbol,
+                            selected_condition,
+                            input_value,
+                        )),
+                    ),
+            ),
+    );
+
+    col = col.push(category_divider());
+
+    if alerts.is_empty() {
+        col = col.push(
+            widget::text("No alerts set.")
+                .size(12)
+                .class(cosmic::theme::Text::Accent),
+        );
+    } else {
+        for alert in alerts {
+            col = col
+                .push(render_alert_row(alert, wallet_index))
+                .push(item_divider());
+        }
+    }
+
+    col.into()
+}
+
+fn render_alert_row(alert: &PriceAlert, wallet_index: usize) -> Element<'_, Message> {
+    let label = alert_condition_label(&alert.condition);
+    let toggle_icon = if alert.enabled {
+        "media-playback-pause-symbolic"
+    } else {
+        "media-playback-start-symbolic"
+    };
+
+    widget::row()
+        .align_y(Alignment::Center)
+        .width(Length::Fill)
+        .spacing(8)
+        .push(widget::text(&alert.symbol).width(Length::FillPortion(1)))
+        .push(widget::text(label).size(12).width(Length::FillPortion(3)))
+        .push(
+            widget::button::icon(widget::icon::from_name(toggle_icon))
+                .on_press(Message::ToggleAlert {
+                    wallet_index,
+                    alert_id: alert.id,
+                })
+                .padding([4, 8]),
+        )
+        .push(
+            widget::button::icon(widget::icon::from_name("list-remove-symbolic"))
+                .on_press(Message::RemoveAlert {
+                    wallet_index,
+                    alert_id: alert.id,
+                })
+                .padding([4, 8]),
+        )
+        .into()
+}
+
+fn alert_condition_label(condition: &AlertCondition) -> String {
+    match condition {
+        AlertCondition::PriceAbove(v) => format!("Price > {v:.2}"),
+        AlertCondition::PriceBelow(v) => format!("Price < {v:.2}"),
+        AlertCondition::VariationAbove(v) => format!("Variation > {v:.2}%"),
+        AlertCondition::VariationBelow(v) => format!("Variation < {v:.2}%"),
+        AlertCondition::TurnPositive => "Turns Positive".to_string(),
+        AlertCondition::TurnNegative => "Turns Negative".to_string(),
+    }
+}
+
+fn condition_to_index(condition: &AlertCondition) -> usize {
+    match condition {
+        AlertCondition::PriceAbove(_) => 0,
+        AlertCondition::PriceBelow(_) => 1,
+        AlertCondition::VariationAbove(_) => 2,
+        AlertCondition::VariationBelow(_) => 3,
+        AlertCondition::TurnPositive => 4,
+        AlertCondition::TurnNegative => 5,
+    }
+}
+
+fn index_to_condition(idx: usize, input_value: &str) -> AlertCondition {
+    let val = input_value.parse::<f64>().unwrap_or(0.0);
+    match idx {
+        0 => AlertCondition::PriceAbove(val),
+        1 => AlertCondition::PriceBelow(val),
+        2 => AlertCondition::VariationAbove(val),
+        3 => AlertCondition::VariationBelow(val),
+        4 => AlertCondition::TurnPositive,
+        _ => AlertCondition::TurnNegative,
+    }
+}
+
+fn build_add_alert_message(
+    wallet_index: usize,
+    selected_symbol: Option<&str>,
+    condition: &AlertCondition,
+    input_value: &str,
+) -> Option<Message> {
+    let symbol = selected_symbol?.to_string();
+    let needs_value = !matches!(
+        condition,
+        AlertCondition::TurnPositive | AlertCondition::TurnNegative
+    );
+    if needs_value && input_value.parse::<f64>().is_err() {
+        return None;
+    }
+    Some(Message::AddAlert {
+        wallet_index,
+        symbol,
+        condition: condition.clone(),
+    })
 }
 
 fn render_settings_tab(config: &Config) -> Element<'_, Message> {

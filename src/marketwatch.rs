@@ -4,6 +4,7 @@
 // https://codeberg.org/VintageTechie/cosmic-ext-applet-tempest
 
 use cosmic::iced::Color;
+use cosmic::{Element, Theme, widget};
 use serde::Deserialize;
 use std::sync::OnceLock;
 
@@ -109,11 +110,20 @@ impl MarketQuote {
         self.change >= 0.0
     }
 
-    pub fn variation_color(&self) -> Color {
+    fn blend(base: Color, overlay: Color, factor: f32) -> Color {
+        Color {
+            r: base.r + (overlay.r - base.r) * factor,
+            g: base.g + (overlay.g - base.g) * factor,
+            b: base.b + (overlay.b - base.b) * factor,
+            a: 1.0,
+        }
+    }
+
+    pub fn variation_color(&self, theme: &Theme) -> Color {
         if self.is_positive() {
-            Color::from_rgb(0.13, 0.77, 0.37)
+            theme.cosmic().success_text_color().into()
         } else {
-            Color::from_rgb(0.94, 0.27, 0.27)
+            theme.cosmic().destructive_color().into()
         }
     }
 }

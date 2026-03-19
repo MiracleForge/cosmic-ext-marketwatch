@@ -15,8 +15,8 @@ use cosmic::cosmic_config::CosmicConfigEntry;
 use cosmic::iced::{Length, Limits, Subscription, window::Id};
 use cosmic::iced_futures::Subscription as IcedSubscription;
 use cosmic::iced_winit::commands::popup::{destroy_popup, get_popup};
-use cosmic::prelude::*;
 use cosmic::{Action, widget};
+use cosmic::{prelude::*, theme};
 
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
@@ -244,14 +244,14 @@ impl cosmic::Application for AppModel {
     }
 
     fn view(&self) -> Element<'_, Self::Message> {
-        eprintln!("test {}", self.is_horizontal);
-        dbg!(self.core.applet.anchor);
+        let theme = self.core.system_theme();
         let content = applet::build_applet_content(
             &self.config,
             &self.market_quotes,
             self.current_index,
             self.is_horizontal,
             self.error_message.as_ref(),
+            &theme,
         );
 
         widget::autosize::autosize(
@@ -278,6 +278,7 @@ impl cosmic::Application for AppModel {
 
         let last_updated_ref = last_updated;
 
+        let theme = self.core.system_theme();
         let content = widget::column()
             .padding(0)
             .spacing(6)
@@ -293,6 +294,7 @@ impl cosmic::Application for AppModel {
                 last_updated_ref,
             ))
             .push(maincard(
+                &theme,
                 self.active_tab,
                 self.current_wallet_index,
                 self.wallets
@@ -309,6 +311,13 @@ impl cosmic::Application for AppModel {
                 self.wallets
                     .get(self.current_wallet_index.saturating_sub(1))
                     .is_some_and(|w| w.symbols.len() >= MAX_ASSETS_PER_WALLET),
+                // novos
+                self.wallets
+                    .get(self.current_wallet_index.saturating_sub(1))
+                    .map_or(&[], |w| w.alerts.as_slice()),
+                self.alert_selected_symbol.as_deref(),
+                &self.alert_selected_condition,
+                &self.alert_input_value,
             ));
 
         self.core

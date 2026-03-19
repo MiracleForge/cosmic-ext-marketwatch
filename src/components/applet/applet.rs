@@ -1,9 +1,9 @@
 use crate::app::Message;
 use crate::config::Config;
 use crate::marketwatch::MarketQuote;
-use cosmic::iced::{Alignment, Length};
+use cosmic::iced::Alignment;
 use cosmic::theme::Text;
-use cosmic::{Element, widget};
+use cosmic::{Element, Theme, widget};
 
 //TODO: INSTALL ICON WITH JUST INSTALL
 const ICON: &[u8] = include_bytes!("../../../resources/icon.svg");
@@ -14,6 +14,7 @@ pub fn build_applet_content(
     current_index: usize,
     is_horizontal: bool,
     error_message: Option<&String>,
+    theme: &Theme,
 ) -> Element<'static, Message> {
     eprintln!("is_horizontal: {}", is_horizontal);
     if error_message.is_some() {
@@ -24,8 +25,8 @@ pub fn build_applet_content(
     }
 
     match market_quotes.get(current_index) {
-        Some(quote) if !is_horizontal => build_vertical_quote(quote).into(),
-        Some(quote) => build_quote_display(quote).into(),
+        Some(quote) if !is_horizontal => build_vertical_quote(quote, theme).into(),
+        Some(quote) => build_quote_display(quote, theme).into(),
         None => build_loading_display().into(),
     }
 }
@@ -42,8 +43,8 @@ fn build_icon_only() -> widget::Row<'static, Message> {
     base_row().push(app_icon())
 }
 
-fn build_quote_display(quote: &MarketQuote) -> widget::Row<'static, Message> {
-    let color = quote.variation_color();
+fn build_quote_display(quote: &MarketQuote, theme: &Theme) -> widget::Row<'static, Message> {
+    let color = quote.variation_color(theme);
 
     base_row()
         .spacing(24)
@@ -52,8 +53,8 @@ fn build_quote_display(quote: &MarketQuote) -> widget::Row<'static, Message> {
         .push(widget::text(quote.formatted_variation()).class(Text::Color(color)))
 }
 
-pub fn build_vertical_quote(quote: &MarketQuote) -> Element<'static, Message> {
-    let color = quote.variation_color();
+pub fn build_vertical_quote(quote: &MarketQuote, theme: &Theme) -> Element<'static, Message> {
+    let color = quote.variation_color(theme);
 
     widget::column()
         .align_x(Alignment::Center)
