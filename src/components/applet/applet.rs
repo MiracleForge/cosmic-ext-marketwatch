@@ -3,7 +3,7 @@ use crate::config::Config;
 use crate::marketwatch::MarketQuote;
 use cosmic::iced::{Alignment, Length};
 use cosmic::theme::Text;
-use cosmic::widget;
+use cosmic::{Element, widget};
 
 //TODO: INSTALL ICON WITH JUST INSTALL
 const ICON: &[u8] = include_bytes!("../../../resources/icon.svg");
@@ -12,20 +12,22 @@ pub fn build_applet_content(
     config: &Config,
     market_quotes: &[MarketQuote],
     current_index: usize,
+    is_horizontal: bool,
     error_message: Option<&String>,
-) -> widget::Row<'static, Message> {
+) -> Element<'static, Message> {
+    eprintln!("is_horizontal: {}", is_horizontal);
     if error_message.is_some() {
-        return build_error_display();
+        return build_error_display().into();
     }
     if config.show_only_icon {
-        return build_icon_only();
+        return build_icon_only().into();
     }
 
-    if let Some(current_quote) = market_quotes.get(current_index) {
-        return build_quote_display(current_quote);
+    match market_quotes.get(current_index) {
+        Some(quote) if !is_horizontal => build_vertical_quote(quote).into(),
+        Some(quote) => build_quote_display(quote).into(),
+        None => build_loading_display().into(),
     }
-
-    build_loading_display()
 }
 
 fn base_row() -> widget::Row<'static, Message> {
@@ -44,15 +46,30 @@ fn build_quote_display(quote: &MarketQuote) -> widget::Row<'static, Message> {
     let color = quote.variation_color();
 
     base_row()
-        .spacing(12)
-        .width(Length::Fixed(280.0))
-        .push(build_icon_only())
-        .push(widget::horizontal_space().width(Length::Fill))
+        .spacing(24)
         .push(widget::text::heading(quote.symbol.clone()))
-        .push(widget::horizontal_space().width(Length::Fill))
         .push(widget::text(quote.formatted_price()).class(Text::Color(color)))
-        .push(widget::horizontal_space().width(Length::Fill))
         .push(widget::text(quote.formatted_variation()).class(Text::Color(color)))
+}
+
+pub fn build_vertical_quote(quote: &MarketQuote) -> Element<'static, Message> {
+    let color = quote.variation_color();
+
+    widget::column()
+        .align_x(Alignment::Center)
+        .spacing(4)
+        .push(widget::text(quote.symbol.clone()).size(11))
+        .push(
+            widget::text(quote.formatted_price())
+                .size(10)
+                .class(Text::Color(color)),
+        )
+        .push(
+            widget::text(quote.formatted_variation())
+                .size(10)
+                .class(Text::Color(color)),
+        )
+        .into()
 }
 
 fn build_loading_display() -> widget::Row<'static, Message> {

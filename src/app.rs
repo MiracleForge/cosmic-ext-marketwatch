@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 use crate::components::applet::{self};
+
 use crate::components::header::header;
 use crate::components::maincard::maincard;
 use crate::components::wallet::Wallet;
@@ -9,7 +10,7 @@ use crate::marketwatch::{
     MarketQuote, YahooNews, fetch_by_symbols, fetch_most_active, fetch_news_for_symbols,
     format_publish_time, search_symbols, user_friendly_error_message,
 };
-
+use cosmic::applet::cosmic_panel_config::PanelAnchor;
 use cosmic::cosmic_config::CosmicConfigEntry;
 use cosmic::iced::{Length, Limits, Subscription, window::Id};
 use cosmic::iced_futures::Subscription as IcedSubscription;
@@ -25,6 +26,8 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const MAX_WALLETS: usize = 10;
 pub const MAX_ASSETS_PER_WALLET: usize = 10;
 
+use std::sync::LazyLock;
+
 pub struct AppModel {
     active_tab: PopupTab,
     core: cosmic::Core,
@@ -35,6 +38,7 @@ pub struct AppModel {
     news_items: Vec<YahooNews>,
     news_expanded: bool,
     config: Config,
+    is_horizontal: bool,
     current_index: usize,
     error_message: Option<String>,
     wallets: Vec<Wallet>,
@@ -116,6 +120,7 @@ impl cosmic::Application for AppModel {
             .as_ref()
             .and_then(|h| Config::get_entry(h).ok())
             .unwrap_or_default();
+        let is_horizontal = matches!(core.applet.anchor, PanelAnchor::Top | PanelAnchor::Bottom);
 
         let wallets = load_wallets();
 
@@ -157,6 +162,7 @@ impl cosmic::Application for AppModel {
             news_items: Vec::new(),
             news_expanded: false,
             config,
+            is_horizontal,
             current_index: 0,
             error_message: None,
             wallets,
@@ -205,10 +211,13 @@ impl cosmic::Application for AppModel {
     }
 
     fn view(&self) -> Element<'_, Self::Message> {
+        eprintln!("test {}", self.is_horizontal);
+        dbg!(self.core.applet.anchor);
         let content = applet::build_applet_content(
             &self.config,
             &self.market_quotes,
             self.current_index,
+            self.is_horizontal,
             self.error_message.as_ref(),
         );
 
@@ -216,7 +225,7 @@ impl cosmic::Application for AppModel {
             widget::button::custom(content)
                 .class(cosmic::theme::Button::AppletIcon)
                 .on_press(Message::TogglePopup),
-            widget::Id::unique(),
+            self.applet_id.clone(),
         )
         .into()
     }
