@@ -47,7 +47,7 @@ check-json: (check '--message-format=json')
 run *args:
     env RUST_BACKTRACE=full cargo run --release {{args}}
 
-install:
+install: build-release
     sudo install -Dm0755 {{ cargo-target-dir / 'release' / name }} {{bin-dst}}
     sudo install -Dm0644 resources/app.desktop {{desktop-dst}}
     sudo sed -i 's|Exec=.*|Exec={{bin-dst}}|' {{desktop-dst}}
