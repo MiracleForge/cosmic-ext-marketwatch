@@ -33,9 +33,10 @@ pub fn maincard<'a>(
     alert_selected_symbol: Option<&'a str>,
     alert_selected_condition: &'a AlertCondition,
     alert_input_value: &'a str,
+    news_input: &'a str,
 ) -> Element<'a, Message> {
     match active_tab {
-        PopupTab::Settings => render_settings_tab(config),
+        PopupTab::Settings => render_settings_tab(config, news_input),
         PopupTab::Alerts => render_alerts_tab(
             wallet_alerts,
             alert_selected_symbol,
@@ -717,7 +718,7 @@ fn build_add_alert_message(
     })
 }
 
-fn render_settings_tab(config: &Config) -> Element<'_, Message> {
+fn render_settings_tab<'a>(config: &'a Config, news_input: &'a str) -> Element<'a, Message> {
     widget::column()
         .spacing(12)
         .padding([8, 12])
@@ -756,10 +757,10 @@ fn render_settings_tab(config: &Config) -> Element<'_, Message> {
             widget::row()
                 .width(Length::Fill)
                 .align_y(Alignment::Center)
-                .push(widget::text("News per asset"))
+                .push(widget::text("News per asset (max 5)"))
                 .push(widget::horizontal_space())
                 .push(
-                    widget::text_input("5", config.count_news_by_simbol.to_string())
+                    widget::text_input("1", news_input)
                         .on_input(Message::SetNumberOfNewsBySymbols)
                         .width(cosmic::iced::Length::Fixed(60.0)),
                 ),

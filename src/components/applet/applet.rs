@@ -16,7 +16,6 @@ pub fn build_applet_content(
     error_message: Option<&String>,
     theme: &Theme,
 ) -> Element<'static, Message> {
-    eprintln!("is_horizontal: {}", is_horizontal);
     if error_message.is_some() {
         return build_error_display().into();
     }

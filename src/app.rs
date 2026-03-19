@@ -35,6 +35,7 @@ pub struct AppModel {
     market_quotes: Vec<MarketQuote>,
     news_items: Vec<YahooNews>,
     news_expanded: bool,
+    news_per_symbol_input: String,
     config: Config,
     is_horizontal: bool,
     current_index: usize,
@@ -196,6 +197,7 @@ impl cosmic::Application for AppModel {
             market_quotes: Vec::new(),
             news_items: Vec::new(),
             news_expanded: false,
+            news_per_symbol_input: config.count_news_by_simbol.to_string(),
             config,
             is_horizontal,
             current_index: 0,
@@ -325,6 +327,7 @@ impl cosmic::Application for AppModel {
                 self.alert_selected_symbol.as_deref(),
                 &self.alert_selected_condition,
                 &self.alert_input_value,
+                &self.news_per_symbol_input,
             ));
 
         self.core
@@ -464,8 +467,10 @@ impl cosmic::Application for AppModel {
             }
 
             Message::SetNumberOfNewsBySymbols(val) => {
+                self.news_per_symbol_input = val.clone();
                 if let Ok(n) = val.parse::<u64>() {
-                    self.config.count_news_by_simbol = n;
+                    let clamped = n.clamp(1, 5);
+                    self.config.count_news_by_simbol = clamped;
                     self.save_config();
                 }
             }

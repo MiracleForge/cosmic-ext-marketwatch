@@ -74,7 +74,7 @@ impl Default for Config {
         Self {
             alerts_enabled: true,
             count_stokes_at_once: 5,
-            count_news_by_simbol: 5,
+            count_news_by_simbol: 1,
             default_tab: PopupTab::default(),
             is_using_system_colors: false,
             last_wallet_index: 0,
