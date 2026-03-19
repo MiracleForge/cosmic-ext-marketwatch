@@ -5,7 +5,7 @@ use crate::components::header::header;
 use crate::components::maincard::maincard;
 use crate::components::wallet::Wallet;
 use crate::components::wallet::wallet::{load_wallets, save_wallets};
-use crate::config::{Config, PopupTab, RefreshInterval};
+use crate::config::{AlertCondition, Config, PopupTab, RefreshInterval};
 use crate::marketwatch::{
     MarketQuote, YahooNews, fetch_by_symbols, fetch_most_active, fetch_news_for_symbols,
     format_publish_time, search_symbols, user_friendly_error_message,
@@ -25,8 +25,6 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub const MAX_WALLETS: usize = 10;
 pub const MAX_ASSETS_PER_WALLET: usize = 10;
-
-use std::sync::LazyLock;
 
 pub struct AppModel {
     active_tab: PopupTab,
@@ -56,6 +54,12 @@ pub struct AppModel {
     cached_quotes: HashMap<usize, Vec<MarketQuote>>,
 
     cached_news: HashMap<usize, Vec<YahooNews>>,
+
+    next_alert_id: u64,
+    // estado do form de alerta na struct AppModel
+    alert_selected_symbol: Option<String>,
+    alert_selected_condition: AlertCondition,
+    alert_input_value: String,
 }
 
 #[derive(Debug, Clone)]
@@ -89,6 +93,31 @@ pub enum Message {
     // Stocks on wallet
     AddStockToWallet(String),
     RemoveStockFromWallet(String),
+
+    // Alerts
+    AddAlert {
+        wallet_index: usize,
+        symbol: String,
+        condition: AlertCondition,
+    },
+    RemoveAlert {
+        wallet_index: usize,
+        alert_id: u64,
+    },
+    ToggleAlert {
+        wallet_index: usize,
+        alert_id: u64,
+    },
+    AlertTriggered {
+        symbol: String,
+        condition: AlertCondition,
+    },
+
+    // Alerts form state
+    AlertSelectSymbol(String),
+    AlertSelectCondition(AlertCondition),
+    AlertSetValue(String),
+    OpenAlertsTab(String),
 
     // Autocomplete
     StockSearchInput(String),
@@ -175,6 +204,10 @@ impl cosmic::Application for AppModel {
             last_fetch_time: HashMap::new(),
             cached_quotes: HashMap::new(),
             cached_news: HashMap::new(),
+            next_alert_id: 0,
+            alert_selected_symbol: None,
+            alert_selected_condition: AlertCondition::PriceAbove(0.0),
+            alert_input_value: String::new(),
         };
 
         (app, task)
@@ -679,6 +712,51 @@ impl cosmic::Application for AppModel {
                         Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
                     });
                 }
+            }
+
+            Message::AddAlert {
+                wallet_index,
+                symbol,
+                condition,
+            } => {
+                eprintln!(
+                    "AddAlert: wallet={wallet_index} symbol={symbol} condition={condition:?}"
+                );
+            }
+
+            Message::RemoveAlert {
+                wallet_index,
+                alert_id,
+            } => {
+                eprintln!("RemoveAlert: wallet={wallet_index} alert_id={alert_id}");
+            }
+
+            Message::ToggleAlert {
+                wallet_index,
+                alert_id,
+            } => {
+                eprintln!("ToggleAlert: wallet={wallet_index} alert_id={alert_id}");
+            }
+
+            Message::AlertSelectSymbol(symbol) => {
+                self.alert_selected_symbol = Some(symbol);
+            }
+
+            Message::AlertSelectCondition(condition) => {
+                self.alert_selected_condition = condition;
+            }
+
+            Message::AlertSetValue(val) => {
+                self.alert_input_value = val;
+            }
+
+            Message::OpenAlertsTab(symbol) => {
+                self.active_tab = PopupTab::Alerts;
+                self.alert_selected_symbol = Some(symbol)
+            }
+
+            Message::AlertTriggered { symbol, condition } => {
+                eprintln!("AlertTriggered: symbol={symbol} condition={condition:?}");
             }
         }
 

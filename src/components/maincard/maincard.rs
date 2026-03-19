@@ -232,16 +232,30 @@ fn render_quote_row(quote: &MarketQuote) -> Element<'_, Message> {
         )
         .push(
             widget::container(
-                widget::button::icon(widget::icon::from_name("list-remove-symbolic"))
-                    .on_press(Message::RemoveStockFromWallet(quote.symbol.clone()))
+                widget::button::icon(widget::icon::from_name("dialog-warning-symbolic"))
+                    .on_press(Message::OpenAlertsTab(quote.symbol.clone()))
                     .padding([4, 8]),
             )
             .width(Length::FillPortion(1))
             .align_x(Alignment::End),
         )
+        .push(
+            widget::container(
+                widget::button::icon(widget::icon::from_name("list-remove-symbolic"))
+                    .on_press(Message::RemoveStockFromWallet(quote.symbol.clone()))
+                    .padding([4, 8]),
+            )
+            .align_x(Alignment::End),
+        )
         .into()
 }
 
+fn icon_button(icon: &str, message: Message) -> Element<'static, Message> {
+    widget::button::icon(widget::icon::from_name(icon))
+        .on_press(message)
+        .padding([8, 12])
+        .into()
+}
 enum QuotesState<'a> {
     Loading,
     Error(&'a str),

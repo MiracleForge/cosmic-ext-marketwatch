@@ -1,10 +1,14 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+use crate::config::PriceAlert;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Wallet {
     pub name: String,
     pub symbols: Vec<String>,
+    #[serde(default)]
+    pub alerts: Vec<PriceAlert>,
 }
 
 impl Wallet {
@@ -12,6 +16,7 @@ impl Wallet {
         Self {
             name: name.into(),
             symbols: Vec::new(),
+            alerts: Vec::new(),
         }
     }
 }

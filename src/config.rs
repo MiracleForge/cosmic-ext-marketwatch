@@ -9,6 +9,7 @@ pub enum PopupTab {
     Settings,
     Trending,
     News,
+    Alerts,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -40,6 +41,28 @@ impl RefreshInterval {
     pub fn as_seconds(self) -> u64 {
         self.as_minutes() * 60
     }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub enum AlertCondition {
+    // Price
+    PriceAbove(f64),
+    PriceBelow(f64),
+    // Percentual Variation
+    VariationAbove(f64),
+    VariationBelow(f64),
+    // Variation flip
+    TurnPositive,
+    TurnNegative,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct PriceAlert {
+    pub id: u64,
+    pub symbol: String,
+    pub condition: AlertCondition,
+    pub triggered: bool,
+    pub enabled: bool,
 }
 
 #[allow(clippy::struct_excessive_bools)]
