@@ -1,10 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //
-// Inspired by cosmic-ext-applet-tempest
-// https://codeberg.org/VintageTechie/cosmic-ext-applet-tempest
-
+use cosmic::Theme;
 use cosmic::iced::Color;
-use cosmic::{Element, Theme, widget};
 use serde::Deserialize;
 use std::sync::OnceLock;
 
@@ -16,6 +13,9 @@ const USER_AGENT: &str =
 //
 
 static HTTP_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+
+// Inspired by cosmic-ext-applet-tempest
+// https://codeberg.org/VintageTechie/cosmic-ext-applet-tempest
 
 fn http_client() -> &'static reqwest::Client {
     HTTP_CLIENT.get_or_init(|| {
@@ -108,15 +108,6 @@ impl MarketQuote {
 
     pub fn is_positive(&self) -> bool {
         self.change >= 0.0
-    }
-
-    fn blend(base: Color, overlay: Color, factor: f32) -> Color {
-        Color {
-            r: base.r + (overlay.r - base.r) * factor,
-            g: base.g + (overlay.g - base.g) * factor,
-            b: base.b + (overlay.b - base.b) * factor,
-            a: 1.0,
-        }
     }
 
     pub fn variation_color(&self, theme: &Theme) -> Color {
@@ -416,4 +407,13 @@ pub fn format_publish_time(timestamp: u64) -> String {
             format!("{} weeks ago", days / 7)
         }
     }
+}
+
+pub fn send_notification(symbol: &str, message: &str) {
+    let _ = notify_rust::Notification::new()
+        .summary(&format!("MarketWatch — {symbol}"))
+        .body(message)
+        .icon("utilities-system-monitor")
+        .timeout(notify_rust::Timeout::Milliseconds(6000))
+        .show();
 }

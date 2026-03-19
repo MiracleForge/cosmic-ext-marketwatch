@@ -37,11 +37,12 @@ pub fn maincard<'a>(
         PopupTab::Settings => render_settings_tab(config),
         PopupTab::Alerts => render_alerts_tab(
             wallet_alerts,
-            wallet_symbols,
             alert_selected_symbol,
             alert_selected_condition,
             alert_input_value,
             current_wallet_index,
+            market_quotes,
+            theme,
         ),
         _ => {
             if current_wallet_index == 0 {
@@ -474,24 +475,80 @@ fn category_header(label: &str) -> Element<'_, Message> {
 
 fn render_alerts_tab<'a>(
     alerts: &'a [PriceAlert],
-    symbols: &'a [String],
     selected_symbol: Option<&'a str>,
     selected_condition: &'a AlertCondition,
     input_value: &'a str,
     wallet_index: usize,
+    market_quotes: &'a [MarketQuote],
+    theme: &Theme,
 ) -> Element<'a, Message> {
     let mut col = widget::column()
-        .spacing(12)
-        .padding([8, 12])
+        .spacing(16) // 🔥 mais respiro
+        .padding([12, 16])
         .width(Length::Fill);
 
-    col = col.push(category_header("ADD ALERT"));
+    // ================= HEADER =================
+    col = col.push(
+        widget::row()
+            .align_y(Alignment::Center)
+            .spacing(8)
+            .push(
+                widget::button::icon(widget::icon::from_name("go-previous-symbolic"))
+                    .on_press(Message::CloseAlertsTab)
+                    .padding([4, 8]),
+            )
+            .push(widget::text("Alerts").size(14).class(Text::Accent)),
+    );
 
-    // Clona pra evitar borrow escapando no closure
-    let symbol_options: Vec<String> = symbols.iter().cloned().collect();
-    let symbol_options_for_closure = symbol_options.clone();
-    let selected_idx = selected_symbol.and_then(|s| symbol_options.iter().position(|sym| sym == s));
+    // ================= DATA =================
+    let selected_quote =
+        selected_symbol.and_then(|sym| market_quotes.iter().find(|q| q.symbol == sym));
 
+    // ================= CARD: ASSET =================
+    let asset_card = match selected_symbol {
+        Some(sym) => {
+            let mut content = widget::column().spacing(6);
+
+            content = content.push(widget::text("Selected Asset").size(11).class(Text::Accent));
+
+            content = content.push(widget::text::heading(sym));
+
+            // 💰 preço + variação (mais bonito)
+            if let Some(quote) = selected_quote {
+                let color = quote.variation_color(theme);
+
+                content = content.push(
+                    widget::row()
+                        .spacing(10)
+                        .align_y(Alignment::Center)
+                        .push(
+                            widget::text(quote.formatted_price())
+                                .size(14)
+                                .class(Text::Default),
+                        )
+                        .push(
+                            widget::text(quote.formatted_variation())
+                                .size(13)
+                                .class(Text::Color(color)),
+                        ),
+                );
+            }
+
+            widget::container(content).padding(10).width(Length::Fill)
+        }
+
+        None => widget::container(
+            widget::text("Select a stock from the list to create alerts.")
+                .size(12)
+                .class(Text::Accent),
+        )
+        .padding(10)
+        .width(Length::Fill),
+    };
+
+    col = col.push(asset_card);
+
+    // ================= FORM =================
     let condition_options = &[
         "Price Above",
         "Price Below",
@@ -500,18 +557,14 @@ fn render_alerts_tab<'a>(
         "Turns Positive",
         "Turns Negative",
     ];
+
     let condition_idx = Some(condition_to_index(selected_condition));
     let input_for_closure = input_value.to_string();
 
-    col = col.push(
-        widget::column()
-            .spacing(8)
-            .push(
-                widget::dropdown(symbol_options, selected_idx, move |idx| {
-                    Message::AlertSelectSymbol(symbol_options_for_closure[idx].clone())
-                })
-                .width(Length::Fill),
-            )
+    if selected_symbol.is_some() {
+        let form = widget::column()
+            .spacing(10)
+            .push(widget::text("Condition").size(11).class(Text::Accent))
             .push(
                 widget::dropdown(condition_options, condition_idx, move |idx| {
                     Message::AlertSelectCondition(index_to_condition(idx, &input_for_closure))
@@ -528,35 +581,36 @@ fn render_alerts_tab<'a>(
                             .width(Length::Fill),
                     )
                     .push(
-                        widget::button::standard("Add").on_press_maybe(build_add_alert_message(
-                            wallet_index,
-                            selected_symbol,
-                            selected_condition,
-                            input_value,
-                        )),
+                        widget::button::suggested("Add") // 🔥 botão mais forte
+                            .on_press_maybe(build_add_alert_message(
+                                wallet_index,
+                                selected_symbol,
+                                selected_condition,
+                                input_value,
+                            )),
                     ),
-            ),
-    );
+            );
 
+        col = col.push(widget::container(form).padding(10).width(Length::Fill));
+    }
+
+    // ================= ALERT LIST =================
     col = col.push(category_divider());
 
+    col = col.push(widget::text("Your Alerts").size(11).class(Text::Accent));
+
     if alerts.is_empty() {
-        col = col.push(
-            widget::text("No alerts set.")
-                .size(12)
-                .class(cosmic::theme::Text::Accent),
-        );
+        col = col.push(widget::text("No alerts yet.").size(12).class(Text::Accent));
     } else {
         for alert in alerts {
             col = col
-                .push(render_alert_row(alert, wallet_index))
+                .push(widget::container(render_alert_row(alert, wallet_index)).padding([6, 4]))
                 .push(item_divider());
         }
     }
 
     col.into()
 }
-
 fn render_alert_row(alert: &PriceAlert, wallet_index: usize) -> Element<'_, Message> {
     let label = alert_condition_label(&alert.condition);
     let toggle_icon = if alert.enabled {
@@ -635,13 +689,24 @@ fn build_add_alert_message(
         condition,
         AlertCondition::TurnPositive | AlertCondition::TurnNegative
     );
-    if needs_value && input_value.parse::<f64>().is_err() {
-        return None;
-    }
+
+    let final_condition = if needs_value {
+        let val = input_value.parse::<f64>().ok()?; // retorna None se inválido
+        match condition {
+            AlertCondition::PriceAbove(_) => AlertCondition::PriceAbove(val),
+            AlertCondition::PriceBelow(_) => AlertCondition::PriceBelow(val),
+            AlertCondition::VariationAbove(_) => AlertCondition::VariationAbove(val),
+            AlertCondition::VariationBelow(_) => AlertCondition::VariationBelow(val),
+            other => other.clone(),
+        }
+    } else {
+        condition.clone()
+    };
+
     Some(Message::AddAlert {
         wallet_index,
         symbol,
-        condition: condition.clone(),
+        condition: final_condition,
     })
 }
 

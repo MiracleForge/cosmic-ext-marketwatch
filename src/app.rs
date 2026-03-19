@@ -5,7 +5,7 @@ use crate::components::header::header;
 use crate::components::maincard::maincard;
 use crate::components::wallet::Wallet;
 use crate::components::wallet::wallet::{load_wallets, save_wallets};
-use crate::config::{AlertCondition, Config, PopupTab, RefreshInterval};
+use crate::config::{AlertCondition, Config, PopupTab, PriceAlert, RefreshInterval};
 use crate::marketwatch::{
     MarketQuote, YahooNews, fetch_by_symbols, fetch_most_active, fetch_news_for_symbols,
     format_publish_time, search_symbols, user_friendly_error_message,
@@ -15,8 +15,8 @@ use cosmic::cosmic_config::CosmicConfigEntry;
 use cosmic::iced::{Length, Limits, Subscription, window::Id};
 use cosmic::iced_futures::Subscription as IcedSubscription;
 use cosmic::iced_winit::commands::popup::{destroy_popup, get_popup};
+use cosmic::prelude::*;
 use cosmic::{Action, widget};
-use cosmic::{prelude::*, theme};
 
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
@@ -108,6 +108,8 @@ pub enum Message {
         wallet_index: usize,
         alert_id: u64,
     },
+
+    CloseAlertsTab,
     AlertTriggered {
         symbol: String,
         condition: AlertCondition,
@@ -292,6 +294,7 @@ impl cosmic::Application for AppModel {
                 &self.rename_input,
                 self.wallets.len(),
                 last_updated_ref,
+                self.active_tab,
             ))
             .push(maincard(
                 &theme,
@@ -377,6 +380,7 @@ impl cosmic::Application for AppModel {
                     self.last_fetch_time.insert(idx, Instant::now());
                     self.cached_quotes.insert(idx, self.market_quotes.clone());
 
+                    self.check_and_trigger_alerts();
                     if self.config.show_news {
                         let symbols: Vec<String> = self
                             .market_quotes
@@ -573,6 +577,9 @@ impl cosmic::Application for AppModel {
             }
 
             Message::PreviusWallet => {
+                if self.active_tab == PopupTab::Alerts {
+                    return Task::none();
+                }
                 let total = self.wallets.len() + 1;
                 if total <= 1 {
                     return Task::none();
@@ -586,6 +593,9 @@ impl cosmic::Application for AppModel {
             }
 
             Message::NextWallet => {
+                if self.active_tab == PopupTab::Alerts {
+                    return Task::none();
+                }
                 let total = self.wallets.len() + 1;
                 if total <= 1 {
                     return Task::none();
@@ -728,23 +738,48 @@ impl cosmic::Application for AppModel {
                 symbol,
                 condition,
             } => {
-                eprintln!(
-                    "AddAlert: wallet={wallet_index} symbol={symbol} condition={condition:?}"
-                );
+                if wallet_index > 0 {
+                    if let Some(wallet) = self.wallets.get_mut(wallet_index - 1) {
+                        let id = self.next_alert_id;
+                        self.next_alert_id += 1;
+
+                        wallet.alerts.push(PriceAlert {
+                            id,
+                            symbol,
+                            condition,
+                            triggered: false,
+                            enabled: true,
+                        });
+
+                        save_wallets(&self.wallets);
+                    }
+                }
             }
 
             Message::RemoveAlert {
                 wallet_index,
                 alert_id,
             } => {
-                eprintln!("RemoveAlert: wallet={wallet_index} alert_id={alert_id}");
+                if wallet_index > 0 {
+                    if let Some(wallet) = self.wallets.get_mut(wallet_index - 1) {
+                        wallet.alerts.retain(|a| a.id != alert_id);
+                        save_wallets(&self.wallets);
+                    }
+                }
             }
 
             Message::ToggleAlert {
                 wallet_index,
                 alert_id,
             } => {
-                eprintln!("ToggleAlert: wallet={wallet_index} alert_id={alert_id}");
+                if wallet_index > 0 {
+                    if let Some(wallet) = self.wallets.get_mut(wallet_index - 1) {
+                        if let Some(alert) = wallet.alerts.iter_mut().find(|a| a.id == alert_id) {
+                            alert.enabled = !alert.enabled;
+                            save_wallets(&self.wallets);
+                        }
+                    }
+                }
             }
 
             Message::AlertSelectSymbol(symbol) => {
@@ -762,6 +797,13 @@ impl cosmic::Application for AppModel {
             Message::OpenAlertsTab(symbol) => {
                 self.active_tab = PopupTab::Alerts;
                 self.alert_selected_symbol = Some(symbol)
+            }
+
+            Message::CloseAlertsTab => {
+                self.active_tab = PopupTab::Overview;
+                self.alert_selected_symbol = None;
+                self.alert_input_value.clear();
+                self.alert_selected_condition = AlertCondition::PriceAbove(0.0);
             }
 
             Message::AlertTriggered { symbol, condition } => {
@@ -783,6 +825,69 @@ impl AppModel {
             && let Err(e) = self.config.write_entry(handler)
         {
             tracing::error!("Failed to save config: {}", e);
+        }
+    }
+
+    fn send_notification(symbol: &str, message: &str) {
+        let _ = notify_rust::Notification::new()
+            .summary(&format!("MarketWatch — {symbol}"))
+            .body(message)
+            .icon("utilities-system-monitor")
+            .timeout(notify_rust::Timeout::Milliseconds(6000))
+            .show();
+    }
+
+    fn check_and_trigger_alerts(&mut self) {
+        let mut alerts_to_remove: Vec<(usize, u64)> = Vec::new();
+
+        for (wallet_idx, wallet) in self.wallets.iter().enumerate() {
+            for alert in &wallet.alerts {
+                if !alert.enabled {
+                    continue;
+                }
+                let Some(quote) = self.market_quotes.iter().find(|q| q.symbol == alert.symbol)
+                else {
+                    continue;
+                };
+
+                let triggered = match &alert.condition {
+                    AlertCondition::PriceAbove(target) => quote.price > *target,
+                    AlertCondition::PriceBelow(target) => quote.price < *target,
+                    AlertCondition::VariationAbove(target) => quote.change_percent > *target,
+                    AlertCondition::VariationBelow(target) => quote.change_percent < *target,
+                    AlertCondition::TurnPositive => quote.change_percent > 0.0,
+                    AlertCondition::TurnNegative => quote.change_percent < 0.0,
+                };
+
+                if triggered {
+                    let msg = format!(
+                        "{} — {}",
+                        alert.symbol,
+                        Self::alert_condition_description(&alert.condition),
+                    );
+                    Self::send_notification(&alert.symbol, &msg);
+                    alerts_to_remove.push((wallet_idx, alert.id));
+                }
+            }
+        }
+
+        let removed = !alerts_to_remove.is_empty();
+        for (wallet_idx, alert_id) in alerts_to_remove {
+            self.wallets[wallet_idx].alerts.retain(|a| a.id != alert_id);
+        }
+        if removed {
+            save_wallets(&self.wallets);
+        }
+    }
+
+    fn alert_condition_description(condition: &AlertCondition) -> String {
+        match condition {
+            AlertCondition::PriceAbove(v) => format!("Price above {v:.2}"),
+            AlertCondition::PriceBelow(v) => format!("Price below {v:.2}"),
+            AlertCondition::VariationAbove(v) => format!("Variation above {v:.2}%"),
+            AlertCondition::VariationBelow(v) => format!("Variation below {v:.2}%"),
+            AlertCondition::TurnPositive => "Turned positive".to_string(),
+            AlertCondition::TurnNegative => "Turned negative".to_string(),
         }
     }
 }
