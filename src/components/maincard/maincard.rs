@@ -514,7 +514,6 @@ fn render_alerts_tab<'a>(
 
             content = content.push(widget::text::heading(sym));
 
-            // 💰 preço + variação (mais bonito)
             if let Some(quote) = selected_quote {
                 let color = quote.variation_color(theme);
 
@@ -732,6 +731,16 @@ fn render_settings_tab(config: &Config) -> Element<'_, Message> {
                 .push(widget::horizontal_space())
                 .push(
                     widget::toggler(config.show_only_icon).on_toggle(Message::ToggleShowOnlyIcon),
+                ),
+        )
+        .push(
+            widget::row()
+                .width(Length::Fill)
+                .align_y(Alignment::Center)
+                .push(widget::text("Disable Custom Alerts"))
+                .push(widget::horizontal_space())
+                .push(
+                    widget::toggler(config.alerts_enabled).on_toggle(Message::ToggleAlertsEnabled),
                 ),
         )
         .push(

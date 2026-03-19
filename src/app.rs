@@ -90,6 +90,7 @@ pub enum Message {
     ConfirmRenameWallet,
     ToggleRenameMode,
 
+    ToggleAlertsEnabled(bool),
     // Stocks on wallet
     AddStockToWallet(String),
     RemoveStockFromWallet(String),
@@ -758,6 +759,11 @@ impl cosmic::Application for AppModel {
                 }
             }
 
+            Message::ToggleAlertsEnabled(val) => {
+                self.config.alerts_enabled = val;
+                self.save_config();
+            }
+
             Message::AddAlert {
                 wallet_index,
                 symbol,
@@ -877,12 +883,14 @@ impl AppModel {
                 };
 
                 if triggered {
-                    let msg = format!(
-                        "{} — {}",
-                        alert.symbol,
-                        Self::alert_condition_description(&alert.condition),
-                    );
-                    Self::send_notification(&alert.symbol, &msg);
+                    if self.config.alerts_enabled {
+                        let msg = format!(
+                            "{} — {}",
+                            alert.symbol,
+                            Self::alert_condition_description(&alert.condition),
+                        );
+                        Self::send_notification(&alert.symbol, &msg);
+                    }
                     alerts_to_remove.push((wallet_idx, alert.id));
                 }
             }
