@@ -2,6 +2,30 @@
 
 Real-time stock market ticker for the COSMIC desktop
 
+## Screenshots
+
+![Panel](screenshots/cosmic-marketwatch-applet.png)
+![Wallet](screenshots/cosmic-marketwatch-wallet.png)
+![Settings](screenshots/cosmic-marketwatch-settings.png)
+![Alert Tab](screenshots/cosmic-marketwatch-alert-tab.png)
+## Features
+
+- Real-time market data from Yahoo Finance (no API key required)
+- Current price and percentage variation displayed in panel
+- Automatic rotation between multiple assets
+- Detailed popup with tabbed interface:
+  - **Overview tab**: trending and most active assets with latest news
+  - **Wallet tab**: track your own portfolio of up to 10 assets per wallet
+  - **Alerts tab**: price and variation alerts with desktop notifications
+  - **Settings tab**: all configuration options
+- Up to 10 custom wallets with up to 10 assets each
+- Price alerts: above, below, variation thresholds, turns positive/negative
+- Desktop notifications when alert conditions are met
+- Latest news per asset from Yahoo Finance
+- Support for multiple currencies: USD, BRL, EUR, GBP, JPY, CHF, CAD, AUD, CNY, INR
+- Configurable refresh interval and stock rotation speed
+- Persistent wallet and alert configuration
+
 ## Installation
 
 A [justfile](./justfile) is included by default for the [casey/just][just] command runner.
@@ -42,7 +66,24 @@ Developers should install [rustup][rustup] and configure their editor to use [ru
 [rust-analyzer]: https://rust-analyzer.github.io/
 [sccache]: https://github.com/mozilla/sccache
 
+## Configuration
+
+Click the applet to open the popup and navigate to the Settings tab where you can:
+
+- Toggle icon-only mode (hides price and variation from panel)
+- Enable or disable news display per asset
+- Set number of news items per asset (1–5)
+- Set stock rotation interval (seconds between assets)
+- Set refresh interval (5, 10, 15, 30 minutes or 1 hour)
+- Enable or disable price alert notifications
+
+Settings are automatically saved and persist across sessions.
+
 ## Data Source
 
 Market data is retrieved from Yahoo Finance public endpoints.
 This project is not affiliated with, endorsed, or sponsored by Yahoo Inc.
+
+## License
+
+GPL-3.0-only - See [LICENSE](./LICENSE)
