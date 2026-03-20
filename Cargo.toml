@@ -2,7 +2,7 @@
 name = "cosmic-marketwatch"
 version = "1.0.0"
 edition = "2024"
-license = "MPL-2.0"
+license = "GPL-3.0-only"
 description = "Real-time stock market ticker for the COSMIC desktop"
 repository = "https://github.com/MiracleForge/cosmic-marketwatch"
 
