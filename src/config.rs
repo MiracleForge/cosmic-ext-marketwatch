@@ -78,7 +78,7 @@ impl Default for Config {
             last_wallet_index: 0,
             panel_stoke_rotation_interval: 20,
             refresh_interval: RefreshInterval::default(),
-            show_only_icon: false,
+            show_only_icon: true,
             show_news: true,
         }
     }

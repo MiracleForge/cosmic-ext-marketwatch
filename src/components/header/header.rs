@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 use crate::app::{MAX_WALLETS, Message};
 use crate::config::PopupTab;
 use cosmic::iced::{Alignment, Length};

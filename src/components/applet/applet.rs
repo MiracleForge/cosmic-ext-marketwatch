@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 use crate::app::Message;
 use crate::config::Config;
 use crate::marketwatch::MarketQuote;
@@ -14,16 +15,17 @@ pub fn build_applet_content(
     current_index: usize,
     is_horizontal: bool,
     error_message: Option<&String>,
-    theme: &Theme,
-    icon_size: u16,
+    core: &cosmic::Core,
 ) -> Element<'static, Message> {
+    let size = core.applet.suggested_size(true).0;
     if error_message.is_some() {
         return build_error_display().into();
     }
     if config.show_only_icon {
-        return build_icon_only(icon_size).into();
+        return build_icon_only(size).into();
     }
 
+    let theme = core.system_theme();
     match market_quotes.get(current_index) {
         Some(quote) if !is_horizontal => build_vertical_quote(quote, theme),
         Some(quote) => build_quote_display(quote, theme).into(),
@@ -54,23 +56,17 @@ fn build_quote_display(quote: &MarketQuote, theme: &Theme) -> widget::Row<'stati
     base_row()
         .spacing(8)
         .width(Length::Shrink)
-        .height(Length::Fixed(24.0))
-        .push(
-            widget::text(quote.symbol.clone())
-                .font(Font::MONOSPACE)
-                .width(Length::Shrink),
-        )
+        .height(Length::Shrink)
+        .push(widget::text(quote.symbol.clone()).font(Font::MONOSPACE))
         .push(
             widget::text(price)
                 .class(Text::Color(color))
-                .font(Font::MONOSPACE)
-                .width(Length::Shrink),
+                .font(Font::MONOSPACE),
         )
         .push(
             widget::text(variation)
                 .class(Text::Color(color))
-                .font(Font::MONOSPACE)
-                .width(Length::Shrink),
+                .font(Font::MONOSPACE),
         )
 }
 
@@ -97,21 +93,13 @@ pub fn build_vertical_quote(quote: &MarketQuote, theme: &Theme) -> Element<'stat
 fn build_loading_display() -> widget::Row<'static, Message> {
     base_row()
         .spacing(12)
-        .push(
-            widget::icon::from_name("process-working-symbolic")
-                .size(16)
-                .symbolic(true),
-        )
+        .push(widget::icon::from_name("process-working-symbolic").symbolic(true))
         .push(widget::text("Loading..."))
 }
 
 fn build_error_display() -> widget::Row<'static, Message> {
     base_row()
         .spacing(8)
-        .push(
-            widget::icon::from_name("dialog-error-symbolic")
-                .size(16)
-                .symbolic(true),
-        )
+        .push(widget::icon::from_name("dialog-error-symbolic").symbolic(true))
         .push(widget::text("Error"))
 }

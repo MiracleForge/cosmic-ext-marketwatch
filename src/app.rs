@@ -252,23 +252,18 @@ impl cosmic::Application for AppModel {
     }
 
     fn view(&self) -> Element<'_, Self::Message> {
-        let theme = self.core.system_theme();
-        let icon_size = self.core.applet.suggested_size(true).0;
-        let padding = self.core.applet.suggested_padding(true);
         let content = applet::build_applet_content(
             &self.config,
             &self.market_quotes,
             self.current_index,
             self.is_horizontal,
             self.error_message.as_ref(),
-            theme,
-            icon_size,
+            &self.core,
         );
 
         widget::autosize::autosize(
             widget::button::custom(content)
                 .class(cosmic::theme::Button::AppletIcon)
-                .padding([padding.0, padding.1])
                 .on_press(Message::TogglePopup),
             widget::Id::unique(),
         )
@@ -324,7 +319,6 @@ impl cosmic::Application for AppModel {
                 self.wallets
                     .get(self.current_wallet_index.saturating_sub(1))
                     .is_some_and(|w| w.symbols.len() >= MAX_ASSETS_PER_WALLET),
-                // novos
                 self.wallets
                     .get(self.current_wallet_index.saturating_sub(1))
                     .map_or(&[], |w| w.alerts.as_slice()),
@@ -339,10 +333,10 @@ impl cosmic::Application for AppModel {
             .popup_container(content)
             .limits(
                 Limits::NONE
-                    .min_width(480.0)
-                    .max_width(480.0)
-                    .min_height(200.0)
-                    .max_height(1080.0),
+                    .min_width(440.0)
+                    .max_width(440.0)
+                    .min_height(180.0)
+                    .max_height(550.0),
             )
             .into()
     }
@@ -367,10 +361,10 @@ impl cosmic::Application for AppModel {
                     );
 
                     popup_settings.positioner.size_limits = Limits::NONE
-                        .max_width(372.0)
-                        .min_width(300.0)
-                        .min_height(200.0)
-                        .max_height(1080.0);
+                        .max_width(440.0)
+                        .min_width(440.0)
+                        .min_height(180.0)
+                        .max_height(550.0);
 
                     get_popup(popup_settings)
                 };

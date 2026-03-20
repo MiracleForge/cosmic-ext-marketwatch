@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//
 use cosmic::Theme;
 use cosmic::iced::Color;
 use serde::{Deserialize, Serialize};

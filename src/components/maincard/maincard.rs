@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 use crate::marketwatch::{
     AlertCondition, MarketQuote, PriceAlert, YahooNews, format_publish_time,
     user_friendly_error_message,
