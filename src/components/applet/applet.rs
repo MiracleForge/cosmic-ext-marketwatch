@@ -1,8 +1,7 @@
 use crate::app::Message;
 use crate::config::Config;
 use crate::marketwatch::MarketQuote;
-use cosmic::iced::alignment::Horizontal;
-use cosmic::iced::{Alignment, Font, Length, font};
+use cosmic::iced::{Alignment, Font, Length};
 use cosmic::theme::Text;
 use cosmic::{Element, Theme, widget};
 
