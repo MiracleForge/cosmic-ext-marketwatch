@@ -12,6 +12,19 @@ use cosmic::widget;
 use crate::app::{MAX_ASSETS_PER_WALLET, Message};
 use crate::config::{Config, PopupTab, RefreshInterval};
 
+// =====================================================================
+// Layout constants — change here to affect the entire UI
+// =====================================================================
+const PAD_TAB: [u16; 2] = [8, 12]; // outer padding for all tabs
+const PAD_CARD: [u16; 2] = [10, 12]; // inner padding for cards
+const PAD_ROW: [u16; 2] = [4, 8]; // padding for icon buttons in rows
+const SPACING_TAB: u16 = 12; // spacing between sections within a tab
+const SPACING_ROW: u16 = 8; // spacing between items in a row
+const SPACING_COL: u16 = 6; // spacing between items in a column
+const TEXT_SMALL: u16 = 11; // labels, badges
+const TEXT_BODY: u16 = 12; // secondary body text
+const TEXT_NORMAL: u16 = 13; // primary body text
+const TEXT_LABEL: u16 = 14; // emphasis labels
 const NEWS_PREVIEW_COUNT: usize = 3;
 const HARD_CODED_WIDTH: f32 = 300.0;
 
@@ -89,9 +102,9 @@ fn render_wallet<'a>(
     theme: &Theme,
 ) -> Element<'a, Message> {
     let mut col = widget::column()
-        .spacing(12)
+        .spacing(SPACING_TAB)
         .width(Length::Fill)
-        .padding([8, 12]);
+        .padding(PAD_TAB);
 
     col = col.push(render_add_asset_section(
         search_input,
@@ -116,7 +129,7 @@ fn render_add_asset_section<'a>(
     asset_limit_reached: bool,
 ) -> Element<'a, Message> {
     let mut col = widget::column()
-        .spacing(12)
+        .spacing(SPACING_TAB)
         .push(category_header("ADD ASSET"));
 
     if asset_limit_reached {
@@ -125,7 +138,7 @@ fn render_add_asset_section<'a>(
                 widget::text(format!(
                     "Asset limit reached ({MAX_ASSETS_PER_WALLET} max)."
                 ))
-                .size(12)
+                .size(TEXT_BODY)
                 .class(cosmic::theme::Text::Accent),
             )
             .into();
@@ -141,7 +154,7 @@ fn render_add_asset_section<'a>(
         return col
             .push(
                 widget::text("Searching...")
-                    .size(12)
+                    .size(TEXT_BODY)
                     .class(cosmic::theme::Text::Accent),
             )
             .into();
@@ -163,7 +176,7 @@ fn render_add_asset_section<'a>(
     if search_input.len() >= 2 {
         col = col.push(
             widget::text("No results found.")
-                .size(12)
+                .size(TEXT_BODY)
                 .class(cosmic::theme::Text::Accent),
         );
     }
@@ -176,14 +189,14 @@ fn render_portfolio_section<'a>(
     quotes: &'a [MarketQuote],
     theme: &Theme,
 ) -> Element<'a, Message> {
-    let mut col = widget::column().spacing(6);
+    let mut col = widget::column().spacing(SPACING_COL);
 
     if symbols.is_empty() && quotes.is_empty() {
         return col
             .push(category_divider())
             .push(
                 widget::text("Your portfolio is empty.")
-                    .size(12)
+                    .size(TEXT_BODY)
                     .class(cosmic::theme::Text::Accent),
             )
             .into();
@@ -226,7 +239,7 @@ fn render_loading_row(symbol: &str) -> Element<'_, Message> {
             widget::container(
                 widget::button::icon(widget::icon::from_name("list-remove-symbolic"))
                     .on_press(Message::RemoveStockFromWallet(symbol.to_string()))
-                    .padding([4, 8]),
+                    .padding(PAD_ROW),
             )
             .width(Length::FillPortion(1))
             .align_x(Alignment::End),
@@ -259,7 +272,7 @@ fn render_quote_row(quote: &MarketQuote, theme: &Theme) -> Element<'static, Mess
             widget::container(
                 widget::button::icon(widget::icon::from_name("alarm-symbolic"))
                     .on_press(Message::OpenAlertsTab(quote.symbol.clone()))
-                    .padding([4, 8]),
+                    .padding(PAD_ROW),
             )
             .width(Length::FillPortion(1))
             .align_x(Alignment::End),
@@ -268,7 +281,7 @@ fn render_quote_row(quote: &MarketQuote, theme: &Theme) -> Element<'static, Mess
             widget::container(
                 widget::button::icon(widget::icon::from_name("list-remove-symbolic"))
                     .on_press(Message::RemoveStockFromWallet(quote.symbol.clone()))
-                    .padding([4, 8]),
+                    .padding(PAD_ROW),
             )
             .align_x(Alignment::End),
         )
@@ -303,9 +316,9 @@ fn render_quotes<'a>(
     theme: &Theme,
 ) -> Element<'a, Message> {
     let content = widget::column()
-        .spacing(12)
+        .spacing(SPACING_TAB)
         .width(Length::Fill)
-        .padding([8, 12]);
+        .padding(PAD_TAB);
 
     match derive_state(market_quotes, error_message) {
         QuotesState::Loading => content.push(widget::text("Loading market data...")).into(),
@@ -338,7 +351,11 @@ fn render_news_section<'a>(news: &'a [YahooNews], expanded: bool) -> Element<'a,
     let header_row = widget::row()
         .align_y(Alignment::Center)
         .width(Length::Fill)
-        .push(widget::text("Latest News").size(12).class(Text::Accent))
+        .push(
+            widget::text("Latest News")
+                .size(TEXT_BODY)
+                .class(Text::Accent),
+        )
         .push(widget::horizontal_space())
         .push_maybe(if has_more {
             Some(
@@ -355,7 +372,7 @@ fn render_news_section<'a>(news: &'a [YahooNews], expanded: bool) -> Element<'a,
 
     let news_content: Element<'a, Message> = if news.is_empty() {
         widget::text("No news available at the moment.")
-            .size(12)
+            .size(TEXT_BODY)
             .class(Text::Accent)
             .into()
     } else {
@@ -366,9 +383,9 @@ fn render_news_section<'a>(news: &'a [YahooNews], expanded: bool) -> Element<'a,
         };
 
         let cards = widget::column()
-            .spacing(6)
+            .spacing(SPACING_COL)
             .width(Length::Fill)
-            .extend(visible.iter().map(|item| news_card(item)));
+            .extend(visible.iter().map(news_card));
 
         if expanded {
             widget::scrollable(cards)
@@ -380,7 +397,7 @@ fn render_news_section<'a>(news: &'a [YahooNews], expanded: bool) -> Element<'a,
     };
 
     widget::column()
-        .spacing(8)
+        .spacing(SPACING_ROW)
         .width(Length::Fill)
         .push(category_divider())
         .push(header_row)
@@ -404,10 +421,10 @@ fn news_card(item: &YahooNews) -> Element<'_, Message> {
 
     let content = widget::column()
         .spacing(4)
-        .padding([8, 10])
+        .padding(PAD_CARD)
         .width(Length::Fill)
-        .push(widget::text(&item.title).size(13))
-        .push(widget::text(meta_text).size(11).class(Text::Accent));
+        .push(widget::text(&item.title).size(TEXT_NORMAL))
+        .push(widget::text(meta_text).size(TEXT_SMALL).class(Text::Accent));
 
     widget::button::custom(content)
         .class(cosmic::theme::Button::MenuItem)
@@ -474,7 +491,10 @@ fn item_divider<'a>() -> Element<'a, Message> {
 }
 
 fn category_header(label: &str) -> Element<'_, Message> {
-    widget::text(label).size(12).class(Text::Accent).into()
+    widget::text(label)
+        .size(TEXT_BODY)
+        .class(Text::Accent)
+        .into()
 }
 
 #[allow(clippy::too_many_lines)]
@@ -488,90 +508,98 @@ fn render_alerts_tab<'a>(
     theme: &Theme,
 ) -> Element<'a, Message> {
     let mut col = widget::column()
-        .spacing(16) // 🔥 mais respiro
-        .padding([12, 16])
+        .spacing(SPACING_TAB)
+        .padding(PAD_TAB)
         .width(Length::Fill);
 
     // ================= HEADER =================
     col = col.push(
         widget::row()
             .align_y(Alignment::Center)
-            .spacing(8)
+            .spacing(SPACING_ROW)
             .push(
                 widget::button::icon(widget::icon::from_name("go-previous-symbolic"))
                     .on_press(Message::CloseAlertsTab)
-                    .padding([4, 8]),
+                    .padding(PAD_ROW),
             )
-            .push(widget::text("Alerts").size(14).class(Text::Accent)),
+            .push(widget::text("Alerts").size(TEXT_LABEL).class(Text::Accent)),
     );
 
-    // ================= DATA =================
+    // ================= ASSET CARD =================
     let selected_quote =
         selected_symbol.and_then(|sym| market_quotes.iter().find(|q| q.symbol == sym));
 
-    // ================= CARD: ASSET =================
     let asset_card = match selected_symbol {
         Some(sym) => {
-            let mut content = widget::column().spacing(6);
-
-            content = content.push(widget::text("Selected Asset").size(11).class(Text::Accent));
-
+            let mut content = widget::column().spacing(SPACING_COL);
+            content = content.push(
+                widget::text("Selected Asset")
+                    .size(TEXT_SMALL)
+                    .class(Text::Accent),
+            );
             content = content.push(widget::text::heading(sym));
 
             if let Some(quote) = selected_quote {
                 let color = quote.variation_color(theme);
-
                 content = content.push(
                     widget::row()
-                        .spacing(10)
+                        .spacing(SPACING_TAB)
                         .align_y(Alignment::Center)
                         .push(
                             widget::text(quote.formatted_price())
-                                .size(14)
+                                .size(TEXT_LABEL)
                                 .class(Text::Default),
                         )
                         .push(
                             widget::text(quote.formatted_variation())
-                                .size(13)
+                                .size(TEXT_NORMAL)
                                 .class(Text::Color(color)),
                         ),
                 );
             }
 
-            widget::container(content).padding(10).width(Length::Fill)
+            widget::container(content)
+                .padding(PAD_CARD)
+                .width(Length::Fill)
         }
 
         None => widget::container(
             widget::text("Select a stock from the list to create alerts.")
-                .size(12)
+                .size(TEXT_BODY)
                 .class(Text::Accent),
         )
-        .padding(10)
+        .padding(PAD_CARD)
         .width(Length::Fill),
     };
 
     col = col.push(asset_card);
 
-    let condition_options = &[
-        "Price Above",
-        "Price Below",
-        "Variation Above",
-        "Variation Below",
-        "Turns Positive",
-        "Turns Negative",
-    ];
-
-    let condition_idx = Some(condition_to_index(selected_condition));
-    let input_for_closure = input_value.to_string();
-
+    // ================= ALERT FORM =================
     if selected_symbol.is_some() {
+        let condition_options = &[
+            "Price Above",
+            "Price Below",
+            "Variation Above",
+            "Variation Below",
+            "Turns Positive",
+            "Turns Negative",
+        ];
+
+        let condition_idx = Some(condition_to_index(selected_condition));
+        let input_for_closure = input_value.to_string();
+
         let needs_value = !matches!(
             selected_condition,
             AlertCondition::TurnPositive | AlertCondition::TurnNegative
         );
+
         let form = widget::column()
-            .spacing(10)
-            .push(widget::text("Condition").size(11).class(Text::Accent))
+            .spacing(SPACING_TAB)
+            .push(
+                widget::text("Condition")
+                    .size(TEXT_SMALL)
+                    .class(Text::Accent),
+            )
             .push(
                 widget::dropdown(condition_options, condition_idx, move |idx| {
                     Message::AlertSelectCondition(index_to_condition(idx, &input_for_closure))
@@ -580,10 +608,9 @@ fn render_alerts_tab<'a>(
             )
             .push(
                 widget::row()
-                    .spacing(8)
+                    .spacing(SPACING_ROW)
                     .align_y(Alignment::Center)
                     .push_maybe(if needs_value {
-                        // ← some quando não precisa
                         Some(
                             widget::text_input("value", input_value)
                                 .on_input(Message::AlertSetValue)
@@ -602,26 +629,38 @@ fn render_alerts_tab<'a>(
                     )),
             );
 
-        col = col.push(widget::container(form).padding(10).width(Length::Fill));
+        col = col.push(
+            widget::container(form)
+                .padding(PAD_CARD)
+                .width(Length::Fill),
+        );
     }
 
-    // ALERT LIST
+    // ================= ALERT LIST =================
     col = col.push(category_divider());
-
-    col = col.push(widget::text("Your Alerts").size(11).class(Text::Accent));
+    col = col.push(
+        widget::text("Your Alerts")
+            .size(TEXT_SMALL)
+            .class(Text::Accent),
+    );
 
     if alerts.is_empty() {
-        col = col.push(widget::text("No alerts yet.").size(12).class(Text::Accent));
+        col = col.push(
+            widget::text("No alerts yet.")
+                .size(TEXT_BODY)
+                .class(Text::Accent),
+        );
     } else {
         for alert in alerts {
             col = col
-                .push(widget::container(render_alert_row(alert, wallet_index)).padding([6, 4]))
+                .push(widget::container(render_alert_row(alert, wallet_index)).padding(PAD_ROW))
                 .push(item_divider());
         }
     }
 
     col.into()
 }
+
 fn render_alert_row(alert: &PriceAlert, wallet_index: usize) -> Element<'_, Message> {
     let label = alert_condition_label(&alert.condition);
     let toggle_icon = if alert.enabled {
@@ -633,16 +672,20 @@ fn render_alert_row(alert: &PriceAlert, wallet_index: usize) -> Element<'_, Mess
     widget::row()
         .align_y(Alignment::Center)
         .width(Length::Fill)
-        .spacing(8)
+        .spacing(SPACING_ROW)
         .push(widget::text(&alert.symbol).width(Length::FillPortion(1)))
-        .push(widget::text(label).size(12).width(Length::FillPortion(3)))
+        .push(
+            widget::text(label)
+                .size(TEXT_BODY)
+                .width(Length::FillPortion(3)),
+        )
         .push(
             widget::button::icon(widget::icon::from_name(toggle_icon))
                 .on_press(Message::ToggleAlert {
                     wallet_index,
                     alert_id: alert.id,
                 })
-                .padding([4, 8]),
+                .padding(PAD_ROW),
         )
         .push(
             widget::button::icon(widget::icon::from_name("list-remove-symbolic"))
@@ -650,7 +693,7 @@ fn render_alert_row(alert: &PriceAlert, wallet_index: usize) -> Element<'_, Mess
                     wallet_index,
                     alert_id: alert.id,
                 })
-                .padding([4, 8]),
+                .padding(PAD_ROW),
         )
         .into()
 }
@@ -702,7 +745,7 @@ fn build_add_alert_message(
     );
 
     let final_condition = if needs_value {
-        let val = input_value.parse::<f64>().ok()?; // return None if invalid 
+        let val = input_value.parse::<f64>().ok()?;
         match condition {
             AlertCondition::PriceAbove(_) => AlertCondition::PriceAbove(val),
             AlertCondition::PriceBelow(_) => AlertCondition::PriceBelow(val),
@@ -723,8 +766,8 @@ fn build_add_alert_message(
 
 fn render_settings_tab<'a>(config: &'a Config, news_input: &'a str) -> Element<'a, Message> {
     widget::column()
-        .spacing(12)
-        .padding([8, 12])
+        .spacing(SPACING_TAB)
+        .padding(PAD_TAB)
         .width(Length::Fill)
         .push(category_header("Panel"))
         .push(
