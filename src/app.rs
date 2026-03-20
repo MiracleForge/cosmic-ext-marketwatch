@@ -253,6 +253,8 @@ impl cosmic::Application for AppModel {
 
     fn view(&self) -> Element<'_, Self::Message> {
         let theme = self.core.system_theme();
+        let icon_size = self.core.applet.suggested_size(true).0;
+        let padding = self.core.applet.suggested_padding(true);
         let content = applet::build_applet_content(
             &self.config,
             &self.market_quotes,
@@ -260,13 +262,15 @@ impl cosmic::Application for AppModel {
             self.is_horizontal,
             self.error_message.as_ref(),
             theme,
+            icon_size,
         );
 
         widget::autosize::autosize(
             widget::button::custom(content)
                 .class(cosmic::theme::Button::AppletIcon)
+                .padding([padding.0, padding.1])
                 .on_press(Message::TogglePopup),
-            self.applet_id.clone(),
+            widget::Id::unique(),
         )
         .into()
     }

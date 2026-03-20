@@ -15,12 +15,13 @@ pub fn build_applet_content(
     is_horizontal: bool,
     error_message: Option<&String>,
     theme: &Theme,
+    icon_size: u16,
 ) -> Element<'static, Message> {
     if error_message.is_some() {
         return build_error_display().into();
     }
     if config.show_only_icon {
-        return build_icon_only().into();
+        return build_icon_only(icon_size).into();
     }
 
     match market_quotes.get(current_index) {
@@ -34,12 +35,12 @@ fn base_row() -> widget::Row<'static, Message> {
     widget::row().align_y(Alignment::Center)
 }
 
-fn app_icon() -> widget::Icon {
-    widget::icon(widget::icon::from_svg_bytes(ICON)).size(20)
+fn app_icon(icon_size: u16) -> widget::Icon {
+    widget::icon(widget::icon::from_svg_bytes(ICON)).size(icon_size)
 }
 
-fn build_icon_only() -> widget::Row<'static, Message> {
-    base_row().push(app_icon())
+fn build_icon_only(icon_size: u16) -> widget::Row<'static, Message> {
+    base_row().push(app_icon(icon_size))
 }
 
 fn build_quote_display(quote: &MarketQuote, theme: &Theme) -> widget::Row<'static, Message> {
