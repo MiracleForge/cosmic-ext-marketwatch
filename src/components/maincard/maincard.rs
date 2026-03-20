@@ -255,7 +255,7 @@ fn render_quote_row(quote: &MarketQuote, theme: &Theme) -> Element<'static, Mess
         )
         .push(
             widget::container(
-                widget::button::icon(widget::icon::from_name("dialog-warning-symbolic"))
+                widget::button::icon(widget::icon::from_name("alarm-symbolic"))
                     .on_press(Message::OpenAlertsTab(quote.symbol.clone()))
                     .padding([4, 8]),
             )
