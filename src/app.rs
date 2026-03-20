@@ -333,10 +333,10 @@ impl cosmic::Application for AppModel {
             .popup_container(content)
             .limits(
                 Limits::NONE
-                    .min_width(440.0)
-                    .max_width(440.0)
-                    .min_height(180.0)
-                    .max_height(550.0),
+                    .min_width(480.0)
+                    .max_width(480.0)
+                    .min_height(200.0)
+                    .max_height(1080.0),
             )
             .into()
     }
@@ -361,10 +361,10 @@ impl cosmic::Application for AppModel {
                     );
 
                     popup_settings.positioner.size_limits = Limits::NONE
-                        .max_width(440.0)
-                        .min_width(440.0)
-                        .min_height(180.0)
-                        .max_height(550.0);
+                        .max_width(372.0)
+                        .min_width(300.0)
+                        .min_height(200.0)
+                        .max_height(1080.0);
 
                     get_popup(popup_settings)
                 };
