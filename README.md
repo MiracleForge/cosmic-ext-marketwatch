@@ -4,10 +4,10 @@ Real-time stock market ticker for the COSMIC desktop
 
 ## Screenshots
 
-![Panel](screenshots/cosmic-marketwatch-applet.png)
-![Wallet](screenshots/cosmic-marketwatch-wallet.png)
-![Settings](screenshots/cosmic-marketwatch-settings.png)
-![Alert Tab](screenshots/cosmic-marketwatch-alert-tab.png)
+| Panel | Wallet | Settings | Alerts |
+|-------|--------|----------|--------|
+| ![Panel](screenshots/cosmic-marketwatch-applet.png) | ![Wallet](screenshots/cosmic-marketwatch-wallet.png) | ![Settings](screenshots/cosmic-marketwatch-settings.png) | ![Alerts](screenshots/cosmic-marketwatch-alert-tab.png) |
+
 ## Features
 
 - Real-time market data from Yahoo Finance (no API key required)
