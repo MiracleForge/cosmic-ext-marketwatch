@@ -273,7 +273,7 @@ pub async fn fetch_news_for_symbols(
 
     let news = results
         .into_iter()
-        .filter_map(|r| r.ok())
+        .filter_map(Result::ok)
         .flatten()
         .collect();
 
@@ -317,7 +317,7 @@ pub async fn fetch_by_symbols(symbols: Vec<String>) -> Result<Vec<MarketQuote>, 
             .unwrap_or_default()
             .into_iter()
             .next()
-            .and_then(|result| {
+            .map(|result| {
                 let meta = result.meta;
                 let price = meta.regular_market_price.unwrap_or(0.0);
                 let previous = meta.chart_previous_close.unwrap_or(price);
@@ -328,14 +328,14 @@ pub async fn fetch_by_symbols(symbols: Vec<String>) -> Result<Vec<MarketQuote>, 
                     (change / previous) * 100.0
                 };
 
-                Some(MarketQuote {
+                MarketQuote {
                     symbol: meta.symbol.clone(),
                     name: meta.symbol.clone(),
                     price,
                     change,
                     change_percent,
                     currency: meta.currency.unwrap_or_else(|| "USD".to_string()),
-                })
+                }
             });
 
         Ok::<Option<MarketQuote>, reqwest::Error>(quote)

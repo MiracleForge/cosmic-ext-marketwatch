@@ -26,6 +26,7 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const MAX_WALLETS: usize = 10;
 pub const MAX_ASSETS_PER_WALLET: usize = 10;
 
+#[allow(clippy::struct_excessive_bools)]
 pub struct AppModel {
     active_tab: PopupTab,
     core: cosmic::Core,
@@ -157,8 +158,7 @@ impl cosmic::Application for AppModel {
             .flat_map(|w| &w.alerts)
             .map(|a| a.id)
             .max()
-            .map(|max| max + 1)
-            .unwrap_or(0);
+            .map_or(0, |max| max + 1);
 
         let count = config.count_stokes_at_once;
         let saved_index = config.last_wallet_index;
@@ -259,7 +259,7 @@ impl cosmic::Application for AppModel {
             self.current_index,
             self.is_horizontal,
             self.error_message.as_ref(),
-            &theme,
+            theme,
         );
 
         widget::autosize::autosize(
@@ -303,7 +303,7 @@ impl cosmic::Application for AppModel {
                 self.active_tab,
             ))
             .push(maincard(
-                &theme,
+                theme,
                 self.active_tab,
                 self.current_wallet_index,
                 self.wallets
@@ -471,7 +471,7 @@ impl cosmic::Application for AppModel {
             }
 
             Message::SetNumberOfNewsBySymbols(val) => {
-                self.news_per_symbol_input = val.clone();
+                self.news_per_symbol_input.clone_from(&val);
                 if let Ok(n) = val.parse::<u64>() {
                     let clamped = n.clamp(1, 5);
                     self.config.count_news_by_simbol = clamped;
@@ -778,21 +778,21 @@ impl cosmic::Application for AppModel {
                 symbol,
                 condition,
             } => {
-                if wallet_index > 0 {
-                    if let Some(wallet) = self.wallets.get_mut(wallet_index - 1) {
-                        let id = self.next_alert_id;
-                        self.next_alert_id += 1;
+                if wallet_index > 0
+                    && let Some(wallet) = self.wallets.get_mut(wallet_index - 1)
+                {
+                    let id = self.next_alert_id;
+                    self.next_alert_id += 1;
 
-                        wallet.alerts.push(PriceAlert {
-                            id,
-                            symbol,
-                            condition,
-                            triggered: false,
-                            enabled: true,
-                        });
+                    wallet.alerts.push(PriceAlert {
+                        id,
+                        symbol,
+                        condition,
+                        triggered: false,
+                        enabled: true,
+                    });
 
-                        save_wallets(&self.wallets);
-                    }
+                    save_wallets(&self.wallets);
                 }
             }
 
@@ -800,11 +800,11 @@ impl cosmic::Application for AppModel {
                 wallet_index,
                 alert_id,
             } => {
-                if wallet_index > 0 {
-                    if let Some(wallet) = self.wallets.get_mut(wallet_index - 1) {
-                        wallet.alerts.retain(|a| a.id != alert_id);
-                        save_wallets(&self.wallets);
-                    }
+                if wallet_index > 0
+                    && let Some(wallet) = self.wallets.get_mut(wallet_index - 1)
+                {
+                    wallet.alerts.retain(|a| a.id != alert_id);
+                    save_wallets(&self.wallets);
                 }
             }
 
@@ -812,13 +812,12 @@ impl cosmic::Application for AppModel {
                 wallet_index,
                 alert_id,
             } => {
-                if wallet_index > 0 {
-                    if let Some(wallet) = self.wallets.get_mut(wallet_index - 1) {
-                        if let Some(alert) = wallet.alerts.iter_mut().find(|a| a.id == alert_id) {
-                            alert.enabled = !alert.enabled;
-                            save_wallets(&self.wallets);
-                        }
-                    }
+                if wallet_index > 0
+                    && let Some(wallet) = self.wallets.get_mut(wallet_index - 1)
+                    && let Some(alert) = wallet.alerts.iter_mut().find(|a| a.id == alert_id)
+                {
+                    alert.enabled = !alert.enabled;
+                    save_wallets(&self.wallets);
                 }
             }
 
@@ -832,7 +831,7 @@ impl cosmic::Application for AppModel {
 
             Message::OpenAlertsTab(symbol) => {
                 self.active_tab = PopupTab::Alerts;
-                self.alert_selected_symbol = Some(symbol)
+                self.alert_selected_symbol = Some(symbol);
             }
 
             Message::CloseAlertsTab => {

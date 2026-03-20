@@ -24,7 +24,7 @@ pub fn build_applet_content(
     }
 
     match market_quotes.get(current_index) {
-        Some(quote) if !is_horizontal => build_vertical_quote(quote, theme).into(),
+        Some(quote) if !is_horizontal => build_vertical_quote(quote, theme),
         Some(quote) => build_quote_display(quote, theme).into(),
         None => build_loading_display().into(),
     }

@@ -74,6 +74,7 @@ pub fn maincard<'a>(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn render_wallet<'a>(
     symbols: &'a [String],
     quotes: &'a [MarketQuote],
@@ -475,6 +476,7 @@ fn category_header(label: &str) -> Element<'_, Message> {
     widget::text(label).size(12).class(Text::Accent).into()
 }
 
+#[allow(clippy::too_many_lines)]
 fn render_alerts_tab<'a>(
     alerts: &'a [PriceAlert],
     selected_symbol: Option<&'a str>,
