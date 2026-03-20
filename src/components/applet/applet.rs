@@ -1,7 +1,8 @@
 use crate::app::Message;
 use crate::config::Config;
 use crate::marketwatch::MarketQuote;
-use cosmic::iced::Alignment;
+use cosmic::iced::alignment::Horizontal;
+use cosmic::iced::{Alignment, Font, Length, font};
 use cosmic::theme::Text;
 use cosmic::{Element, Theme, widget};
 
@@ -45,11 +46,32 @@ fn build_icon_only() -> widget::Row<'static, Message> {
 fn build_quote_display(quote: &MarketQuote, theme: &Theme) -> widget::Row<'static, Message> {
     let color = quote.variation_color(theme);
 
+    // Thying to fix layout shift but I don't know how , whern I have like btc-usd  $80,634.41 for
+    // exemple. For now I will leave like that
+    let price = quote.formatted_price();
+    let variation = quote.formatted_variation();
+
     base_row()
-        .spacing(24)
-        .push(widget::text::heading(quote.symbol.clone()))
-        .push(widget::text(quote.formatted_price()).class(Text::Color(color)))
-        .push(widget::text(quote.formatted_variation()).class(Text::Color(color)))
+        .spacing(8)
+        .width(Length::Shrink)
+        .height(Length::Fixed(24.0))
+        .push(
+            widget::text(quote.symbol.clone())
+                .font(Font::MONOSPACE)
+                .width(Length::Shrink),
+        )
+        .push(
+            widget::text(price)
+                .class(Text::Color(color))
+                .font(Font::MONOSPACE)
+                .width(Length::Shrink),
+        )
+        .push(
+            widget::text(variation)
+                .class(Text::Color(color))
+                .font(Font::MONOSPACE)
+                .width(Length::Shrink),
+        )
 }
 
 pub fn build_vertical_quote(quote: &MarketQuote, theme: &Theme) -> Element<'static, Message> {

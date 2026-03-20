@@ -382,11 +382,9 @@ impl cosmic::Application for AppModel {
                 Ok(data) => {
                     self.market_quotes = data;
                     self.error_message = None;
-
                     let idx = self.current_wallet_index;
                     self.last_fetch_time.insert(idx, Instant::now());
                     self.cached_quotes.insert(idx, self.market_quotes.clone());
-
                     self.check_and_trigger_alerts();
                     if self.config.show_news {
                         let symbols: Vec<String> = self
@@ -395,14 +393,19 @@ impl cosmic::Application for AppModel {
                             .take(3)
                             .map(|q| q.symbol.clone())
                             .collect();
-
-                        return Task::perform(
-                            fetch_news_for_symbols(symbols, self.config.count_news_by_simbol),
-                            |result| {
-                                Action::App(Message::NewsLoaded(result.map_err(|e| e.to_string())))
-                            },
-                        );
+                        return Task::batch([
+                            Task::perform(
+                                fetch_news_for_symbols(symbols, self.config.count_news_by_simbol),
+                                |result| {
+                                    Action::App(Message::NewsLoaded(
+                                        result.map_err(|e| e.to_string()),
+                                    ))
+                                },
+                            ),
+                            Task::done(Action::App(Message::Tick)),
+                        ]);
                     }
+                    return Task::done(Action::App(Message::Tick));
                 }
                 Err(err) => {
                     self.error_message = Some(err);
@@ -411,6 +414,7 @@ impl cosmic::Application for AppModel {
                     self.last_fetch_time.remove(&idx);
                     self.cached_quotes.remove(&idx);
                     self.cached_news.remove(&idx);
+                    return Task::done(Action::App(Message::Tick));
                 }
             },
 
