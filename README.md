@@ -87,3 +87,6 @@ This project is not affiliated with, endorsed, or sponsored by Yahoo Inc.
 ## License
 
 GPL-3.0-only - See [LICENSE](./LICENSE)
+
+### Author
+- Paulo Rosado
