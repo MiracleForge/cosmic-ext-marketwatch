@@ -325,21 +325,28 @@ impl cosmic::Application for AppModel {
             &self.news_per_symbol_input,
         );
 
-        // Lê o suggested bounds direto do core do COSMIC
+        // After almost lose my mind try to fix this, that is the best I can , the max scale this
+        // applet is capable to work is 200%
         let max_height = self
             .core
             .applet
             .suggested_bounds
-            .map(|b| (b.height - 20.0).max(300.0))
-            .unwrap_or(800.0);
+            .map(|b| b.height)
+            .unwrap_or(500.0);
+
+        let header_height = 80.0;
+
+        let max_body_height = 500.0;
+
+        let body_height = (max_height - header_height).min(max_body_height).max(120.0);
 
         let content = widget::column()
             .padding(0)
             .spacing(6)
             .width(Length::Fill)
             .height(Length::Shrink)
-            .push(header)
-            .push(widget::scrollable(body).height(Length::Shrink));
+            .push(widget::container(header).height(Length::Shrink))
+            .push(widget::container(widget::scrollable(body)).height(Length::Fixed(body_height)));
 
         self.core
             .applet
@@ -349,7 +356,7 @@ impl cosmic::Application for AppModel {
                     .min_width(480.0)
                     .max_width(480.0)
                     .min_height(200.0)
-                    .max_height(max_height),
+                    .max_height(f32::INFINITY),
             )
             .into()
     }
