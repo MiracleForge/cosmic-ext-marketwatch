@@ -339,7 +339,7 @@ impl cosmic::Application for AppModel {
             .width(Length::Fill)
             .height(Length::Shrink)
             .push(header)
-            .push(widget::scrollable(body).height(Length::Fixed(max_height)));
+            .push(widget::scrollable(body).height(Length::Shrink));
 
         self.core
             .applet
