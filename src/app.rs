@@ -284,49 +284,62 @@ impl cosmic::Application for AppModel {
             });
 
         let last_updated_ref = last_updated;
-
         let theme = self.core.system_theme();
+
+        let header = header(
+            self.current_wallet_index,
+            self.wallets
+                .get(self.current_wallet_index.saturating_sub(1))
+                .map(|w| w.name.as_str()),
+            self.rename_mode,
+            &self.rename_input,
+            self.wallets.len(),
+            last_updated_ref,
+            self.active_tab,
+        );
+
+        let body = maincard(
+            theme,
+            self.active_tab,
+            self.current_wallet_index,
+            self.wallets
+                .get(self.current_wallet_index.saturating_sub(1))
+                .map_or(&[], |w| w.symbols.as_slice()),
+            &self.market_quotes,
+            &self.news_items,
+            self.news_expanded,
+            &self.config,
+            self.error_message.as_ref(),
+            &self.stock_search_input,
+            &self.stock_search_results,
+            self.stock_search_loading,
+            self.wallets
+                .get(self.current_wallet_index.saturating_sub(1))
+                .is_some_and(|w| w.symbols.len() >= MAX_ASSETS_PER_WALLET),
+            self.wallets
+                .get(self.current_wallet_index.saturating_sub(1))
+                .map_or(&[], |w| w.alerts.as_slice()),
+            self.alert_selected_symbol.as_deref(),
+            &self.alert_selected_condition,
+            &self.alert_input_value,
+            &self.news_per_symbol_input,
+        );
+
+        // Lê o suggested bounds direto do core do COSMIC
+        let max_height = self
+            .core
+            .applet
+            .suggested_bounds
+            .map(|b| (b.height - 20.0).max(300.0))
+            .unwrap_or(800.0);
+
         let content = widget::column()
             .padding(0)
             .spacing(6)
             .width(Length::Fill)
-            .push(header(
-                self.current_wallet_index,
-                self.wallets
-                    .get(self.current_wallet_index.saturating_sub(1))
-                    .map(|w| w.name.as_str()),
-                self.rename_mode,
-                &self.rename_input,
-                self.wallets.len(),
-                last_updated_ref,
-                self.active_tab,
-            ))
-            .push(maincard(
-                theme,
-                self.active_tab,
-                self.current_wallet_index,
-                self.wallets
-                    .get(self.current_wallet_index.saturating_sub(1))
-                    .map_or(&[], |w| w.symbols.as_slice()),
-                &self.market_quotes,
-                &self.news_items,
-                self.news_expanded,
-                &self.config,
-                self.error_message.as_ref(),
-                &self.stock_search_input,
-                &self.stock_search_results,
-                self.stock_search_loading,
-                self.wallets
-                    .get(self.current_wallet_index.saturating_sub(1))
-                    .is_some_and(|w| w.symbols.len() >= MAX_ASSETS_PER_WALLET),
-                self.wallets
-                    .get(self.current_wallet_index.saturating_sub(1))
-                    .map_or(&[], |w| w.alerts.as_slice()),
-                self.alert_selected_symbol.as_deref(),
-                &self.alert_selected_condition,
-                &self.alert_input_value,
-                &self.news_per_symbol_input,
-            ));
+            .height(Length::Shrink)
+            .push(header)
+            .push(widget::scrollable(body).height(Length::Fixed(max_height)));
 
         self.core
             .applet
@@ -336,7 +349,7 @@ impl cosmic::Application for AppModel {
                     .min_width(480.0)
                     .max_width(480.0)
                     .min_height(200.0)
-                    .max_height(1080.0),
+                    .max_height(max_height),
             )
             .into()
     }
@@ -360,11 +373,18 @@ impl cosmic::Application for AppModel {
                         None,
                     );
 
+                    let max_height = self
+                        .core
+                        .applet
+                        .suggested_bounds
+                        .map(|b| (b.height - 20.0).max(300.0))
+                        .unwrap_or(800.0);
+
                     popup_settings.positioner.size_limits = Limits::NONE
-                        .max_width(372.0)
-                        .min_width(300.0)
+                        .max_width(480.0)
+                        .min_width(480.0)
                         .min_height(200.0)
-                        .max_height(1080.0);
+                        .max_height(max_height);
 
                     get_popup(popup_settings)
                 };
