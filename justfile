@@ -2,7 +2,7 @@ name := 'cosmic-marketwatch'
 appid := 'com.github.MiracleForge.cosmic-marketwatch'
 
 rootdir := ''
-prefix := env('HOME') / '.local'
+prefix := '/usr/'
 
 # Installation paths
 base-dir := absolute_path(clean(rootdir / prefix))
