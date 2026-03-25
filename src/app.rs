@@ -331,8 +331,7 @@ impl cosmic::Application for AppModel {
             .core
             .applet
             .suggested_bounds
-            .map(|b| b.height)
-            .unwrap_or(500.0);
+            .map_or(500.0, |b| b.height);
 
         let header_height = 80.0;
 
@@ -384,8 +383,7 @@ impl cosmic::Application for AppModel {
                         .core
                         .applet
                         .suggested_bounds
-                        .map(|b| (b.height - 20.0).max(300.0))
-                        .unwrap_or(800.0);
+                        .map_or(800.0, |b| (b.height - 20.0).max(300.0));
 
                     popup_settings.positioner.size_limits = Limits::NONE
                         .max_width(480.0)
