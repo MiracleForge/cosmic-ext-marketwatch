@@ -7,7 +7,9 @@ use cosmic::theme::Text;
 use cosmic::{Element, Theme, widget};
 
 //TODO: INSTALL ICON WITH JUST INSTALL
-const ICON: &[u8] = include_bytes!("../../../resources/icon.svg");
+const ICON: &[u8] = include_bytes!(
+    "../../../resources/icons/hicolor/scalable/apps/com.github.MiracleForge.cosmic-marketwatch-panel.svg"
+);
 
 pub fn build_applet_content(
     config: &Config,

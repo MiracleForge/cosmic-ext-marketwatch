@@ -10,6 +10,22 @@
   </icon>
   <url type="vcs-browser">https://github.com/MiracleForge/cosmic-marketwatch</url>
   <launchable type="desktop-id">com.github.MiracleForge.cosmic-marketwatch.desktop</launchable>
+
+<description>
+  <p>Cosmic Marketwatch é um applet desenvolvido para o ambiente COSMIC que oferece um acompanhamento em tempo real das cotações do mercado financeiro. Ele foi projetado para ser leve, responsivo e integrado diretamente ao painel do desktop, permitindo que você acompanhe preços de ações, criptomoedas e outros ativos sem precisar abrir uma aplicação dedicada.</p>
+
+  <p>O applet apresenta os símbolos e valores de forma clara e minimalista, com suporte a variações de preço e cores temáticas que refletem ganhos ou perdas. Isso torna a leitura rápida e intuitiva, ideal para quem precisa acompanhar o mercado durante o dia sem distrações.</p>
+
+  <p>Além disso, o Cosmic Marketwatch oferece opções de configuração para personalizar quais ativos acompanhar, ajustar a forma de exibição (horizontal ou vertical) e escolher se deseja mostrar apenas o ícone ou informações completas. É uma ferramenta prática para traders, investidores e curiosos que querem manter o mercado sempre à vista.</p>
+</description>
+<screenshots>
+  <screenshot type="default">
+    <image>https://github.com/MiracleForge/cosmic-marketwatch/raw/main/screenshots/cosmic-marketwatch-applet.png</image>
+  </screenshot>
+  <screenshot>
+    <image>https://github.com/MiracleForge/cosmic-marketwatch/raw/main/screenshots/cosmic-marketwatch-settings.png</image>
+  </screenshot>
+</screenshots>
   <provides>
     <id>com.github.MiracleForge.cosmic-marketwatch</id>
     <binaries>
