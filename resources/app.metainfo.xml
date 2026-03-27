@@ -5,8 +5,21 @@
   <project_license>GPL-3.0</project_license>
   <name>Cosmic Marketwatch</name>
   <summary>Real-time stock market ticker for the COSMIC desktop</summary>
-<icon type="stock">com.github.MiracleForge.cosmic-marketwatch</icon>
+
+  <url type="homepage">https://github.com/MiracleForge/cosmic-marketwatch</url>
+  <url type="bugtracker">https://github.com/MiracleForge/cosmic-marketwatch/issues</url>
+  <url type="donation">https://ko-fi.com/paulorosado</url>
   <url type="vcs-browser">https://github.com/MiracleForge/cosmic-marketwatch</url>
+
+  <icon type="cached">com.github.MiracleForge.cosmic-marketwatch</icon>
+
+  <releases>
+    <release version="1.0.1" date="2026-03-27"/>
+  </releases>
+
+
+<developer_name>MiracleForge</developer_name>
+<update_contact>paulomoreirarosado@hotmail.com</update_contact>
   <launchable type="desktop-id">com.github.MiracleForge.cosmic-marketwatch.desktop</launchable>
 
 <description>
@@ -16,11 +29,14 @@
 
   <p>Além disso, o Cosmic Marketwatch oferece opções de configuração para personalizar quais ativos acompanhar, ajustar a forma de exibição (horizontal ou vertical) e escolher se deseja mostrar apenas o ícone ou informações completas. É uma ferramenta prática para traders, investidores e curiosos que querem manter o mercado sempre à vista.</p>
 </description>
+
 <screenshots>
   <screenshot type="default">
-    <image>https://github.com/MiracleForge/cosmic-marketwatch/raw/main/screenshots/cosmic-marketwatch-applet.png</image>
+    <caption>Market Data</caption>
+    <image>https://github.com/MiracleForge/cosmic-marketwatch/raw/main/screenshots/cosmic-marketwatch-wallet.png</image>
   </screenshot>
   <screenshot>
+    <caption>Cosmic Marketwatch settings tab</caption>
     <image>https://github.com/MiracleForge/cosmic-marketwatch/raw/main/screenshots/cosmic-marketwatch-settings.png</image>
   </screenshot>
 </screenshots>
@@ -42,15 +58,50 @@
   <category>Utility</category>
   <category>X-COSMIC</category>
 </categories>
-<keywords>
-  <keyword>stocks</keyword>
-  <keyword>finance</keyword>
-  <keyword>market</keyword>
-  <keyword>ticker</keyword>
-  <keyword>COSMIC</keyword>
-</keywords>
+
+<releases>
+  <release version="1.0.1" date="2026-03-25">
+    <description>
+      <p>Atualização de manutenção e melhorias no Cosmic Marketwatch.</p>
+      <ul>
+        <li>Correções no arquivo <code>app.metainfo.xml</code> para validação na Cosmic Store.</li>
+        <li>Ajustes de categorias e ícone para compatibilidade com AppStream.</li>
+        <li>Melhorias na documentação e metadados do pacote.</li>
+      </ul>
+    </description>
+  </release>
+
+  <release version="1.0.0" date="2026-03-20">
+    <description>
+      <p>Primeiro release oficial do Cosmic Marketwatch.</p>
+      <ul>
+        <li>Real-time market data de Yahoo Finance (sem necessidade de API key).</li>
+        <li>Preço atual e variação percentual exibidos diretamente no painel.</li>
+        <li>Rotação automática entre múltiplos ativos.</li>
+        <li>Popup detalhado com interface em abas: Overview, Wallet, Alerts e Settings.</li>
+        <li>Alertas configuráveis: acima/abaixo de preço, variação percentual, mudança de positivo/negativo.</li>
+        <li>Notificações de desktop quando condições de alerta são atingidas.</li>
+        <li>Últimas notícias por ativo via Yahoo Finance.</li>
+        <li>Suporte a múltiplas moedas: USD, BRL, EUR, GBP, JPY, CHF, CAD, AUD, CNY, INR.</li>
+        <li>Intervalo de atualização e velocidade de rotação configuráveis.</li>
+        <li>Configuração persistente de carteiras e alertas.</li>
+      </ul>
+    </description>
+  </release>
+</releases>
+
+  <keywords>
+    <keyword>stocks</keyword>
+    <keyword>finance</keyword>
+    <keyword>market</keyword>
+    <keyword>ticker</keyword>
+    <keyword>COSMIC</keyword>
+  </keywords>
+
   <content_rating type="oars-1.1" />
-<developer_name>MiracleForge</developer_name>
-<update_contact>paulomoreirarosado@hotmail.com</update_contact>
+
+ <provides>
+    <id>com.system76.CosmicApplet</id>
+  </provides>
 </component>
 
