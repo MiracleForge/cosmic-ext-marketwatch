@@ -5,9 +5,7 @@
   <project_license>GPL-3.0</project_license>
   <name>Cosmic Marketwatch</name>
   <summary>Real-time stock market ticker for the COSMIC desktop</summary>
-  <icon type="remote" width="64" height="64" scale="1">
-    https://github.com/MiracleForge/cosmic-marketwatch/raw/main/resources/icons/hicolor/scalable/apps/icon.svg
-  </icon>
+<icon type="stock">com.github.MiracleForge.cosmic-marketwatch</icon>
   <url type="vcs-browser">https://github.com/MiracleForge/cosmic-marketwatch</url>
   <launchable type="desktop-id">com.github.MiracleForge.cosmic-marketwatch.desktop</launchable>
 
@@ -40,12 +38,19 @@
     <control>pointing</control>
     <control>touch</control>
   </supports>
-  <categories>
-    <category>COSMIC</category>
-  </categories>
-  <keywords>
-    <keyword>COSMIC</keyword>
-  </keywords>
+<categories>
+  <category>Utility</category>
+  <category>X-COSMIC</category>
+</categories>
+<keywords>
+  <keyword>stocks</keyword>
+  <keyword>finance</keyword>
+  <keyword>market</keyword>
+  <keyword>ticker</keyword>
+  <keyword>COSMIC</keyword>
+</keywords>
   <content_rating type="oars-1.1" />
+<developer_name>MiracleForge</developer_name>
+<update_contact>paulomoreirarosado@hotmail.com</update_contact>
 </component>
 
