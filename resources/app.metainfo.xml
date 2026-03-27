@@ -8,87 +8,85 @@
 
   <url type="homepage">https://github.com/MiracleForge/cosmic-marketwatch</url>
   <url type="bugtracker">https://github.com/MiracleForge/cosmic-marketwatch/issues</url>
-  <url type="donation">https://ko-fi.com/paulorosado</url>
-  <url type="vcs-browser">https://github.com/MiracleForge/cosmic-marketwatch</url>
 
   <icon type="cached">com.github.MiracleForge.cosmic-marketwatch</icon>
 
-  <releases>
-    <release version="1.0.1" date="2026-03-27"/>
-  </releases>
-
-
-<developer_name>MiracleForge</developer_name>
-<update_contact>paulomoreirarosado@hotmail.com</update_contact>
+  <developer_name>MiracleForge</developer_name>
+  <update_contact>paulomoreirarosado@hotmail.com</update_contact>
   <launchable type="desktop-id">com.github.MiracleForge.cosmic-marketwatch.desktop</launchable>
 
-<description>
-  <p>Cosmic Marketwatch é um applet desenvolvido para o ambiente COSMIC que oferece um acompanhamento em tempo real das cotações do mercado financeiro. Ele foi projetado para ser leve, responsivo e integrado diretamente ao painel do desktop, permitindo que você acompanhe preços de ações, criptomoedas e outros ativos sem precisar abrir uma aplicação dedicada.</p>
+  <description>
+    <p>Cosmic Marketwatch is an applet designed for the COSMIC desktop environment that provides real-time tracking of financial market data. It is lightweight, responsive, and fully integrated into the desktop panel, allowing users to monitor stock prices, cryptocurrencies, and other assets without opening a dedicated application.</p>
 
-  <p>O applet apresenta os símbolos e valores de forma clara e minimalista, com suporte a variações de preço e cores temáticas que refletem ganhos ou perdas. Isso torna a leitura rápida e intuitiva, ideal para quem precisa acompanhar o mercado durante o dia sem distrações.</p>
+    <p>The applet presents symbols and values in a clean and minimal interface, with support for price changes and color indicators reflecting gains or losses. This makes it quick and intuitive to read, ideal for users who want to keep track of the market throughout the day without distractions.</p>
 
-  <p>Além disso, o Cosmic Marketwatch oferece opções de configuração para personalizar quais ativos acompanhar, ajustar a forma de exibição (horizontal ou vertical) e escolher se deseja mostrar apenas o ícone ou informações completas. É uma ferramenta prática para traders, investidores e curiosos que querem manter o mercado sempre à vista.</p>
-</description>
+    <p>It also includes configuration options to customize tracked assets, adjust layout (horizontal or vertical), and choose between icon-only or detailed display modes. It is a practical tool for traders, investors, and anyone interested in keeping market data always visible.</p>
+  </description>
 
-<screenshots>
-  <screenshot type="default">
-    <caption>Market Data</caption>
-    <image>https://github.com/MiracleForge/cosmic-marketwatch/raw/main/screenshots/cosmic-marketwatch-wallet.png</image>
-  </screenshot>
-  <screenshot>
-    <caption>Cosmic Marketwatch settings tab</caption>
-    <image>https://github.com/MiracleForge/cosmic-marketwatch/raw/main/screenshots/cosmic-marketwatch-settings.png</image>
-  </screenshot>
-</screenshots>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Market data overview</caption>
+      <image>https://github.com/MiracleForge/cosmic-marketwatch/raw/main/screenshots/cosmic-marketwatch-wallet.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Settings panel</caption>
+      <image>https://github.com/MiracleForge/cosmic-marketwatch/raw/main/screenshots/cosmic-marketwatch-settings.png</image>
+    </screenshot>
+  </screenshots>
+
   <provides>
     <id>com.github.MiracleForge.cosmic-marketwatch</id>
+    <id>com.system76.CosmicApplet</id>
     <binaries>
       <binary>cosmic-marketwatch</binary>
     </binaries>
   </provides>
+
   <requires>
     <display_length compare="ge">360</display_length>
   </requires>
+
   <supports>
     <control>keyboard</control>
     <control>pointing</control>
     <control>touch</control>
   </supports>
-<categories>
-  <category>Utility</category>
-  <category>X-COSMIC</category>
-</categories>
 
-<releases>
-  <release version="1.0.1" date="2026-03-25">
-    <description>
-      <p>Atualização de manutenção e melhorias no Cosmic Marketwatch.</p>
-      <ul>
-        <li>Correções no arquivo <code>app.metainfo.xml</code> para validação na Cosmic Store.</li>
-        <li>Ajustes de categorias e ícone para compatibilidade com AppStream.</li>
-        <li>Melhorias na documentação e metadados do pacote.</li>
-      </ul>
-    </description>
-  </release>
+  <categories>
+    <category>Utility</category>
+    <category>X-COSMIC</category>
+  </categories>
 
-  <release version="1.0.0" date="2026-03-20">
-    <description>
-      <p>Primeiro release oficial do Cosmic Marketwatch.</p>
-      <ul>
-        <li>Real-time market data de Yahoo Finance (sem necessidade de API key).</li>
-        <li>Preço atual e variação percentual exibidos diretamente no painel.</li>
-        <li>Rotação automática entre múltiplos ativos.</li>
-        <li>Popup detalhado com interface em abas: Overview, Wallet, Alerts e Settings.</li>
-        <li>Alertas configuráveis: acima/abaixo de preço, variação percentual, mudança de positivo/negativo.</li>
-        <li>Notificações de desktop quando condições de alerta são atingidas.</li>
-        <li>Últimas notícias por ativo via Yahoo Finance.</li>
-        <li>Suporte a múltiplas moedas: USD, BRL, EUR, GBP, JPY, CHF, CAD, AUD, CNY, INR.</li>
-        <li>Intervalo de atualização e velocidade de rotação configuráveis.</li>
-        <li>Configuração persistente de carteiras e alertas.</li>
-      </ul>
-    </description>
-  </release>
-</releases>
+  <releases>
+    <release version="1.0.1" date="2026-03-25">
+      <description>
+        <p>Maintenance update and improvements.</p>
+        <ul>
+          <li>Fixes in <code>app.metainfo.xml</code> for Cosmic Store validation</li>
+          <li>Adjusted categories and icon for AppStream compatibility</li>
+          <li>Improvements to documentation and package metadata</li>
+        </ul>
+      </description>
+    </release>
+
+    <release version="1.0.0" date="2026-03-20">
+      <description>
+        <p>Initial release of Cosmic Marketwatch.</p>
+        <ul>
+          <li>Real-time market data from Yahoo Finance (no API key required)</li>
+          <li>Current price and percentage change displayed directly in the panel</li>
+          <li>Automatic rotation between multiple assets</li>
+          <li>Detailed popup with tabbed interface: Overview, Wallet, Alerts, and Settings</li>
+          <li>Configurable alerts: price thresholds, percentage changes, and trend changes</li>
+          <li>Desktop notifications when alert conditions are met</li>
+          <li>Latest news per asset via Yahoo Finance</li>
+          <li>Support for multiple currencies: USD, BRL, EUR, GBP, JPY, CHF, CAD, AUD, CNY, INR</li>
+          <li>Configurable update interval and rotation speed</li>
+          <li>Persistent configuration for portfolios and alerts</li>
+        </ul>
+      </description>
+    </release>
+  </releases>
 
   <keywords>
     <keyword>stocks</keyword>
@@ -99,9 +97,4 @@
   </keywords>
 
   <content_rating type="oars-1.1" />
-
- <provides>
-    <id>com.system76.CosmicApplet</id>
-  </provides>
 </component>
-
