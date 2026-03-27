@@ -49,8 +49,9 @@
         "install -Dm644 flatpak/com.github.MiracleForge.cosmic-marketwatch.desktop /app/share/applications/com.github.MiracleForge.cosmic-marketwatch.desktop",
         "install -Dm644 resources/app.metainfo.xml /app/share/metainfo/com.github.MiracleForge.cosmic-marketwatch.metainfo.xml",
 
-        "install -Dm644 resources/icons/hicolor/scalable/apps/icon.svg /app/share/icons/hicolor/scalable/apps/com.github.MiracleForge.cosmic-marketwatch.svg",
-        "install -Dm644 resources/icon.svg /app/share/icons/hicolor/scalable/apps/com.github.MiracleForge.cosmic-marketwatch-panel.svg"
+
+        "install -Dm644 resources/icons/hicolor/scalable/apps/com.github.MiracleForge.cosmic-marketwatch.svg /app/share/icons/hicolor/scalable/apps/com.github.MiracleForge.cosmic-marketwatch.svg",
+        "install -Dm644 resources/icons/hicolor/scalable/apps/com.github.MiracleForge.cosmic-marketwatch-panel.svg /app/share/icons/hicolor/scalable/apps/com.github.MiracleForge.cosmic-marketwatch-panel.svg"
       ],
       "sources": [
         {
