@@ -3,8 +3,9 @@
   <id>com.github.MiracleForge.cosmic-ext-marketwatch</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0</project_license>
-  <name>Cosmic Marketwatch</name>
-  <summary>Real-time stock market ticker for the COSMIC desktop</summary>
+  <name>Marketwatch</name>
+  <summary>Real-time stock market ticker extention for the COSMIC desktop</summary>
+
 
   <url type="homepage">https://github.com/MiracleForge/cosmic-ext-marketwatch</url>
   <url type="bugtracker">https://github.com/MiracleForge/cosmic-ext-marketwatch/issues</url>
