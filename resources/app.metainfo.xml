@@ -10,9 +10,8 @@
   <url type="homepage">https://github.com/MiracleForge/cosmic-ext-marketwatch</url>
   <url type="bugtracker">https://github.com/MiracleForge/cosmic-ext-marketwatch/issues</url>
 
-  <icon type="cached">com.github.MiracleForge.cosmic-ext-marketwatch</icon>
+  <icon type="stock">com.github.MiracleForge.cosmic-ext-marketwatch</icon>
 
-  <developer_name>MiracleForge</developer_name>
   <update_contact>paulomoreirarosado@hotmail.com</update_contact>
   <launchable type="desktop-id">com.github.MiracleForge.cosmic-ext-marketwatch.desktop</launchable>
 
@@ -35,11 +34,12 @@
     </screenshot>
   </screenshots>
 
+<developer id="com.github.miracleforge">
+  <name>MiracleForge</name>
+</developer>
+
 <provides>
-  <id>com.github.MiracleForge.cosmic-ext-marketwatch</id>
-  <binaries>
-    <binary>cosmic-ext-marketwatch</binary>
-  </binaries>
+  <binary>cosmic-ext-marketwatch</binary>
 </provides>
 
   <requires>
