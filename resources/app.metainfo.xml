@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>com.github.MiracleForge.cosmic-marketwatch</id>
+  <id>com.github.MiracleForge.cosmic-ext-marketwatch</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0</project_license>
   <name>Cosmic Marketwatch</name>
   <summary>Real-time stock market ticker for the COSMIC desktop</summary>
 
-  <url type="homepage">https://github.com/MiracleForge/cosmic-marketwatch</url>
-  <url type="bugtracker">https://github.com/MiracleForge/cosmic-marketwatch/issues</url>
+  <url type="homepage">https://github.com/MiracleForge/cosmic-ext-marketwatch</url>
+  <url type="bugtracker">https://github.com/MiracleForge/cosmic-ext-marketwatch/issues</url>
 
-  <icon type="cached">com.github.MiracleForge.cosmic-marketwatch</icon>
+  <icon type="cached">com.github.MiracleForge.cosmic-ext-marketwatch</icon>
 
   <developer_name>MiracleForge</developer_name>
   <update_contact>paulomoreirarosado@hotmail.com</update_contact>
-  <launchable type="desktop-id">com.github.MiracleForge.cosmic-marketwatch.desktop</launchable>
+  <launchable type="desktop-id">com.github.MiracleForge.cosmic-ext-marketwatch.desktop</launchable>
 
   <description>
-    <p>Cosmic Marketwatch is an applet designed for the COSMIC desktop environment that provides real-time tracking of financial market data. It is lightweight, responsive, and fully integrated into the desktop panel, allowing users to monitor stock prices, cryptocurrencies, and other assets without opening a dedicated application.</p>
+    <p>Cosmic Marketwatch is an ext applet designed for the COSMIC desktop environment that provides real-time tracking of financial market data. It is lightweight, responsive, and fully integrated into the desktop panel, allowing users to monitor stock prices, cryptocurrencies, and other assets without opening a dedicated application.</p>
 
     <p>The applet presents symbols and values in a clean and minimal interface, with support for price changes and color indicators reflecting gains or losses. This makes it quick and intuitive to read, ideal for users who want to keep track of the market throughout the day without distractions.</p>
 
@@ -26,21 +26,20 @@
   <screenshots>
     <screenshot type="default">
       <caption>Market data overview</caption>
-      <image>https://github.com/MiracleForge/cosmic-marketwatch/raw/main/screenshots/cosmic-marketwatch-wallet.png</image>
+      <image>https://github.com/MiracleForge/cosmic-ext-marketwatch/raw/main/screenshots/cosmic-ext-marketwatch-wallet.png</image>
     </screenshot>
     <screenshot>
       <caption>Settings panel</caption>
-      <image>https://github.com/MiracleForge/cosmic-marketwatch/raw/main/screenshots/cosmic-marketwatch-settings.png</image>
+      <image>https://github.com/MiracleForge/cosmic-ext-marketwatch/raw/main/screenshots/cosmic-ext-marketwatch-settings.png</image>
     </screenshot>
   </screenshots>
 
-  <provides>
-    <id>com.github.MiracleForge.cosmic-marketwatch</id>
-    <id>com.system76.CosmicApplet</id>
-    <binaries>
-      <binary>cosmic-marketwatch</binary>
-    </binaries>
-  </provides>
+<provides>
+  <id>com.github.MiracleForge.cosmic-ext-marketwatch</id>
+  <binaries>
+    <binary>cosmic-ext-marketwatch</binary>
+  </binaries>
+</provides>
 
   <requires>
     <display_length compare="ge">360</display_length>
@@ -65,13 +64,14 @@
           <li>Fixes in <code>app.metainfo.xml</code> for Cosmic Store validation</li>
           <li>Adjusted categories and icon for AppStream compatibility</li>
           <li>Improvements to documentation and package metadata</li>
+          <li>Change applet name for trademark policy</li>
         </ul>
       </description>
     </release>
 
     <release version="1.0.0" date="2026-03-20">
       <description>
-        <p>Initial release of Cosmic Marketwatch.</p>
+        <p>Initial release of Cosmic Ext Marketwatch.</p>
         <ul>
           <li>Real-time market data from Yahoo Finance (no API key required)</li>
           <li>Current price and percentage change displayed directly in the panel</li>

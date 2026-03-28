@@ -1,10 +1,10 @@
 [package]
-name = "cosmic-marketwatch"
+name = "cosmic-ext-marketwatch"
 version = "1.0.1"
 edition = "2024"
 license = "GPL-3.0-only"
 description = "Real-time stock market ticker for the COSMIC desktop"
-repository = "https://github.com/MiracleForge/cosmic-marketwatch"
+repository = "https://github.com/MiracleForge/cosmic-ext-marketwatch"
 
 [dependencies]
 async-stream = "0.3.6"

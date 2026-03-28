@@ -6,7 +6,7 @@ Real-time stock market ticker for the COSMIC desktop
 
 | Panel | Wallet | Settings | Alerts |
 |-------|--------|----------|--------|
-| ![Panel](screenshots/cosmic-marketwatch-applet.png) | ![Wallet](screenshots/cosmic-marketwatch-wallet.png) | ![Settings](screenshots/cosmic-marketwatch-settings.png) | ![Alerts](screenshots/cosmic-marketwatch-alert-tab.png) |
+| ![Panel](screenshots/cosmic-ext-marketwatch-applet.png) | ![Wallet](screenshots/cosmic-ext-marketwatch-wallet.png) | ![Settings](screenshots/cosmic-ext-marketwatch-settings.png) | ![Alerts](screenshots/cosmic-ext-marketwatch-alert-tab.png) |
 
 ## Features
 
@@ -49,7 +49,7 @@ If packaging for a Linux distribution, vendor dependencies locally with the `ven
 ```sh
 just vendor
 just build-vendored
-just rootdir=debian/cosmic-marketwatch prefix=/usr install
+just rootdir=debian/cosmic-ext-marketwatch prefix=/usr install
 ```
 
 It is recommended to build a source tarball with the vendored dependencies, which can typically be done by running `just vendor` on the host system before it enters the build environment.
@@ -64,7 +64,6 @@ Developers should install [rustup][rustup] and configure their editor to use [ru
 [just]: https://github.com/casey/just
 [rustup]: https://rustup.rs/
 [rust-analyzer]: https://rust-analyzer.github.io/
-[sccache]: https://github.com/mozilla/sccache
 
 ## Configuration
 
@@ -89,4 +88,5 @@ This project is not affiliated with, endorsed, or sponsored by Yahoo Inc.
 GPL-3.0-only - See [LICENSE](./LICENSE)
 
 ### Author
+
 - Paulo Rosado

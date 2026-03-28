@@ -1,2 +1,2 @@
 #!/bin/sh
-exec /app/bin/cosmic-marketwatch "$@"
+exec /app/bin/cosmic-ext-marketwatch "$@"

@@ -129,7 +129,7 @@ impl cosmic::Application for AppModel {
     type Flags = ();
     type Message = Message;
 
-    const APP_ID: &'static str = "com.github.MiracleForge.cosmic-marketwatch";
+    const APP_ID: &'static str = "com.github.MiracleForge.cosmic-ext-marketwatch";
 
     fn core(&self) -> &cosmic::Core {
         &self.core

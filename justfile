@@ -1,5 +1,5 @@
-name := 'cosmic-marketwatch'
-appid := 'com.github.MiracleForge.cosmic-marketwatch'
+name := 'cosmic-ext-marketwatch'
+appid := 'com.github.MiracleForge.cosmic-ext-marketwatch'
 
 rootdir := ''
 prefix := '/usr/'

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 
 const USER_AGENT: &str =
-    "(cosmic-ext-marketwatch, https://github.com/MiracleForge/cosmic-marketwatch)";
+    "(cosmic-ext-marketwatch, https://github.com/MiracleForge/cosmic-ext-marketwatch)";
 
 //
 // HTTP CLIENT

@@ -31,7 +31,7 @@ pub fn data_path() -> PathBuf {
         },
         PathBuf::from,
     );
-    base.join("com.github.MiracleForge.cosmic-marketwatch")
+    base.join("com.github.MiracleForge.cosmic-ext-marketwatch")
 }
 
 pub fn wallets_file() -> PathBuf {
