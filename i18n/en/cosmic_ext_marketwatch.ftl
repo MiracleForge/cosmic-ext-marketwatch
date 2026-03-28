@@ -1,0 +1,9 @@
+app-title = Cosmic Marketwatch
+about = About
+view = View
+welcome = Welcome to COSMIC! ✨
+page-id = Page { $num }
+git-description = Git commit {$hash} on {$date}
+settings-tip-kofi = Support development via Ko-fi
+settings-refresh-interval = Refresh interval
+settings-min = min
