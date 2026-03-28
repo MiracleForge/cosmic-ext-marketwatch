@@ -15,4 +15,4 @@ debian/*
 .flatpak-builder/
 build-dir/
 repo/
-cosmic-marketwatch.flatpak
+cosmic-ext-marketwatch.flatpak
