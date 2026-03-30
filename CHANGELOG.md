@@ -5,10 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-03-30
+
+### Changed
+
+This release introduces an important update to the project identity and user experience:
+
+- **Trademark compliance:** the extension has been renamed to align with trademark requirements, ensuring consistency and proper branding going forward.
+- **Applet display fix:** resolved the issue where the Marketwatch applet’s interface was being cut off on certain screen sizes.
+- **Visual refinements:** improved layout consistency within the COSMIC environment.
+- **Stable foundation:** establishes a cleaner base for future updates and enhancements.
+
+---
+
 ## [1.0.0] - 2026-03-20
 
 ### Added
-
 
 - Real-time market data from Yahoo Finance (no API key required)
 - Current price and percentage variation displayed in panel
