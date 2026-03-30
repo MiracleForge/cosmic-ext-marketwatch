@@ -1,6 +1,6 @@
-# Cosmic Marketwatch
+# Marketwatch
 
-Real-time stock market ticker for the COSMIC desktop
+Real-time stock market ticker extention for the COSMIC desktop
 
 ## Screenshots
 
