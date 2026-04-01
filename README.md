@@ -32,6 +32,10 @@ Real-time stock market ticker extention for the COSMIC desktop
 
 ## Planned Features
 
+### APIs
+
+- Api fallback
+
 ### Advanced Portfolio Tracking
 
 - Allow users to define how many shares they own per asset
@@ -73,6 +77,10 @@ Real-time stock market ticker extention for the COSMIC desktop
 
 - Alerts based on total portfolio value
 - Notifications for reaching profit or loss thresholds
+
+## Changelog
+
+See [CHANGELOG.md](./CHANGELOG.md) for release history.
 
 ## Installation
 
