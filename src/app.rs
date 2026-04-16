@@ -7,8 +7,7 @@ use crate::components::wallet::Wallet;
 use crate::components::wallet::wallet::{load_wallets, save_wallets};
 use crate::config::{Config, PopupTab, RefreshInterval};
 use crate::marketwatch::{
-    AlertCondition, MarketQuote, PriceAlert, YahooNews, fetch_by_symbols, fetch_most_active,
-    fetch_news_for_symbols, format_publish_time, search_symbols, user_friendly_error_message,
+    AlertCondition, MarketQuote, PriceAlert, ScreensTab, YahooNews, fetch_by_symbols, fetch_most_active, fetch_news_for_symbols, format_publish_time, search_symbols, user_friendly_error_message
 };
 use cosmic::applet::cosmic_panel_config::PanelAnchor;
 use cosmic::cosmic_config::CosmicConfigEntry;
@@ -29,6 +28,7 @@ pub const MAX_ASSETS_PER_WALLET: usize = 10;
 #[allow(clippy::struct_excessive_bools)]
 pub struct AppModel {
     active_tab: PopupTab,
+    screens_tab: ScreensTab,
     core: cosmic::Core,
     config_handler: Option<cosmic::cosmic_config::Config>,
     popup: Option<Id>,
@@ -67,6 +67,7 @@ pub struct AppModel {
 #[derive(Debug, Clone)]
 pub enum Message {
     Tick,
+    SetTab(ScreensTab),
     RefreshMarket,
     TogglePopup,
     MarketLoaded(Result<Vec<MarketQuote>, String>),
@@ -81,7 +82,6 @@ pub enum Message {
     SetRefreshInterval(RefreshInterval),
     SetNumberOfNewsBySymbols(String),
     SetStokeRotationInterval(String),
-
     // wallet navegation
     SwitchWallet(usize),
 
@@ -193,6 +193,7 @@ impl cosmic::Application for AppModel {
             config_handler,
             popup: None,
             active_tab: PopupTab::Overview,
+            screens_tab: ScreensTab::MostActive,
             applet_id: widget::Id::unique(),
             market_quotes: Vec::new(),
             news_items: Vec::new(),
@@ -323,6 +324,7 @@ impl cosmic::Application for AppModel {
             &self.alert_selected_condition,
             &self.alert_input_value,
             &self.news_per_symbol_input,
+            self.screens_tab,
         );
 
         // After almost lose my mind try to fix this, that is the best I can , the max scale this
@@ -400,6 +402,23 @@ impl cosmic::Application for AppModel {
                     self.current_index = (self.current_index + 1) % self.market_quotes.len();
                 }
             }
+
+                
+        Message::SetTab(tab) => {
+            match tab {
+                ScreensTab::MostActive => {
+                    println!("MostActive");
+                }
+                ScreensTab::Gainers => {
+                    println!("Gainers");
+                }
+                ScreensTab::Losers => {
+                    println!("Losers");
+                }
+            }
+
+            self.screens_tab = tab;
+        }
 
             Message::MarketLoaded(result) => match result {
                 Ok(data) => {

@@ -72,6 +72,13 @@ pub struct PriceAlert {
     pub enabled: bool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ScreensTab {
+    MostActive,
+    Gainers,
+    Losers,
+}
+
 //
 // ================= IMPLEMENTATION =================
 //

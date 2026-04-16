@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 use crate::marketwatch::{
-    AlertCondition, MarketQuote, PriceAlert, YahooNews, format_publish_time,
-    user_friendly_error_message,
+    AlertCondition, MarketQuote, PriceAlert, ScreensTab, YahooNews, format_publish_time, user_friendly_error_message
 };
 use cosmic::Theme;
 use cosmic::iced::{Alignment, Length};
@@ -48,6 +47,7 @@ pub fn maincard<'a>(
     alert_selected_condition: &'a AlertCondition,
     alert_input_value: &'a str,
     news_input: &'a str,
+    current_screen_tab: ScreensTab,
 ) -> Element<'a, Message> {
     match active_tab {
         PopupTab::Settings => render_settings_tab(config, news_input),
@@ -69,6 +69,7 @@ pub fn maincard<'a>(
                     config,
                     error_message,
                     theme,
+                    current_screen_tab
                 )
             } else {
                 render_wallet(
@@ -314,6 +315,7 @@ fn render_quotes<'a>(
     config: &'a Config,
     error_message: Option<&'a String>,
     theme: &Theme,
+    current_screen_tab: ScreensTab
 ) -> Element<'a, Message> {
     let content = widget::column()
         .spacing(SPACING_TAB)
@@ -329,11 +331,8 @@ fn render_quotes<'a>(
         }
 
         QuotesState::Ready(quotes) => {
-            let col = content
-                .push(category_header("Market Overview"))
-                .push(category_divider());
-
-            let col = render_quotes_list(col, quotes, theme);
+            let col = content;
+            let col = render_quotes_list(col, quotes, theme, current_screen_tab);
 
             if config.show_news {
                 col.push(render_news_section(news_items, news_expanded))
@@ -433,11 +432,28 @@ fn news_card(item: &YahooNews) -> Element<'_, Message> {
         .into()
 }
 
+fn screens_tab(current: ScreensTab) -> Element<'static, Message> {
+    let content = widget::row()
+        .spacing(0)
+        .width(Length::Fill)
+        .height(Length::Shrink)
+        .push(tab_button("Most Active", Message::SetTab(ScreensTab::MostActive), current == ScreensTab::MostActive))
+        .push(tab_button("Gainers", Message::SetTab(ScreensTab::Gainers), current == ScreensTab::Gainers))
+        .push(tab_button("Losers", Message::SetTab(ScreensTab::Losers), current == ScreensTab::Losers));
+
+    widget::container(content)
+        .padding(10)
+        .into()
+}
+
 fn render_quotes_list<'a>(
     mut content: widget::Column<'a, Message>,
     market_quotes: &'a [MarketQuote],
     theme: &Theme,
+    current_tab: ScreensTab
 ) -> widget::Column<'a, Message> {
+
+   content =  content.push(screens_tab(current_tab));
     for quote in market_quotes {
         let color = quote.variation_color(theme);
 
@@ -887,5 +903,39 @@ fn refresh_button<'a>(
         .width(Length::Fill)
         .padding([8, 0])
         .on_press(Message::SetRefreshInterval(value))
+        .into()
+}
+
+
+fn tab_button<'a>(
+    label: &'static str,
+    msg: Message,
+    selected: bool,
+) -> Element<'a, Message> {
+    let text = widget::text(label);
+    let underline = widget::container(widget::Space::new(0, 0))
+        .height(2)
+        .width(Length::Fill)
+        .style(move |theme: &cosmic::Theme| {
+            let color = if selected {
+                cosmic::iced::Color::from(theme.cosmic().accent_color())
+            } else {
+                cosmic::iced::Color::TRANSPARENT
+            };
+            widget::container::Style {
+                background: Some(color.into()),
+                ..Default::default()
+            }
+        });
+    let content = widget::column()
+        .align_x(cosmic::iced::alignment::Horizontal::Center)
+        .spacing(4)
+        .push(text)
+        .push(underline);
+    widget::button::custom(content)
+        .width(Length::FillPortion(1))
+        .padding([8, 0])
+        .class(cosmic::theme::Button::Text)
+        .on_press(msg)
         .into()
 }
