@@ -497,7 +497,7 @@ fn render_quotes_list<'a>(
 fn category_divider<'a>() -> Element<'a, Message> {
     widget::container(widget::horizontal_space())
         .width(Length::Fill)
-        .height(1)
+        .height(0.5)
         .style(|theme: &cosmic::Theme| widget::container::Style {
             background: Some(cosmic::iced::Color::from(theme.cosmic().accent_color()).into()),
             ..Default::default()
@@ -560,6 +560,7 @@ fn render_alerts_tab<'a>(
     let asset_card = match selected_symbol {
         Some(sym) => {
             let mut content = widget::column().spacing(SPACING_COL);
+            content = content.push(category_divider());
             content = content.push(category_header("Selected Asset"));
             content = content.push(widget::text::heading(sym));
 
@@ -619,6 +620,7 @@ fn render_alerts_tab<'a>(
 
         let form = widget::column()
             .spacing(SPACING_TAB)
+            .push(category_divider())
             .push(category_header("Condition"))
             .push(
                 widget::dropdown(condition_options, condition_idx, move |idx| {
@@ -785,6 +787,7 @@ fn render_settings_tab<'a>(config: &'a Config, news_input: &'a str) -> Element<'
         .spacing(SPACING_TAB)
         .padding(PAD_TAB)
         .width(Length::Fill)
+        .push(category_divider())
         .push(category_header("Panel"))
         .push(
             widget::row()
@@ -827,6 +830,7 @@ fn render_settings_tab<'a>(config: &'a Config, news_input: &'a str) -> Element<'
                         .width(cosmic::iced::Length::Fixed(60.0)),
                 ),
         )
+        .push(category_divider())
         .push(category_header("Refresh"))
         .push(
             widget::row()
@@ -842,6 +846,7 @@ fn render_settings_tab<'a>(config: &'a Config, news_input: &'a str) -> Element<'
         )
         .push(widget::text("Refresh interval"))
         .push(refresh_row(config))
+        .push(category_divider())
         .push(category_header("About"))
         .push(
             widget::row()

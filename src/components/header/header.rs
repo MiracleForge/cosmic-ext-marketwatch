@@ -53,9 +53,12 @@ pub fn header<'a>(
             .align_y(Alignment::Center)
             .push(widget::text::heading(name))
             .push(if in_alerts {
-                icon_button_disabled("document-edit-symbolic")
+                icon_button_disabled("accessories-text-editor-symbolic")
             } else {
-                icon_button("document-edit-symbolic", Message::ToggleRenameMode)
+                icon_button(
+                    "accessories-text-editor-symbolic",
+                    Message::ToggleRenameMode,
+                )
             })
             .into()
     };
