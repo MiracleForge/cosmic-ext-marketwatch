@@ -506,11 +506,22 @@ fn item_divider<'a>() -> Element<'a, Message> {
         .into()
 }
 
+
+
 fn category_header(label: &str) -> Element<'_, Message> {
-    widget::text(label)
-        .size(TEXT_BODY)
-        .class(Text::Accent)
-        .into()
+    widget::container(
+        widget::text::heading(label)
+            .size(TEXT_BODY + 1)
+    )
+    .style(|theme| widget::container::Style {
+        text_color: Some(
+            cosmic::iced::Color::from(
+                theme.cosmic().accent_color()
+            )
+        ),
+        ..Default::default()
+    })
+    .into()
 }
 
 #[allow(clippy::too_many_lines)]
@@ -869,7 +880,7 @@ fn refresh_row(config: &Config) -> Element<'_, Message> {
     ];
 
     let mut row = widget::row()
-        .spacing(0)
+        .spacing(4)
         .width(Length::Fill)
         .height(Length::Shrink);
 

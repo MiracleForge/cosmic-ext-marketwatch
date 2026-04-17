@@ -1065,7 +1065,7 @@ dependencies = [
 
 [[package]]
 name = "cosmic-ext-marketwatch"
-version = "1.0.1"
+version = "1.1.0"
 dependencies = [
  "async-stream",
  "dirs 5.0.1",

@@ -30,7 +30,7 @@ pub fn header<'a>(
     let in_alerts = active_tab == PopupTab::Alerts;
 
     let title: Element<'a, Message> = if current_index == 0 {
-        widget::text::heading("Trending").into()
+        widget::text::heading("Market Overview").into()
     } else if rename_mode {
         widget::row()
             .spacing(4)

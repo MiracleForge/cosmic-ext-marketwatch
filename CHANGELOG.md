@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - Unreleased
+
+### Added
+
+- **Market screens:** added support for multiple market views:
+  - Most Active
+  - Gainers
+  - Losers
+- **Tab-based navigation:** users can now switch between different market screens directly from the UI
+
+### Changed
+
+- **Caching system redesign:** market data is now cached per screen and per wallet, avoiding unnecessary requests.
+- **Treeding:** renamed for Market Overview
+
+### UI Improvements
+
+- **Section Settings headers refined:**
+  - improved typography (slightly larger size and semibold weight)
+  - now use system accent color for better visual hierarchy
+  - Refresh Buttons with spacing 
+- **General visual polish:**
+  - improved spacing and separation between sections
+
 ## [1.0.1] - 2026-03-30
 
 ### Changed

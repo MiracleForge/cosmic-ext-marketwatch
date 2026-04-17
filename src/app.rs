@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
+// TODO: ATUALIAR O TMEPO Q QUE FOI FEITO A ULTIMA ATUALIZAÇÃO , NO MOMENTO NAO TA CACHEADO POR
+// WALLET E SIM A ULTIMA VESZ Q FOI CACHEADA
 use crate::components::applet::{self};
 
 use crate::components::header::header;
@@ -42,7 +44,7 @@ pub struct AppModel {
     current_index: usize,
     error_message: Option<String>,
     wallets: Vec<Wallet>,
-    current_wallet_index: usize, // 0 = Trending, 1+ = user wallets
+    current_wallet_index: usize, 
 
     rename_mode: bool,
     rename_input: String,
