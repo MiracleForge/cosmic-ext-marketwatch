@@ -7,7 +7,7 @@ use crate::components::wallet::Wallet;
 use crate::components::wallet::wallet::{load_wallets, save_wallets};
 use crate::config::{Config, PopupTab, RefreshInterval};
 use crate::marketwatch::{
-    AlertCondition, MarketQuote, PriceAlert, ScreensTab, YahooNews, fetch_by_screeners, fetch_by_symbols, fetch_news_for_symbols, format_publish_time, search_symbols, user_friendly_error_message
+    AlertCondition, MarketCacheKey, MarketQuote, PriceAlert, ScreensTab, YahooNews, fetch_by_screeners, fetch_by_symbols, fetch_news_for_symbols, format_publish_time, search_symbols, user_friendly_error_message
 };
 use cosmic::applet::cosmic_panel_config::PanelAnchor;
 use cosmic::cosmic_config::CosmicConfigEntry;
@@ -51,11 +51,9 @@ pub struct AppModel {
     stock_search_results: Vec<String>,
     stock_search_loading: bool,
 
-    last_fetch_time: HashMap<usize, Instant>,
-
-    cached_quotes: HashMap<usize, Vec<MarketQuote>>,
-
-    cached_news: HashMap<usize, Vec<YahooNews>>,
+    last_fetch_time: HashMap<MarketCacheKey, Instant>,
+    cached_quotes: HashMap<MarketCacheKey, Vec<MarketQuote>>,
+    cached_news: HashMap<MarketCacheKey, Vec<YahooNews>>,
 
     next_alert_id: u64,
     // estado do form de alerta na struct AppModel
@@ -275,7 +273,7 @@ impl cosmic::Application for AppModel {
     fn view_window(&self, _id: Id) -> Element<'_, Self::Message> {
         let last_updated = self
             .last_fetch_time
-            .get(&self.current_wallet_index)
+            .get(&self.current_cache_key())
             .map(|instant| {
                 let timestamp = std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
@@ -406,17 +404,43 @@ impl cosmic::Application for AppModel {
 
                 
             Message::SetTab(tab) => {
-                 self.screens_tab = tab;
-    return self.update(Message::RefreshMarket);
+                self.screens_tab = tab;
+
+                let key = self.current_cache_key();
+                let refresh_secs = self.config.refresh_interval.as_seconds();
+
+                let cache_valid = self
+                    .last_fetch_time
+                    .get(&key)
+                    .is_some_and(|t| t.elapsed().as_secs() < refresh_secs);
+
+                if cache_valid {
+                    if let Some(cached) = self.cached_quotes.get(&key) {
+                        self.market_quotes = cached.clone();
+                    }
+                    if let Some(cached) = self.cached_news.get(&key) {
+                        self.news_items = cached.clone();
+                    }
+                    return Task::none();
+                }
+
+                let count = self.config.count_stokes_at_once;
+
+                return Task::perform(
+                    fetch_by_screeners(count, self.screens_tab),
+                    |result| {
+                        Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
+                    },
+                );
             }
 
             Message::MarketLoaded(result) => match result {
                 Ok(data) => {
                     self.market_quotes = data;
                     self.error_message = None;
-                    let idx = self.current_wallet_index;
-                    self.last_fetch_time.insert(idx, Instant::now());
-                    self.cached_quotes.insert(idx, self.market_quotes.clone());
+                    let key = self.current_cache_key();
+                    self.last_fetch_time.insert(key.clone(), Instant::now());
+                    self.cached_quotes.insert(key.clone(), self.market_quotes.clone());
                     self.check_and_trigger_alerts();
                     if self.config.show_news {
                         let symbols: Vec<String> = self
@@ -442,10 +466,12 @@ impl cosmic::Application for AppModel {
                 Err(err) => {
                     self.error_message = Some(err);
                     self.market_quotes.clear();
-                    let idx = self.current_wallet_index;
-                    self.last_fetch_time.remove(&idx);
-                    self.cached_quotes.remove(&idx);
-                    self.cached_news.remove(&idx);
+
+                    
+                let key = self.current_cache_key();
+                self.last_fetch_time.remove(&key);
+                self.cached_quotes.remove(&key);
+                self.cached_news.remove(&key);
                     return Task::done(Action::App(Message::Tick));
                 }
             },
@@ -453,8 +479,8 @@ impl cosmic::Application for AppModel {
             Message::NewsLoaded(result) => match result {
                 Ok(news) => {
                     self.news_items = news;
-                    let idx = self.current_wallet_index;
-                    self.cached_news.insert(idx, self.news_items.clone());
+                    let key = self.current_cache_key();
+                    self.cached_news.insert(key, self.news_items.clone());
                 }
                 Err(err) => {
                     tracing::warn!("{}", user_friendly_error_message(&err));
@@ -471,10 +497,11 @@ impl cosmic::Application for AppModel {
                 self.news_items.clear();
                 self.error_message = None;
 
-                let idx = self.current_wallet_index;
-                self.last_fetch_time.remove(&idx);
-                self.cached_quotes.remove(&idx);
-                self.cached_news.remove(&idx);
+
+                let key = self.current_cache_key();
+                self.last_fetch_time.remove(&key);
+                self.cached_quotes.remove(&key);
+                self.cached_news.remove(&key);
 
                 if self.current_wallet_index > 0 {
                     if let Some(wallet) = self.wallets.get(self.current_wallet_index - 1)
@@ -594,16 +621,18 @@ impl cosmic::Application for AppModel {
                 self.save_config();
 
                 let refresh_secs = self.config.refresh_interval.as_seconds();
+                let key = self.current_cache_key();
+
                 let cache_valid = self
-                    .last_fetch_time
-                    .get(&safe_index)
-                    .is_some_and(|t| t.elapsed().as_secs() < refresh_secs);
+                .last_fetch_time
+                .get(&key)
+                .is_some_and(|t| t.elapsed().as_secs() < refresh_secs);
 
                 if cache_valid {
-                    if let Some(cached) = self.cached_quotes.get(&safe_index) {
+                    if let Some(cached) = self.cached_quotes.get(&key) {
                         self.market_quotes = cached.clone();
                     }
-                    if let Some(cached) = self.cached_news.get(&safe_index) {
+                    if let Some(cached) = self.cached_news.get(&key) {
                         self.news_items = cached.clone();
                     }
                     return Task::none();
@@ -730,10 +759,10 @@ impl cosmic::Application for AppModel {
                     }
 
                     // new symbol , invalid cache for this wallet
-                    let idx = self.current_wallet_index;
-                    self.last_fetch_time.remove(&idx);
-                    self.cached_quotes.remove(&idx);
-                    self.cached_news.remove(&idx);
+                    let key = self.current_cache_key();
+                    self.cached_quotes.remove(&key);
+                    self.cached_news.remove(&key);
+                    self.last_fetch_time.remove(&key);
 
                     let symbols = self.wallets[self.current_wallet_index - 1].symbols.clone();
                     return Task::perform(fetch_by_symbols(symbols), |result| {
@@ -759,10 +788,11 @@ impl cosmic::Application for AppModel {
                         self.active_tab = PopupTab::Overview;
                     }
 
-                    let idx = self.current_wallet_index;
-                    self.last_fetch_time.remove(&idx);
-                    self.cached_quotes.remove(&idx);
-                    self.cached_news.remove(&idx);
+                    
+                    let key = self.current_cache_key();
+                    self.last_fetch_time.remove(&key);
+                    self.cached_quotes.remove(&key);
+                    self.cached_news.remove(&key);
 
                     let symbols = self.wallets[self.current_wallet_index - 1].symbols.clone();
 
@@ -780,10 +810,10 @@ impl cosmic::Application for AppModel {
 
             Message::DeleteCurrentWallet => {
                 if self.current_wallet_index > 0 {
-                    let idx = self.current_wallet_index;
-                    self.last_fetch_time.remove(&idx);
-                    self.cached_quotes.remove(&idx);
-                    self.cached_news.remove(&idx);
+                    let key = self.current_cache_key();
+                    self.last_fetch_time.remove(&key);
+                    self.cached_quotes.remove(&key);
+                    self.cached_news.remove(&key);
 
                     self.wallets.remove(self.current_wallet_index - 1);
                     self.current_wallet_index = 0;
@@ -891,6 +921,14 @@ impl AppModel {
             tracing::error!("Failed to save config: {}", e);
         }
     }
+
+fn current_cache_key(&self) -> MarketCacheKey {
+    if self.current_wallet_index > 0 {
+        MarketCacheKey::Wallet(self.current_wallet_index)
+    } else {
+        MarketCacheKey::Screen(self.screens_tab)
+    }
+}
 
     fn send_notification(symbol: &str, message: &str) {
         let _ = notify_rust::Notification::new()

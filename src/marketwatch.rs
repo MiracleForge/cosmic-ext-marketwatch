@@ -72,7 +72,7 @@ pub struct PriceAlert {
     pub enabled: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Hash, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ScreensTab {
     MostActive,
     Gainers,
@@ -87,6 +87,12 @@ impl ScreensTab {
             ScreensTab::Losers => "day_losers",
         }
     }
+}
+
+#[derive(Hash, Eq, PartialEq, Clone, Debug)]
+pub enum MarketCacheKey {
+    Wallet(usize),
+    Screen(ScreensTab),
 }
 
 //
@@ -243,7 +249,8 @@ struct ChartMeta {
 // ================= FETCH FUNCTIONS =================
 //
 pub async fn fetch_by_screeners(count: u64, screeners_type: ScreensTab) -> Result<Vec<MarketQuote>, reqwest::Error> {
-let scr_id = screeners_type.as_scr_id();
+
+    let scr_id = screeners_type.as_scr_id();
     let url = format!(
         "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count={count}&scrIds={scr_id}"
     );
@@ -264,15 +271,7 @@ let scr_id = screeners_type.as_scr_id();
             change: q.regular_market_change.unwrap_or(0.0),
             change_percent: q.regular_market_change_percent.unwrap_or(0.0),
             currency: q.currency.unwrap_or_else(|| "USD".to_string()),
-        })
-        .collect();
-
-    Ok(quotes)
-}
-
-pub async fn fetch_news_for_symbols(
-    symbols: Vec<String>,
-    news_per_symbol: u64,
+        }) .collect(); Ok(quotes) } pub async fn fetch_news_for_symbols( symbols: Vec<String>, news_per_symbol: u64,
 ) -> Result<Vec<YahooNews>, reqwest::Error> {
     let futures = symbols.into_iter().map(|symbol| async move {
         let url = format!(
