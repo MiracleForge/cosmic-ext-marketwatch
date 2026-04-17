@@ -7,7 +7,7 @@ use crate::components::wallet::Wallet;
 use crate::components::wallet::wallet::{load_wallets, save_wallets};
 use crate::config::{Config, PopupTab, RefreshInterval};
 use crate::marketwatch::{
-    AlertCondition, MarketQuote, PriceAlert, ScreensTab, YahooNews, fetch_by_symbols, fetch_most_active, fetch_news_for_symbols, format_publish_time, search_symbols, user_friendly_error_message
+    AlertCondition, MarketQuote, PriceAlert, ScreensTab, YahooNews, fetch_by_screeners, fetch_by_symbols, fetch_news_for_symbols, format_publish_time, search_symbols, user_friendly_error_message
 };
 use cosmic::applet::cosmic_panel_config::PanelAnchor;
 use cosmic::cosmic_config::CosmicConfigEntry;
@@ -183,7 +183,8 @@ impl cosmic::Application for AppModel {
                 Task::none()
             }
         } else {
-            Task::perform(fetch_most_active(count), |result| {
+            let screens_init = ScreensTab::MostActive;
+            Task::perform(fetch_by_screeners(count, screens_init), |result| {
                 Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
             })
         };
@@ -404,21 +405,10 @@ impl cosmic::Application for AppModel {
             }
 
                 
-        Message::SetTab(tab) => {
-            match tab {
-                ScreensTab::MostActive => {
-                    println!("MostActive");
-                }
-                ScreensTab::Gainers => {
-                    println!("Gainers");
-                }
-                ScreensTab::Losers => {
-                    println!("Losers");
-                }
+            Message::SetTab(tab) => {
+                 self.screens_tab = tab;
+    return self.update(Message::RefreshMarket);
             }
-
-            self.screens_tab = tab;
-        }
 
             Message::MarketLoaded(result) => match result {
                 Ok(data) => {
@@ -499,8 +489,9 @@ impl cosmic::Application for AppModel {
                 }
 
                 let count = self.config.count_stokes_at_once;
-                return Task::perform(fetch_most_active(count), |result| {
-                    Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
+
+                    return Task::perform(fetch_by_screeners(count, self.screens_tab), |result| {
+                        Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
                 });
             }
 
@@ -633,7 +624,7 @@ impl cosmic::Application for AppModel {
                 }
 
                 let count = self.config.count_stokes_at_once;
-                return Task::perform(fetch_most_active(count), |result| {
+                return Task::perform(fetch_by_screeners(count, self.screens_tab), |result| {
                     Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
                 });
             }
@@ -804,7 +795,7 @@ impl cosmic::Application for AppModel {
                     self.active_tab = PopupTab::Overview;
 
                     let count = self.config.count_stokes_at_once;
-                    return Task::perform(fetch_most_active(count), |result| {
+                    return Task::perform(fetch_by_screeners(count, self.screens_tab), |result| {
                         Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
                     });
                 }

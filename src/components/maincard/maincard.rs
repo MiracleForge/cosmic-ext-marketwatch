@@ -906,7 +906,6 @@ fn refresh_button<'a>(
         .into()
 }
 
-
 fn tab_button<'a>(
     label: &'static str,
     msg: Message,

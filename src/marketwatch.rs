@@ -79,6 +79,16 @@ pub enum ScreensTab {
     Losers,
 }
 
+impl ScreensTab {
+    pub fn as_scr_id(&self) -> &'static str {
+        match self {
+            ScreensTab::MostActive => "most_actives",
+            ScreensTab::Gainers => "day_gainers",
+            ScreensTab::Losers => "day_losers",
+        }
+    }
+}
+
 //
 // ================= IMPLEMENTATION =================
 //
@@ -232,12 +242,12 @@ struct ChartMeta {
 //
 // ================= FETCH FUNCTIONS =================
 //
-
-pub async fn fetch_most_active(count: u64) -> Result<Vec<MarketQuote>, reqwest::Error> {
+pub async fn fetch_by_screeners(count: u64, screeners_type: ScreensTab) -> Result<Vec<MarketQuote>, reqwest::Error> {
+let scr_id = screeners_type.as_scr_id();
     let url = format!(
-        "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count={count}&scrIds=most_actives"
+        "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count={count}&scrIds={scr_id}"
     );
-
+    println!("{}", scr_id);
     let response = http_client().get(&url).send().await?.error_for_status()?;
     let data: ScreenerResponse = response.json().await?;
 
