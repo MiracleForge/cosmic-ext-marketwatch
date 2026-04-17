@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### UI Improvements
 
-- **Section Settings headers refined:**
+- **Section Settings and Alerts section headers refined:**
   - improved typography (slightly larger size and semibold weight)
   - now use system accent color for better visual hierarchy
   - Refresh Buttons with spacing 

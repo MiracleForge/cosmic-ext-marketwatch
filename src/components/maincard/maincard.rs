@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 use crate::marketwatch::{
-    AlertCondition, MarketQuote, PriceAlert, ScreensTab, YahooNews, format_publish_time, user_friendly_error_message
+    AlertCondition, MarketQuote, PriceAlert, ScreensTab, YahooNews, format_publish_time,
+    user_friendly_error_message,
 };
 use cosmic::Theme;
 use cosmic::iced::{Alignment, Length};
@@ -69,7 +70,7 @@ pub fn maincard<'a>(
                     config,
                     error_message,
                     theme,
-                    current_screen_tab
+                    current_screen_tab,
                 )
             } else {
                 render_wallet(
@@ -315,7 +316,7 @@ fn render_quotes<'a>(
     config: &'a Config,
     error_message: Option<&'a String>,
     theme: &Theme,
-    current_screen_tab: ScreensTab
+    current_screen_tab: ScreensTab,
 ) -> Element<'a, Message> {
     let content = widget::column()
         .spacing(SPACING_TAB)
@@ -437,23 +438,32 @@ fn screens_tab(current: ScreensTab) -> Element<'static, Message> {
         .spacing(0)
         .width(Length::Fill)
         .height(Length::Shrink)
-        .push(tab_button("Most Active", Message::SetTab(ScreensTab::MostActive), current == ScreensTab::MostActive))
-        .push(tab_button("Gainers", Message::SetTab(ScreensTab::Gainers), current == ScreensTab::Gainers))
-        .push(tab_button("Losers", Message::SetTab(ScreensTab::Losers), current == ScreensTab::Losers));
+        .push(tab_button(
+            "Most Active",
+            Message::SetTab(ScreensTab::MostActive),
+            current == ScreensTab::MostActive,
+        ))
+        .push(tab_button(
+            "Gainers",
+            Message::SetTab(ScreensTab::Gainers),
+            current == ScreensTab::Gainers,
+        ))
+        .push(tab_button(
+            "Losers",
+            Message::SetTab(ScreensTab::Losers),
+            current == ScreensTab::Losers,
+        ));
 
-    widget::container(content)
-        .padding(10)
-        .into()
+    widget::container(content).padding(10).into()
 }
 
 fn render_quotes_list<'a>(
     mut content: widget::Column<'a, Message>,
     market_quotes: &'a [MarketQuote],
     theme: &Theme,
-    current_tab: ScreensTab
+    current_tab: ScreensTab,
 ) -> widget::Column<'a, Message> {
-
-   content =  content.push(screens_tab(current_tab));
+    content = content.push(screens_tab(current_tab));
     for quote in market_quotes {
         let color = quote.variation_color(theme);
 
@@ -506,22 +516,13 @@ fn item_divider<'a>() -> Element<'a, Message> {
         .into()
 }
 
-
-
 fn category_header(label: &str) -> Element<'_, Message> {
-    widget::container(
-        widget::text::heading(label)
-            .size(TEXT_BODY + 1)
-    )
-    .style(|theme| widget::container::Style {
-        text_color: Some(
-            cosmic::iced::Color::from(
-                theme.cosmic().accent_color()
-            )
-        ),
-        ..Default::default()
-    })
-    .into()
+    widget::container(widget::text::heading(label).size(TEXT_BODY + 1))
+        .style(|theme| widget::container::Style {
+            text_color: Some(cosmic::iced::Color::from(theme.cosmic().accent_color())),
+            ..Default::default()
+        })
+        .into()
 }
 
 #[allow(clippy::too_many_lines)]
@@ -559,11 +560,7 @@ fn render_alerts_tab<'a>(
     let asset_card = match selected_symbol {
         Some(sym) => {
             let mut content = widget::column().spacing(SPACING_COL);
-            content = content.push(
-                widget::text("Selected Asset")
-                    .size(TEXT_SMALL)
-                    .class(Text::Accent),
-            );
+            content = content.push(category_header("Selected Asset"));
             content = content.push(widget::text::heading(sym));
 
             if let Some(quote) = selected_quote {
@@ -622,11 +619,7 @@ fn render_alerts_tab<'a>(
 
         let form = widget::column()
             .spacing(SPACING_TAB)
-            .push(
-                widget::text("Condition")
-                    .size(TEXT_SMALL)
-                    .class(Text::Accent),
-            )
+            .push(category_header("Condition"))
             .push(
                 widget::dropdown(condition_options, condition_idx, move |idx| {
                     Message::AlertSelectCondition(index_to_condition(idx, &input_for_closure))
@@ -665,11 +658,7 @@ fn render_alerts_tab<'a>(
 
     // ================= ALERT LIST =================
     col = col.push(category_divider());
-    col = col.push(
-        widget::text("Your Alerts")
-            .size(TEXT_SMALL)
-            .class(Text::Accent),
-    );
+    col = col.push(category_header("Your Alerts"));
 
     if alerts.is_empty() {
         col = col.push(
@@ -917,11 +906,7 @@ fn refresh_button<'a>(
         .into()
 }
 
-fn tab_button<'a>(
-    label: &'static str,
-    msg: Message,
-    selected: bool,
-) -> Element<'a, Message> {
+fn tab_button<'a>(label: &'static str, msg: Message, selected: bool) -> Element<'a, Message> {
     let text = widget::text(label);
     let underline = widget::container(widget::Space::new(0, 0))
         .height(2)
