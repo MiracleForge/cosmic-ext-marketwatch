@@ -6,7 +6,7 @@
   <name>Marketwatch</name>
   <developer_name>MiracleForge</developer_name>
   <summary>Real-time stock market ticker extention for the COSMIC desktop</summary>
-
+  <project_group>COSMIC</project_group>
 
   <url type="homepage">https://github.com/MiracleForge/cosmic-ext-marketwatch</url>
   <url type="bugtracker">https://github.com/MiracleForge/cosmic-ext-marketwatch/issues</url>
