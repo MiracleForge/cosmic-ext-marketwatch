@@ -9,7 +9,9 @@ use crate::components::wallet::Wallet;
 use crate::components::wallet::wallet::{load_wallets, save_wallets};
 use crate::config::{Config, PopupTab, RefreshInterval};
 use crate::marketwatch::{
-    AlertCondition, MarketCacheKey, MarketQuote, PriceAlert, ScreensTab, YahooNews, fetch_by_screeners, fetch_by_symbols, fetch_news_for_symbols, format_publish_time, search_symbols, user_friendly_error_message
+    AlertCondition, MarketCacheKey, MarketQuote, PriceAlert, ScreensTab, YahooNews,
+    fetch_by_screeners, fetch_by_symbols, fetch_news_for_symbols, format_publish_time,
+    search_symbols, user_friendly_error_message,
 };
 use cosmic::applet::cosmic_panel_config::PanelAnchor;
 use cosmic::cosmic_config::CosmicConfigEntry;
@@ -44,7 +46,7 @@ pub struct AppModel {
     current_index: usize,
     error_message: Option<String>,
     wallets: Vec<Wallet>,
-    current_wallet_index: usize, 
+    current_wallet_index: usize,
 
     rename_mode: bool,
     rename_input: String,
@@ -404,7 +406,6 @@ impl cosmic::Application for AppModel {
                 }
             }
 
-                
             Message::SetTab(tab) => {
                 self.screens_tab = tab;
 
@@ -428,12 +429,9 @@ impl cosmic::Application for AppModel {
 
                 let count = self.config.count_stokes_at_once;
 
-                return Task::perform(
-                    fetch_by_screeners(count, self.screens_tab),
-                    |result| {
-                        Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
-                    },
-                );
+                return Task::perform(fetch_by_screeners(count, self.screens_tab), |result| {
+                    Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
+                });
             }
 
             Message::MarketLoaded(result) => match result {
@@ -442,7 +440,8 @@ impl cosmic::Application for AppModel {
                     self.error_message = None;
                     let key = self.current_cache_key();
                     self.last_fetch_time.insert(key.clone(), Instant::now());
-                    self.cached_quotes.insert(key.clone(), self.market_quotes.clone());
+                    self.cached_quotes
+                        .insert(key.clone(), self.market_quotes.clone());
                     self.check_and_trigger_alerts();
                     if self.config.show_news {
                         let symbols: Vec<String> = self
@@ -469,11 +468,10 @@ impl cosmic::Application for AppModel {
                     self.error_message = Some(err);
                     self.market_quotes.clear();
 
-                    
-                let key = self.current_cache_key();
-                self.last_fetch_time.remove(&key);
-                self.cached_quotes.remove(&key);
-                self.cached_news.remove(&key);
+                    let key = self.current_cache_key();
+                    self.last_fetch_time.remove(&key);
+                    self.cached_quotes.remove(&key);
+                    self.cached_news.remove(&key);
                     return Task::done(Action::App(Message::Tick));
                 }
             },
@@ -499,7 +497,6 @@ impl cosmic::Application for AppModel {
                 self.news_items.clear();
                 self.error_message = None;
 
-
                 let key = self.current_cache_key();
                 self.last_fetch_time.remove(&key);
                 self.cached_quotes.remove(&key);
@@ -519,8 +516,8 @@ impl cosmic::Application for AppModel {
 
                 let count = self.config.count_stokes_at_once;
 
-                    return Task::perform(fetch_by_screeners(count, self.screens_tab), |result| {
-                        Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
+                return Task::perform(fetch_by_screeners(count, self.screens_tab), |result| {
+                    Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
                 });
             }
 
@@ -626,9 +623,9 @@ impl cosmic::Application for AppModel {
                 let key = self.current_cache_key();
 
                 let cache_valid = self
-                .last_fetch_time
-                .get(&key)
-                .is_some_and(|t| t.elapsed().as_secs() < refresh_secs);
+                    .last_fetch_time
+                    .get(&key)
+                    .is_some_and(|t| t.elapsed().as_secs() < refresh_secs);
 
                 if cache_valid {
                     if let Some(cached) = self.cached_quotes.get(&key) {
@@ -790,7 +787,6 @@ impl cosmic::Application for AppModel {
                         self.active_tab = PopupTab::Overview;
                     }
 
-                    
                     let key = self.current_cache_key();
                     self.last_fetch_time.remove(&key);
                     self.cached_quotes.remove(&key);
@@ -924,13 +920,13 @@ impl AppModel {
         }
     }
 
-fn current_cache_key(&self) -> MarketCacheKey {
-    if self.current_wallet_index > 0 {
-        MarketCacheKey::Wallet(self.current_wallet_index)
-    } else {
-        MarketCacheKey::Screen(self.screens_tab)
+    fn current_cache_key(&self) -> MarketCacheKey {
+        if self.current_wallet_index > 0 {
+            MarketCacheKey::Wallet(self.current_wallet_index)
+        } else {
+            MarketCacheKey::Screen(self.screens_tab)
+        }
     }
-}
 
     fn send_notification(symbol: &str, message: &str) {
         let _ = notify_rust::Notification::new()

@@ -4,6 +4,7 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0</project_license>
   <name>Marketwatch</name>
+  <developer_name>MiracleForge</developer_name>
   <summary>Real-time stock market ticker extention for the COSMIC desktop</summary>
 
 
@@ -39,6 +40,7 @@
 </developer>
 
 <provides>
+  <id>com.system76.CosmicApplet</id>
   <binary>cosmic-ext-marketwatch</binary>
 </provides>
 
@@ -54,7 +56,7 @@
 
   <categories>
     <category>Utility</category>
-    <category>X-COSMIC</category>
+    <category>COSMIC</category>
   </categories>
 
   <releases>
