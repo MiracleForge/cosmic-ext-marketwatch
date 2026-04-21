@@ -4,7 +4,8 @@ use crate::marketwatch::{
     user_friendly_error_message,
 };
 use cosmic::Theme;
-use cosmic::iced::{Alignment, Length};
+use cosmic::iced::font::Weight;
+use cosmic::iced::{Alignment, Font, Length};
 use cosmic::prelude::*;
 use cosmic::theme::Text;
 use cosmic::widget;
@@ -15,7 +16,7 @@ use crate::config::{Config, PopupTab, RefreshInterval};
 // =====================================================================
 // Layout constants — change here to affect the entire UI
 // =====================================================================
-const PAD_TAB: [u16; 2] = [8, 12]; // outer padding for all tabs
+const PAD_TAB: [u16; 2] = [12, 18]; // outer padding for all tabs
 const PAD_CARD: [u16; 2] = [10, 12]; // inner padding for cards
 const PAD_ROW: [u16; 2] = [4, 8]; // padding for icon buttons in rows
 const SPACING_TAB: u16 = 12; // spacing between sections within a tab
@@ -351,10 +352,15 @@ fn render_news_section<'a>(news: &'a [YahooNews], expanded: bool) -> Element<'a,
     let header_row = widget::row()
         .align_y(Alignment::Center)
         .width(Length::Fill)
+        .spacing(2)
+        .push(widget::icon::from_name("view-list-symbolic").symbolic(true))
         .push(
             widget::text("Latest News")
-                .size(TEXT_BODY)
-                .class(Text::Accent),
+                .class(Text::Default)
+                .font(cosmic::iced::Font {
+                    weight: Weight::Medium,
+                    ..Default::default()
+                }),
         )
         .push(widget::horizontal_space())
         .push_maybe(if has_more {
@@ -463,37 +469,76 @@ fn render_quotes_list<'a>(
     theme: &Theme,
     current_tab: ScreensTab,
 ) -> widget::Column<'a, Message> {
-    content = content.push(screens_tab(current_tab));
-    for quote in market_quotes {
+    content = content.push(screens_tab(current_tab)).push(item_divider());
+
+    const VALUE_WIDTH: f32 = 70.0;
+
+    for (i, quote) in market_quotes.iter().enumerate() {
         let color = quote.variation_color(theme);
 
-        let row = widget::row()
+        // 🔝 Nome + Preço
+        let top_row = widget::row()
             .align_y(Alignment::Center)
             .width(Length::Fill)
-            .push(
-                widget::container(widget::text::heading(&quote.symbol).class(Text::Default))
-                    .width(Length::FillPortion(2))
-                    .align_x(Alignment::Start),
-            )
-            .push(
-                widget::container(widget::text(quote.formatted_price()).class(Text::Color(color)))
-                    .width(Length::FillPortion(2))
-                    .align_x(Alignment::Center),
-            )
+            .spacing(6)
             .push(
                 widget::container(
-                    widget::text(quote.formatted_variation()).class(Text::Color(color)),
+                    widget::text::heading(&quote.name)
+                        .size(14)
+                        .class(Text::Default),
                 )
-                .width(Length::FillPortion(1))
+                .width(Length::Fill)
+                .align_x(Alignment::Start),
+            )
+            .push(item_divider_veritcal(20.0))
+            .push(
+                widget::container(
+                    widget::text(quote.formatted_price())
+                        .size(14)
+                        .class(Text::Color(color))
+                        .font(cosmic::iced::Font {
+                            weight: Weight::Semibold, // 👈 semi-bold
+                            ..Default::default()
+                        }),
+                )
+                .width(Length::Fixed(VALUE_WIDTH))
                 .align_x(Alignment::End),
             );
 
-        content = content.push(row).push(item_divider());
+        let bottom_row = widget::row()
+            .align_y(Alignment::Center)
+            .width(Length::Fill)
+            .spacing(6)
+            .push(
+                widget::container(widget::text(&quote.symbol).size(14).class(Text::Default))
+                    .width(Length::Fill)
+                    .align_x(Alignment::Start),
+            )
+            .push(item_divider_veritcal(20.0))
+            .push(
+                widget::container(
+                    widget::text(quote.formatted_variation())
+                        .size(12)
+                        .class(Text::Color(color))
+                        .font(cosmic::iced::Font {
+                            weight: Weight::Semibold, // 👈 semi-bold
+                            ..Default::default()
+                        }),
+                )
+                .width(Length::Fixed(VALUE_WIDTH))
+                .align_x(Alignment::End),
+            );
+
+        let item = widget::column().push(top_row).push(bottom_row);
+
+        content = content.push(item);
+        if i < market_quotes.len() - 1 {
+            content = content.push(item_divider());
+        }
     }
 
     content
 }
-
 fn category_divider<'a>() -> Element<'a, Message> {
     widget::container(widget::horizontal_space())
         .width(Length::Fill)
@@ -506,13 +551,13 @@ fn category_divider<'a>() -> Element<'a, Message> {
 }
 
 fn item_divider<'a>() -> Element<'a, Message> {
-    widget::container(widget::horizontal_space())
-        .width(Length::Fill)
-        .height(1)
-        .style(|theme: &cosmic::Theme| widget::container::Style {
-            background: Some(cosmic::iced::Color::from(theme.cosmic().palette.neutral_5).into()),
-            ..Default::default()
-        })
+    widget::divider::horizontal::default().into()
+}
+
+fn item_divider_veritcal<'a>(size: f32) -> Element<'a, Message> {
+    widget::container(widget::divider::vertical::default())
+        .height(Length::Fixed(size))
+        .padding([0, 6])
         .into()
 }
 
