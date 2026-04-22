@@ -10,8 +10,8 @@ use crate::components::wallet::wallet::{load_wallets, save_wallets};
 use crate::config::{Config, PopupTab, RefreshInterval};
 use crate::marketwatch::{
     AlertCondition, MarketCacheKey, MarketQuote, PriceAlert, ScreensTab, YahooNews,
-    fetch_by_screeners, fetch_by_symbols, fetch_news_for_symbols, format_publish_time,
-    search_symbols, user_friendly_error_message,
+    fetch_by_screeners, fetch_by_symbols, fetch_logo_handles, fetch_logos, fetch_news_for_symbols,
+    format_publish_time, search_symbols, user_friendly_error_message,
 };
 use cosmic::applet::cosmic_panel_config::PanelAnchor;
 use cosmic::cosmic_config::CosmicConfigEntry;
@@ -38,6 +38,7 @@ pub struct AppModel {
     popup: Option<Id>,
     applet_id: widget::Id,
     market_quotes: Vec<MarketQuote>,
+    pub logo_handles: HashMap<String, widget::image::Handle>,
     news_items: Vec<YahooNews>,
     news_expanded: bool,
     news_per_symbol_input: String,
@@ -73,6 +74,8 @@ pub enum Message {
     RefreshMarket,
     TogglePopup,
     MarketLoaded(Result<Vec<MarketQuote>, String>),
+    LogosLoaded(HashMap<String, Option<String>>),
+    LogoHandlesLoaded(HashMap<String, Vec<u8>>),
     NewsLoaded(Result<Vec<YahooNews>, String>),
     PreviusWallet,
     NextWallet,
@@ -199,6 +202,7 @@ impl cosmic::Application for AppModel {
             screens_tab: ScreensTab::MostActive,
             applet_id: widget::Id::unique(),
             market_quotes: Vec::new(),
+            logo_handles: HashMap::new(),
             news_items: Vec::new(),
             news_expanded: false,
             news_per_symbol_input: config.count_news_by_simbol.to_string(),
@@ -328,6 +332,7 @@ impl cosmic::Application for AppModel {
             &self.alert_input_value,
             &self.news_per_symbol_input,
             self.screens_tab,
+            &self.logo_handles,
         );
 
         // After almost lose my mind try to fix this, that is the best I can , the max scale this
@@ -443,16 +448,32 @@ impl cosmic::Application for AppModel {
                     self.cached_quotes
                         .insert(key.clone(), self.market_quotes.clone());
                     self.check_and_trigger_alerts();
+
+                    let logos_symbols: Vec<String> = self
+                        .market_quotes
+                        .iter()
+                        .filter(|q| !self.logo_handles.contains_key(&q.symbol))
+                        .map(|q| q.symbol.clone())
+                        .collect();
+
+                    let logos_task = Task::perform(fetch_logos(logos_symbols), |logos| {
+                        Action::App(Message::LogosLoaded(logos))
+                    });
+
                     if self.config.show_news {
-                        let symbols: Vec<String> = self
+                        let news_symbols: Vec<String> = self
                             .market_quotes
                             .iter()
                             .take(3)
                             .map(|q| q.symbol.clone())
                             .collect();
                         return Task::batch([
+                            logos_task,
                             Task::perform(
-                                fetch_news_for_symbols(symbols, self.config.count_news_by_simbol),
+                                fetch_news_for_symbols(
+                                    news_symbols,
+                                    self.config.count_news_by_simbol,
+                                ),
                                 |result| {
                                     Action::App(Message::NewsLoaded(
                                         result.map_err(|e| e.to_string()),
@@ -462,12 +483,12 @@ impl cosmic::Application for AppModel {
                             Task::done(Action::App(Message::Tick)),
                         ]);
                     }
-                    return Task::done(Action::App(Message::Tick));
+
+                    return Task::batch([logos_task, Task::done(Action::App(Message::Tick))]);
                 }
                 Err(err) => {
                     self.error_message = Some(err);
                     self.market_quotes.clear();
-
                     let key = self.current_cache_key();
                     self.last_fetch_time.remove(&key);
                     self.cached_quotes.remove(&key);
@@ -475,6 +496,24 @@ impl cosmic::Application for AppModel {
                     return Task::done(Action::App(Message::Tick));
                 }
             },
+
+            Message::LogosLoaded(logos) => {
+                for quote in &mut self.market_quotes {
+                    if let Some(logo) = logos.get(&quote.symbol) {
+                        quote.logo_url = logo.clone();
+                    }
+                }
+                return Task::perform(fetch_logo_handles(logos), |handles| {
+                    Action::App(Message::LogoHandlesLoaded(handles))
+                });
+            }
+
+            Message::LogoHandlesLoaded(handles) => {
+                for (symbol, bytes) in handles {
+                    let handle = widget::image::Handle::from_bytes(bytes);
+                    self.logo_handles.insert(symbol, handle);
+                }
+            }
 
             Message::NewsLoaded(result) => match result {
                 Ok(news) => {

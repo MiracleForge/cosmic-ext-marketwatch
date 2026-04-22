@@ -2,7 +2,7 @@
 use cosmic::Theme;
 use cosmic::iced::Color;
 use serde::{Deserialize, Serialize};
-use std::sync::OnceLock;
+use std::{collections::HashMap, sync::OnceLock};
 
 const USER_AGENT: &str =
     "(cosmic-ext-marketwatch, https://github.com/MiracleForge/cosmic-ext-marketwatch)";
@@ -38,6 +38,7 @@ pub struct MarketQuote {
     pub name: String,
     pub price: f64,
     pub symbol: String,
+    pub logo_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -272,11 +273,42 @@ pub async fn fetch_by_screeners(
             change: q.regular_market_change.unwrap_or(0.0),
             change_percent: q.regular_market_change_percent.unwrap_or(0.0),
             currency: q.currency.unwrap_or_else(|| "USD".to_string()),
+            logo_url: None,
         })
         .collect();
     Ok(quotes)
 }
 
+pub async fn fetch_logos(symbols: Vec<String>) -> HashMap<String, Option<String>> {
+    let mut results = HashMap::new();
+    for symbol in symbols {
+        let url = format!(
+            "https://financialmodelingprep.com/image-stock/{}.png",
+            symbol
+        );
+        results.insert(symbol, Some(url)); // sem .clone(), symbol já é owned
+    }
+    results
+}
+
+// I don't know how to fix this right now
+// 2026-04-22T17:44:27.072240Z  WARN iced_futures::subscription::tracker: Error sending event to subscription: TrySendError { kind: Full }
+// This problem slow the icone showing to the user one frame or 2
+pub async fn fetch_logo_handles(
+    logos: HashMap<String, Option<String>>,
+) -> HashMap<String, Vec<u8>> {
+    let mut results = HashMap::new();
+    for (symbol, url_opt) in logos {
+        if let Some(url) = url_opt {
+            if let Ok(response) = reqwest::get(&url).await {
+                if let Ok(bytes) = response.bytes().await {
+                    results.insert(symbol, bytes.to_vec());
+                }
+            }
+        }
+    }
+    results
+}
 pub async fn fetch_news_for_symbols(
     symbols: Vec<String>,
     news_per_symbol: u64,
@@ -358,6 +390,7 @@ pub async fn fetch_by_symbols(symbols: Vec<String>) -> Result<Vec<MarketQuote>, 
                     change,
                     change_percent,
                     currency: meta.currency.unwrap_or_else(|| "USD".to_string()),
+                    logo_url: None,
                 }
             });
 

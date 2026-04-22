@@ -146,10 +146,16 @@ Settings are saved automatically and persist across sessions.
 
 ## Data Source
 
-Market data is retrieved from Yahoo Finance public endpoints.
+Market data is retrieved from publicly available Yahoo Finance endpoints.
 
-This project is not affiliated with, endorsed by, or sponsored
-by Yahoo Inc.
+This project is not affiliated with, endorsed by, or sponsored by Yahoo Inc.
+
+All company names, logos, and trademarks displayed in this application are the property of their respective owners. 
+They are used for informational and identification purposes only.
+
+This application is an independent project and is not affiliated with, endorsed by, or associated with any of the companies shown.
+
+No financial advice is provided. The information presented is for informational purposes only and may be delayed, incomplete, or inaccurate.
 
 ## License
 

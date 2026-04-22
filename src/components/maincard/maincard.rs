@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 // SPDX-License-Identifier: GPL-3.0-only
 use crate::marketwatch::{
     AlertCondition, MarketQuote, PriceAlert, ScreensTab, YahooNews, format_publish_time,
@@ -16,7 +18,7 @@ use crate::config::{Config, PopupTab, RefreshInterval};
 // =====================================================================
 // Layout constants — change here to affect the entire UI
 // =====================================================================
-const PAD_TAB: [u16; 2] = [12, 18]; // outer padding for all tabs
+const PAD_TAB: [u16; 2] = [8, 12]; // outer padding for all tabs
 const PAD_CARD: [u16; 2] = [10, 12]; // inner padding for cards
 const PAD_ROW: [u16; 2] = [4, 8]; // padding for icon buttons in rows
 const SPACING_TAB: u16 = 12; // spacing between sections within a tab
@@ -50,6 +52,7 @@ pub fn maincard<'a>(
     alert_input_value: &'a str,
     news_input: &'a str,
     current_screen_tab: ScreensTab,
+    logo_handles: &'a HashMap<String, widget::image::Handle>,
 ) -> Element<'a, Message> {
     match active_tab {
         PopupTab::Settings => render_settings_tab(config, news_input),
@@ -72,6 +75,7 @@ pub fn maincard<'a>(
                     error_message,
                     theme,
                     current_screen_tab,
+                    logo_handles,
                 )
             } else {
                 render_wallet(
@@ -318,6 +322,7 @@ fn render_quotes<'a>(
     error_message: Option<&'a String>,
     theme: &Theme,
     current_screen_tab: ScreensTab,
+    logo_handles: &'a HashMap<String, widget::image::Handle>,
 ) -> Element<'a, Message> {
     let content = widget::column()
         .spacing(SPACING_TAB)
@@ -334,7 +339,7 @@ fn render_quotes<'a>(
 
         QuotesState::Ready(quotes) => {
             let col = content;
-            let col = render_quotes_list(col, quotes, theme, current_screen_tab);
+            let col = render_quotes_list(col, quotes, theme, current_screen_tab, logo_handles);
 
             if config.show_news {
                 col.push(render_news_section(news_items, news_expanded))
@@ -352,15 +357,10 @@ fn render_news_section<'a>(news: &'a [YahooNews], expanded: bool) -> Element<'a,
     let header_row = widget::row()
         .align_y(Alignment::Center)
         .width(Length::Fill)
-        .spacing(2)
-        .push(widget::icon::from_name("view-list-symbolic").symbolic(true))
         .push(
             widget::text("Latest News")
-                .class(Text::Default)
-                .font(cosmic::iced::Font {
-                    weight: Weight::Medium,
-                    ..Default::default()
-                }),
+                .size(TEXT_BODY)
+                .class(Text::Accent),
         )
         .push(widget::horizontal_space())
         .push_maybe(if has_more {
@@ -468,6 +468,7 @@ fn render_quotes_list<'a>(
     market_quotes: &'a [MarketQuote],
     theme: &Theme,
     current_tab: ScreensTab,
+    logo_handles: &'a HashMap<String, widget::image::Handle>,
 ) -> widget::Column<'a, Message> {
     content = content.push(screens_tab(current_tab)).push(item_divider());
 
@@ -475,6 +476,33 @@ fn render_quotes_list<'a>(
 
     for (i, quote) in market_quotes.iter().enumerate() {
         let color = quote.variation_color(theme);
+
+        // ✅ LOGO (com fallback)
+        let logo_widget: cosmic::Element<Message> =
+            if let Some(handle) = logo_handles.get(&quote.symbol) {
+                widget::container(
+                    widget::image(handle.clone())
+                        .width(Length::Fixed(42.0))
+                        .height(Length::Fixed(42.0))
+                        .content_fit(cosmic::iced::ContentFit::Cover),
+                )
+                .width(Length::Fixed(42.0))
+                .height(Length::Fixed(42.0))
+                .clip(true)
+                .style(|_theme: &Theme| widget::container::Style {
+                    border: cosmic::iced::Border {
+                        radius: 16.0.into(),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                })
+                .into()
+            } else {
+                widget::container(widget::text(""))
+                    .width(Length::Fixed(32.0))
+                    .height(Length::Fixed(32.0))
+                    .into()
+            };
 
         // 🔝 Nome + Preço
         let top_row = widget::row()
@@ -497,7 +525,7 @@ fn render_quotes_list<'a>(
                         .size(14)
                         .class(Text::Color(color))
                         .font(cosmic::iced::Font {
-                            weight: Weight::Semibold, // 👈 semi-bold
+                            weight: Weight::Semibold,
                             ..Default::default()
                         }),
                 )
@@ -505,6 +533,7 @@ fn render_quotes_list<'a>(
                 .align_x(Alignment::End),
             );
 
+        // 🔻 Símbolo + Variação
         let bottom_row = widget::row()
             .align_y(Alignment::Center)
             .width(Length::Fill)
@@ -521,7 +550,7 @@ fn render_quotes_list<'a>(
                         .size(12)
                         .class(Text::Color(color))
                         .font(cosmic::iced::Font {
-                            weight: Weight::Semibold, // 👈 semi-bold
+                            weight: Weight::Semibold,
                             ..Default::default()
                         }),
                 )
@@ -529,9 +558,18 @@ fn render_quotes_list<'a>(
                 .align_x(Alignment::End),
             );
 
-        let item = widget::column().push(top_row).push(bottom_row);
+        // ✅ COLUNA DE TEXTO (direita)
+        let text_column = widget::column().spacing(2).push(top_row).push(bottom_row);
+
+        // ✅ ROW FINAL (logo + conteúdo)
+        let item = widget::row()
+            .spacing(10)
+            .align_y(Alignment::Center)
+            .push(logo_widget)
+            .push(text_column);
 
         content = content.push(item);
+
         if i < market_quotes.len() - 1 {
             content = content.push(item_divider());
         }

@@ -60,6 +60,18 @@
   </categories>
 
   <releases>
+    <release version="1.3.0" date="2026-04-22">
+      <description>
+        <p>Added company logos and customization options for market items.</p>
+        <ul>
+          <li>Added company logos for market items to improve visual identification</li>
+          <li>Added option in settings to enable or disable logos</li>
+          <li>Improved visual layout to accommodate logo display</li>
+          <li>Refined spacing and alignment for better UI consistency</li>
+        </ul>
+      </description>
+    </release>
+
     <release version="1.2.0" date="2026-04-17">
       <description>
         <p>New market screens and navigation improvements.</p>
