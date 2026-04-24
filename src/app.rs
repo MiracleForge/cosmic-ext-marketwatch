@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// TODO: ATUALIAR O TMEPO Q QUE FOI FEITO A ULTIMA ATUALIZAÇÃO , NO MOMENTO NAO TA CACHEADO POR
-// WALLET E SIM A ULTIMA VESZ Q FOI CACHEADA
+// TODO: REMOVE MY OWN SLOP
+//TODO: FIX O(n²) I saw down there
+//TODO: CACHE HELPERS
 use crate::components::applet::{self};
 
 use crate::components::header::header;
@@ -1009,6 +1010,8 @@ impl AppModel {
                 if !alert.enabled {
                     continue;
                 }
+
+                //  TODO: O(n²) I can improve later
                 let Some(quote) = self.market_quotes.iter().find(|q| q.symbol == alert.symbol)
                 else {
                     continue;
