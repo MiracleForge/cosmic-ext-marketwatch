@@ -339,7 +339,8 @@ fn render_quotes<'a>(
 
         QuotesState::Ready(quotes) => {
             let col = content;
-            let col = render_quotes_list(col, quotes, theme, current_screen_tab, logo_handles);
+            let col =
+                render_quotes_list(col, quotes, config, theme, current_screen_tab, logo_handles);
 
             if config.show_news {
                 col.push(render_news_section(news_items, news_expanded))
@@ -466,6 +467,7 @@ fn screens_tab(current: ScreensTab) -> Element<'static, Message> {
 fn render_quotes_list<'a>(
     mut content: widget::Column<'a, Message>,
     market_quotes: &'a [MarketQuote],
+    config: &'a Config,
     theme: &Theme,
     current_tab: ScreensTab,
     logo_handles: &'a HashMap<String, widget::image::Handle>,
@@ -477,9 +479,10 @@ fn render_quotes_list<'a>(
     for (i, quote) in market_quotes.iter().enumerate() {
         let color = quote.variation_color(theme);
 
-        // ✅ LOGO (com fallback)
-        let logo_widget: cosmic::Element<Message> =
-            if let Some(handle) = logo_handles.get(&quote.symbol) {
+        let logo_widget = logo_handles
+            .get(&quote.symbol)
+            .filter(|_| config.show_logos)
+            .map(|handle| {
                 widget::container(
                     widget::image(handle.clone())
                         .width(Length::Fixed(42.0))
@@ -496,15 +499,8 @@ fn render_quotes_list<'a>(
                     },
                     ..Default::default()
                 })
-                .into()
-            } else {
-                widget::container(widget::text(""))
-                    .width(Length::Fixed(32.0))
-                    .height(Length::Fixed(32.0))
-                    .into()
-            };
+            });
 
-        // 🔝 Nome + Preço
         let top_row = widget::row()
             .align_y(Alignment::Center)
             .width(Length::Fill)
@@ -533,7 +529,6 @@ fn render_quotes_list<'a>(
                 .align_x(Alignment::End),
             );
 
-        // 🔻 Símbolo + Variação
         let bottom_row = widget::row()
             .align_y(Alignment::Center)
             .width(Length::Fill)
@@ -558,15 +553,16 @@ fn render_quotes_list<'a>(
                 .align_x(Alignment::End),
             );
 
-        // ✅ COLUNA DE TEXTO (direita)
         let text_column = widget::column().spacing(2).push(top_row).push(bottom_row);
 
-        // ✅ ROW FINAL (logo + conteúdo)
-        let item = widget::row()
-            .spacing(10)
-            .align_y(Alignment::Center)
-            .push(logo_widget)
-            .push(text_column);
+        // ✅ monta a row corretamente (sem Option direto no push)
+        let mut row = widget::row().spacing(10).align_y(Alignment::Center);
+
+        if let Some(logo) = logo_widget {
+            row = row.push(logo);
+        }
+
+        let item = row.push(text_column);
 
         content = content.push(item);
 
@@ -881,6 +877,14 @@ fn render_settings_tab<'a>(config: &'a Config, news_input: &'a str) -> Element<'
                 .push(
                     widget::toggler(config.show_only_icon).on_toggle(Message::ToggleShowOnlyIcon),
                 ),
+        )
+        .push(
+            widget::row()
+                .width(Length::Fill)
+                .align_y(Alignment::Center)
+                .push(widget::text("Show Logos in Screeners"))
+                .push(widget::horizontal_space())
+                .push(widget::toggler(config.show_logos).on_toggle(Message::ToggleShowLogos)),
         )
         .push(
             widget::row()

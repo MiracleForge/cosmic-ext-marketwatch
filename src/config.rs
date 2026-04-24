@@ -52,6 +52,8 @@ fn default_alerts_enabled() -> bool {
 pub struct Config {
     #[serde(default = "default_alerts_enabled")]
     pub alerts_enabled: bool,
+    #[serde(default = "default_show_logos")]
+    pub show_logos: bool,
     pub count_stokes_at_once: u64,
     pub count_news_by_simbol: u64,
     #[serde(default)]
@@ -68,10 +70,15 @@ fn default_show_news() -> bool {
     true
 }
 
+fn default_show_logos() -> bool {
+    true
+}
+
 impl Default for Config {
     fn default() -> Self {
         Self {
             alerts_enabled: true,
+            show_logos: true,
             count_stokes_at_once: 5,
             count_news_by_simbol: 1,
             default_tab: PopupTab::default(),

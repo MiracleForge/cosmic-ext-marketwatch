@@ -82,6 +82,7 @@ pub enum Message {
     OpenConfigBUtton,
     OpenNewsLink(String),
     ToggleShowOnlyIcon(bool),
+    ToggleShowLogos(bool),
     ToggleShowNews(bool),
     ToggleNewsExpanded,
     SetRefreshInterval(RefreshInterval),
@@ -443,22 +444,30 @@ impl cosmic::Application for AppModel {
                 Ok(data) => {
                     self.market_quotes = data;
                     self.error_message = None;
+
                     let key = self.current_cache_key();
                     self.last_fetch_time.insert(key.clone(), Instant::now());
                     self.cached_quotes
                         .insert(key.clone(), self.market_quotes.clone());
+
                     self.check_and_trigger_alerts();
 
-                    let logos_symbols: Vec<String> = self
-                        .market_quotes
-                        .iter()
-                        .filter(|q| !self.logo_handles.contains_key(&q.symbol))
-                        .map(|q| q.symbol.clone())
-                        .collect();
+                    let mut tasks = Vec::new();
 
-                    let logos_task = Task::perform(fetch_logos(logos_symbols), |logos| {
-                        Action::App(Message::LogosLoaded(logos))
-                    });
+                    if self.config.show_logos {
+                        let logos_symbols: Vec<String> = self
+                            .market_quotes
+                            .iter()
+                            .filter(|q| !self.logo_handles.contains_key(&q.symbol))
+                            .map(|q| q.symbol.clone())
+                            .collect();
+
+                        if !logos_symbols.is_empty() {
+                            tasks.push(Task::perform(fetch_logos(logos_symbols), |logos| {
+                                Action::App(Message::LogosLoaded(logos))
+                            }));
+                        }
+                    }
 
                     if self.config.show_news {
                         let news_symbols: Vec<String> = self
@@ -467,32 +476,29 @@ impl cosmic::Application for AppModel {
                             .take(3)
                             .map(|q| q.symbol.clone())
                             .collect();
-                        return Task::batch([
-                            logos_task,
-                            Task::perform(
-                                fetch_news_for_symbols(
-                                    news_symbols,
-                                    self.config.count_news_by_simbol,
-                                ),
-                                |result| {
-                                    Action::App(Message::NewsLoaded(
-                                        result.map_err(|e| e.to_string()),
-                                    ))
-                                },
-                            ),
-                            Task::done(Action::App(Message::Tick)),
-                        ]);
+
+                        tasks.push(Task::perform(
+                            fetch_news_for_symbols(news_symbols, self.config.count_news_by_simbol),
+                            |result| {
+                                Action::App(Message::NewsLoaded(result.map_err(|e| e.to_string())))
+                            },
+                        ));
                     }
 
-                    return Task::batch([logos_task, Task::done(Action::App(Message::Tick))]);
+                    tasks.push(Task::done(Action::App(Message::Tick)));
+
+                    return Task::batch(tasks);
                 }
+
                 Err(err) => {
                     self.error_message = Some(err);
                     self.market_quotes.clear();
+
                     let key = self.current_cache_key();
                     self.last_fetch_time.remove(&key);
                     self.cached_quotes.remove(&key);
                     self.cached_news.remove(&key);
+
                     return Task::done(Action::App(Message::Tick));
                 }
             },
@@ -595,6 +601,26 @@ impl cosmic::Application for AppModel {
                 self.config.show_only_icon = new_value;
                 self.applet_id = widget::Id::unique();
                 self.save_config();
+            }
+
+            Message::ToggleShowLogos(new_value) => {
+                self.config.show_logos = new_value;
+                self.save_config();
+
+                if new_value {
+                    let missing: Vec<String> = self
+                        .market_quotes
+                        .iter()
+                        .filter(|q| !self.logo_handles.contains_key(&q.symbol))
+                        .map(|q| q.symbol.clone())
+                        .collect();
+
+                    if !missing.is_empty() {
+                        return Task::perform(fetch_logos(missing), |logos| {
+                            Action::App(Message::LogosLoaded(logos))
+                        });
+                    }
+                }
             }
 
             Message::ToggleShowNews(new_value) => {
