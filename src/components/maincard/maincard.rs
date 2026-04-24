@@ -7,7 +7,7 @@ use crate::marketwatch::{
 };
 use cosmic::Theme;
 use cosmic::iced::font::Weight;
-use cosmic::iced::{Alignment, Font, Length};
+use cosmic::iced::{Alignment, Length};
 use cosmic::prelude::*;
 use cosmic::theme::Text;
 use cosmic::widget;
