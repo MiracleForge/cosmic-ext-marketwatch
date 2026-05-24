@@ -108,7 +108,7 @@ fn render_wallet<'a>(
     asset_limit_reached: bool,
     theme: &Theme,
 ) -> Element<'a, Message> {
-    let mut col = widget::column()
+    let mut col = widget::column![]
         .spacing(SPACING_TAB)
         .width(Length::Fill)
         .padding(PAD_TAB);
@@ -135,7 +135,7 @@ fn render_add_asset_section<'a>(
     search_loading: bool,
     asset_limit_reached: bool,
 ) -> Element<'a, Message> {
-    let mut col = widget::column()
+    let mut col = widget::column![]
         .spacing(SPACING_TAB)
         .push(category_header("ADD ASSET"));
 
@@ -168,7 +168,7 @@ fn render_add_asset_section<'a>(
     }
 
     if !search_results.is_empty() {
-        let results_col = widget::column()
+        let results_col = widget::column![]
             .spacing(2)
             .extend(search_results.iter().map(|label| {
                 widget::button::standard(label.as_str())
@@ -196,7 +196,7 @@ fn render_portfolio_section<'a>(
     quotes: &'a [MarketQuote],
     theme: &Theme,
 ) -> Element<'a, Message> {
-    let mut col = widget::column().spacing(SPACING_COL);
+    let mut col = widget::column![].spacing(SPACING_COL);
 
     if symbols.is_empty() && quotes.is_empty() {
         return col
@@ -229,7 +229,7 @@ fn render_portfolio_section<'a>(
 }
 
 fn render_loading_row(symbol: &str) -> Element<'_, Message> {
-    widget::row()
+    widget::row![]
         .align_y(Alignment::Center)
         .width(Length::Fill)
         .push(
@@ -257,7 +257,7 @@ fn render_loading_row(symbol: &str) -> Element<'_, Message> {
 fn render_quote_row(quote: &MarketQuote, theme: &Theme) -> Element<'static, Message> {
     let color = quote.variation_color(theme);
 
-    widget::row()
+    widget::row![]
         .align_y(Alignment::Center)
         .width(Length::Fill)
         .push(
@@ -324,7 +324,7 @@ fn render_quotes<'a>(
     current_screen_tab: ScreensTab,
     logo_handles: &'a HashMap<String, widget::image::Handle>,
 ) -> Element<'a, Message> {
-    let content = widget::column()
+    let content = widget::column![]
         .spacing(SPACING_TAB)
         .width(Length::Fill)
         .padding(PAD_TAB);
@@ -355,7 +355,7 @@ fn render_quotes<'a>(
 fn render_news_section<'a>(news: &'a [YahooNews], expanded: bool) -> Element<'a, Message> {
     let has_more = news.len() > NEWS_PREVIEW_COUNT;
 
-    let header_row = widget::row()
+    let header_row = widget::row![]
         .align_y(Alignment::Center)
         .width(Length::Fill)
         .push(
@@ -363,7 +363,7 @@ fn render_news_section<'a>(news: &'a [YahooNews], expanded: bool) -> Element<'a,
                 .size(TEXT_BODY)
                 .class(Text::Accent),
         )
-        .push(widget::horizontal_space())
+        .push(widget::Space::new().width(Length::Fill))
         .push_maybe(if has_more {
             Some(
                 widget::button::standard(if expanded {
@@ -389,7 +389,7 @@ fn render_news_section<'a>(news: &'a [YahooNews], expanded: bool) -> Element<'a,
             &news[..NEWS_PREVIEW_COUNT.min(news.len())]
         };
 
-        let cards = widget::column()
+        let cards = widget::column![]
             .spacing(SPACING_COL)
             .width(Length::Fill)
             .extend(visible.iter().map(news_card));
@@ -403,7 +403,7 @@ fn render_news_section<'a>(news: &'a [YahooNews], expanded: bool) -> Element<'a,
         }
     };
 
-    widget::column()
+    widget::column![]
         .spacing(SPACING_ROW)
         .width(Length::Fill)
         .push(category_divider())
@@ -426,7 +426,7 @@ fn news_card(item: &YahooNews) -> Element<'_, Message> {
         format!("{publisher} · {time_str}")
     };
 
-    let content = widget::column()
+    let content = widget::column![]
         .spacing(4)
         .padding(PAD_CARD)
         .width(Length::Fill)
@@ -441,7 +441,7 @@ fn news_card(item: &YahooNews) -> Element<'_, Message> {
 }
 
 fn screens_tab(current: ScreensTab) -> Element<'static, Message> {
-    let content = widget::row()
+    let content = widget::row![]
         .spacing(0)
         .width(Length::Fill)
         .height(Length::Shrink)
@@ -465,13 +465,13 @@ fn screens_tab(current: ScreensTab) -> Element<'static, Message> {
 }
 
 fn render_quotes_list<'a>(
-    mut content: widget::Column<'a, Message>,
+    mut content: widget::Column<'a, Message, cosmic::Theme>,
     market_quotes: &'a [MarketQuote],
     config: &'a Config,
     theme: &Theme,
     current_tab: ScreensTab,
     logo_handles: &'a HashMap<String, widget::image::Handle>,
-) -> widget::Column<'a, Message> {
+) -> widget::Column<'a, Message, cosmic::Theme> {
     content = content.push(screens_tab(current_tab)).push(item_divider());
 
     const VALUE_WIDTH: f32 = 70.0;
@@ -501,7 +501,7 @@ fn render_quotes_list<'a>(
                 })
             });
 
-        let top_row = widget::row()
+        let top_row = widget::row![]
             .align_y(Alignment::Center)
             .width(Length::Fill)
             .spacing(6)
@@ -529,7 +529,7 @@ fn render_quotes_list<'a>(
                 .align_x(Alignment::End),
             );
 
-        let bottom_row = widget::row()
+        let bottom_row = widget::row![]
             .align_y(Alignment::Center)
             .width(Length::Fill)
             .spacing(6)
@@ -553,10 +553,10 @@ fn render_quotes_list<'a>(
                 .align_x(Alignment::End),
             );
 
-        let text_column = widget::column().spacing(2).push(top_row).push(bottom_row);
+        let text_column = widget::column![].spacing(2).push(top_row).push(bottom_row);
 
         // ✅ monta a row corretamente (sem Option direto no push)
-        let mut row = widget::row().spacing(10).align_y(Alignment::Center);
+        let mut row = widget::row![].spacing(10).align_y(Alignment::Center);
 
         if let Some(logo) = logo_widget {
             row = row.push(logo);
@@ -574,7 +574,7 @@ fn render_quotes_list<'a>(
     content
 }
 fn category_divider<'a>() -> Element<'a, Message> {
-    widget::container(widget::horizontal_space())
+    widget::container(widget::Space::new().width(Length::Fill))
         .width(Length::Fill)
         .height(0.5)
         .style(|theme: &cosmic::Theme| widget::container::Style {
@@ -614,14 +614,14 @@ fn render_alerts_tab<'a>(
     market_quotes: &'a [MarketQuote],
     theme: &Theme,
 ) -> Element<'a, Message> {
-    let mut col = widget::column()
+    let mut col = widget::column![]
         .spacing(SPACING_TAB)
         .padding(PAD_TAB)
         .width(Length::Fill);
 
     // ================= HEADER =================
     col = col.push(
-        widget::row()
+        widget::row![]
             .align_y(Alignment::Center)
             .spacing(SPACING_ROW)
             .push(
@@ -638,7 +638,7 @@ fn render_alerts_tab<'a>(
 
     let asset_card = match selected_symbol {
         Some(sym) => {
-            let mut content = widget::column().spacing(SPACING_COL);
+            let mut content = widget::column![].spacing(SPACING_COL);
             content = content.push(category_divider());
             content = content.push(category_header("Selected Asset"));
             content = content.push(widget::text::heading(sym));
@@ -646,7 +646,7 @@ fn render_alerts_tab<'a>(
             if let Some(quote) = selected_quote {
                 let color = quote.variation_color(theme);
                 content = content.push(
-                    widget::row()
+                    widget::row![]
                         .spacing(SPACING_TAB)
                         .align_y(Alignment::Center)
                         .push(
@@ -697,7 +697,7 @@ fn render_alerts_tab<'a>(
             AlertCondition::TurnPositive | AlertCondition::TurnNegative
         );
 
-        let form = widget::column()
+        let form = widget::column![]
             .spacing(SPACING_TAB)
             .push(category_divider())
             .push(category_header("Condition"))
@@ -708,7 +708,7 @@ fn render_alerts_tab<'a>(
                 .width(Length::Fill),
             )
             .push(
-                widget::row()
+                widget::row![]
                     .spacing(SPACING_ROW)
                     .align_y(Alignment::Center)
                     .push_maybe(if needs_value {
@@ -766,7 +766,7 @@ fn render_alert_row(alert: &PriceAlert, wallet_index: usize) -> Element<'_, Mess
         "media-playback-start-symbolic"
     };
 
-    widget::row()
+    widget::row![]
         .align_y(Alignment::Center)
         .width(Length::Fill)
         .spacing(SPACING_ROW)
@@ -862,55 +862,55 @@ fn build_add_alert_message(
 }
 
 fn render_settings_tab<'a>(config: &'a Config, news_input: &'a str) -> Element<'a, Message> {
-    widget::column()
+    widget::column![]
         .spacing(SPACING_TAB)
         .padding(PAD_TAB)
         .width(Length::Fill)
         .push(category_divider())
         .push(category_header("Panel"))
         .push(
-            widget::row()
+            widget::row![]
                 .width(Length::Fill)
                 .align_y(Alignment::Center)
                 .push(widget::text("Show icon only"))
-                .push(widget::horizontal_space())
+                .push(widget::Space::new().width(Length::Fill))
                 .push(
                     widget::toggler(config.show_only_icon).on_toggle(Message::ToggleShowOnlyIcon),
                 ),
         )
         .push(
-            widget::row()
+            widget::row![]
                 .width(Length::Fill)
                 .align_y(Alignment::Center)
                 .push(widget::text("Show Logos in Screeners"))
-                .push(widget::horizontal_space())
+                .push(widget::Space::new().width(Length::Fill))
                 .push(widget::toggler(config.show_logos).on_toggle(Message::ToggleShowLogos)),
         )
         .push(
-            widget::row()
+            widget::row![]
                 .width(Length::Fill)
                 .align_y(Alignment::Center)
                 .push(widget::text("Disable Custom Alerts"))
-                .push(widget::horizontal_space())
+                .push(widget::Space::new().width(Length::Fill))
                 .push(
                     widget::toggler(!config.alerts_enabled)
                         .on_toggle(|val| Message::ToggleAlertsEnabled(!val)),
                 ),
         )
         .push(
-            widget::row()
+            widget::row![]
                 .width(Length::Fill)
                 .align_y(Alignment::Center)
                 .push(widget::text("Display news"))
-                .push(widget::horizontal_space())
+                .push(widget::Space::new().width(Length::Fill))
                 .push(widget::toggler(config.show_news).on_toggle(Message::ToggleShowNews)),
         )
         .push(
-            widget::row()
+            widget::row![]
                 .width(Length::Fill)
                 .align_y(Alignment::Center)
                 .push(widget::text("News per asset (max 5)"))
-                .push(widget::horizontal_space())
+                .push(widget::Space::new().width(Length::Fill))
                 .push(
                     widget::text_input("1", news_input)
                         .on_input(Message::SetNumberOfNewsBySymbols)
@@ -920,11 +920,11 @@ fn render_settings_tab<'a>(config: &'a Config, news_input: &'a str) -> Element<'
         .push(category_divider())
         .push(category_header("Refresh"))
         .push(
-            widget::row()
+            widget::row![]
                 .width(Length::Fill)
                 .align_y(Alignment::Center)
                 .push(widget::text("Stock rotation interval (seconds)"))
-                .push(widget::horizontal_space())
+                .push(widget::Space::new().width(Length::Fill))
                 .push(
                     widget::text_input("20", config.panel_stoke_rotation_interval.to_string())
                         .on_input(Message::SetStokeRotationInterval)
@@ -936,12 +936,12 @@ fn render_settings_tab<'a>(config: &'a Config, news_input: &'a str) -> Element<'
         .push(category_divider())
         .push(category_header("About"))
         .push(
-            widget::row()
+            widget::row![]
                 .width(Length::Fill)
                 .align_y(Alignment::Center)
                 .push(widget::text("Version: "))
                 .push(widget::text(crate::app::VERSION))
-                .push(widget::horizontal_space())
+                .push(widget::Space::new().width(Length::Fill))
                 .push(
                     widget::button::standard(crate::fl!("settings-tip-kofi")).on_press(
                         Message::OpenNewsLink("https://ko-fi.com/paulorosado".to_string()),
@@ -960,7 +960,7 @@ fn refresh_row(config: &Config) -> Element<'_, Message> {
         ("1h", RefreshInterval::OneHour),
     ];
 
-    let mut row = widget::row()
+    let mut row = widget::row(vec![])
         .spacing(4)
         .width(Length::Fill)
         .height(Length::Shrink);
@@ -1000,7 +1000,7 @@ fn refresh_button<'a>(
 
 fn tab_button<'a>(label: &'static str, msg: Message, selected: bool) -> Element<'a, Message> {
     let text = widget::text(label);
-    let underline = widget::container(widget::Space::new(0, 0))
+    let underline = widget::container(widget::Space::new())
         .height(2)
         .width(Length::Fill)
         .style(move |theme: &cosmic::Theme| {
@@ -1014,11 +1014,11 @@ fn tab_button<'a>(label: &'static str, msg: Message, selected: bool) -> Element<
                 ..Default::default()
             }
         });
-    let content = widget::column()
+
+    let content = widget::column(vec![text.into(), underline.into()])
         .align_x(cosmic::iced::alignment::Horizontal::Center)
-        .spacing(4)
-        .push(text)
-        .push(underline);
+        .spacing(4);
+
     widget::button::custom(content)
         .width(Length::FillPortion(1))
         .padding([8, 0])

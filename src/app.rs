@@ -16,11 +16,11 @@ use crate::marketwatch::{
 };
 use cosmic::applet::cosmic_panel_config::PanelAnchor;
 use cosmic::cosmic_config::CosmicConfigEntry;
-use cosmic::iced::{Length, Limits, Subscription, window::Id};
-use cosmic::iced_futures::Subscription as IcedSubscription;
-use cosmic::iced_winit::commands::popup::{destroy_popup, get_popup};
+use cosmic::iced::Subscription;
+use cosmic::iced::{Length, Limits, window::Id};
 use cosmic::prelude::*;
 use cosmic::{Action, widget};
+use iced_winit::commands::popup::{destroy_popup, get_popup};
 
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
@@ -232,31 +232,15 @@ impl cosmic::Application for AppModel {
     }
 
     fn subscription(&self) -> Subscription<Self::Message> {
-        let interval_minutes = self.config.panel_stoke_rotation_interval;
-        let refresh_interval = self.config.refresh_interval.as_seconds();
+        let rotate = cosmic::iced::time::every(Duration::from_secs(
+            self.config.panel_stoke_rotation_interval,
+        ))
+        .map(|_| Message::Tick);
 
-        let rotate = IcedSubscription::run_with_id(
-            (std::any::TypeId::of::<Self>(), "rotate", interval_minutes),
-            async_stream::stream! {
-                let interval = Duration::from_secs(interval_minutes);
-                loop {
-                    tokio::time::sleep(interval).await;
-                    yield Message::Tick;
-                }
-            },
-        );
-
-        let refresh = IcedSubscription::run_with_id(
-            (std::any::TypeId::of::<Self>(), "refresh", refresh_interval),
-            async_stream::stream! {
-                let interval = Duration::from_secs(refresh_interval);
-                tokio::time::sleep(interval).await;
-                loop {
-                    yield Message::RefreshMarket;
-                    tokio::time::sleep(interval).await;
-                }
-            },
-        );
+        let refresh = cosmic::iced::time::every(Duration::from_secs(
+            self.config.refresh_interval.as_seconds(),
+        ))
+        .map(|_| Message::RefreshMarket);
 
         Subscription::batch([rotate, refresh])
     }
@@ -351,7 +335,7 @@ impl cosmic::Application for AppModel {
 
         let body_height = (max_height - header_height).min(max_body_height).max(120.0);
 
-        let content = widget::column()
+        let content = widget::column![]
             .padding(0)
             .spacing(6)
             .width(Length::Fill)
@@ -972,9 +956,9 @@ impl cosmic::Application for AppModel {
         Task::none()
     }
 
-    fn style(&self) -> Option<cosmic::iced_runtime::Appearance> {
-        Some(cosmic::applet::style())
-    }
+    // fn style(&self) -> cosmic::applet::Style {
+    //     cosmic::applet::style()
+    // }
 }
 
 impl AppModel {

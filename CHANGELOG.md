@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2026-05-24
+
+### Changed
+
+- Migrated the applet to the latest libcosmic / iced 0.14 stack
+- Updated widget APIs to the new iced layout system
+- Updated subscription handling for the latest iced runtime model
+- Refactored popup/runtime integration for newer COSMIC APIs
+- Updated internal accessibility/runtime dependencies required by latest libcosmic
+
+### Fixed
+
+- Restored compatibility with the latest COSMIC desktop updates
+- Fixed build issues caused by libcosmic breaking API changes
+
 ## [1.3.0] - 2026-04-24
 
 ### Added

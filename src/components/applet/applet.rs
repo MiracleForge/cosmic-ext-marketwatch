@@ -35,19 +35,22 @@ pub fn build_applet_content(
     }
 }
 
-fn base_row() -> widget::Row<'static, Message> {
-    widget::row().align_y(Alignment::Center)
+fn base_row() -> widget::Row<'static, Message, cosmic::Theme> {
+    widget::row![].align_y(Alignment::Center)
 }
 
 fn app_icon(icon_size: u16) -> widget::Icon {
     widget::icon(widget::icon::from_svg_bytes(ICON)).size(icon_size)
 }
 
-fn build_icon_only(icon_size: u16) -> widget::Row<'static, Message> {
+fn build_icon_only(icon_size: u16) -> widget::Row<'static, Message, cosmic::Theme> {
     base_row().push(app_icon(icon_size))
 }
 
-fn build_quote_display(quote: &MarketQuote, theme: &Theme) -> widget::Row<'static, Message> {
+fn build_quote_display(
+    quote: &MarketQuote,
+    theme: &Theme,
+) -> widget::Row<'static, Message, cosmic::Theme> {
     let color = quote.variation_color(theme);
 
     // Thying to fix layout shift but I don't know how , whern I have like btc-usd  $80,634.41 for
@@ -75,7 +78,7 @@ fn build_quote_display(quote: &MarketQuote, theme: &Theme) -> widget::Row<'stati
 pub fn build_vertical_quote(quote: &MarketQuote, theme: &Theme) -> Element<'static, Message> {
     let color = quote.variation_color(theme);
 
-    widget::column()
+    widget::column![]
         .align_x(Alignment::Center)
         .spacing(4)
         .push(widget::text(quote.symbol.clone()).size(11))
@@ -92,14 +95,14 @@ pub fn build_vertical_quote(quote: &MarketQuote, theme: &Theme) -> Element<'stat
         .into()
 }
 
-fn build_loading_display() -> widget::Row<'static, Message> {
+fn build_loading_display() -> widget::Row<'static, Message, cosmic::Theme> {
     base_row()
         .spacing(12)
         .push(widget::icon::from_name("process-working-symbolic").symbolic(true))
         .push(widget::text("Loading..."))
 }
 
-fn build_error_display() -> widget::Row<'static, Message> {
+fn build_error_display() -> widget::Row<'static, Message, cosmic::Theme> {
     base_row()
         .spacing(8)
         .push(widget::icon::from_name("dialog-error-symbolic").symbolic(true))

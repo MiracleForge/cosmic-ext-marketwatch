@@ -32,7 +32,7 @@ pub fn header<'a>(
     let title: Element<'a, Message> = if current_index == 0 {
         widget::text::heading("US Market Overview").into()
     } else if rename_mode {
-        widget::row()
+        widget::row![]
             .spacing(4)
             .align_y(Alignment::Center)
             .push(
@@ -48,7 +48,7 @@ pub fn header<'a>(
             .into()
     } else {
         let name = wallet_name.unwrap_or("Wallet");
-        widget::row()
+        widget::row![]
             .spacing(4)
             .align_y(Alignment::Center)
             .push(widget::text::heading(name))
@@ -69,11 +69,11 @@ pub fn header<'a>(
         icon_button("list-add-symbolic", Message::AddWallet)
     };
 
-    widget::column()
+    widget::column![]
         .width(Length::Fill)
         .push(top_header(last_updated))
         .push(
-            widget::row()
+            widget::row![]
                 .spacing(8)
                 .padding([8, 12])
                 .align_y(Alignment::Center)
@@ -89,7 +89,7 @@ pub fn header<'a>(
                     icon_button("go-next-symbolic", Message::NextWallet)
                 })
                 .push(title)
-                .push(widget::horizontal_space())
+                .push(widget::Space::new().width(Length::Fill))
                 .push_maybe(if current_index > 0 {
                     Some(if in_alerts {
                         icon_button_disabled("user-trash-symbolic")

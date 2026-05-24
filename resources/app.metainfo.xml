@@ -60,6 +60,21 @@
   </categories>
 
   <releases>
+    <release version="1.3.1" date="2026-05-24">
+      <description>
+        <p>Updated the applet for compatibility with the latest COSMIC and libcosmic stack.</p>
+        <ul>
+          <li>Migrated the applet to the latest libcosmic / iced 0.14 stack</li>
+          <li>Updated widget APIs to the new iced layout system</li>
+          <li>Updated subscription handling for the latest iced runtime model</li>
+          <li>Refactored popup/runtime integration for newer COSMIC APIs</li>
+          <li>Updated internal accessibility and runtime dependencies</li>
+          <li>Restored compatibility with the latest COSMIC desktop updates</li>
+          <li>Fixed build issues caused by libcosmic breaking API changes</li>
+        </ul>
+      </description>
+    </release>
+
     <release version="1.3.0" date="2026-04-22">
       <description>
         <p>Added company logos and customization options for market items.</p>
