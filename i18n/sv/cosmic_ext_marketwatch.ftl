@@ -1,0 +1,9 @@
+app-title = Cosmic Marknadsöversikt
+about = Om
+view = Visa
+welcome = Välkommen till COSMIC! ✨
+page-id = Sida { $num }
+git-description = Git commit {$hash} på {$date}
+settings-tip-kofi = Stöd utvecklingen via Ko-fi
+settings-refresh-interval = Uppdateringsintervall
+settings-min = min
