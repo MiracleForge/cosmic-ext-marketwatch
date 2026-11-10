@@ -49,10 +49,10 @@ run *args:
 
 install: build-release
     sudo install -Dm0755 {{ cargo-target-dir / 'release' / name }} {{bin-dst}}
-    sudo install -Dm0644 resources/app.desktop {{desktop-dst}}
+    sudo install -Dm0644 flatpak/{{appid}}.desktop {{desktop-dst}}
     sudo sed -i 's|Exec=.*|Exec={{bin-dst}}|' {{desktop-dst}}
     sudo install -Dm0644 resources/app.metainfo.xml {{appdata-dst}}
-    sudo install -Dm0644 resources/icon.svg {{icon-dst}}
+    sudo install -Dm0644 resources/icons/hicolor/scalable/apps/{{appid}}.svg {{icon-dst}}
 
 uninstall:
     sudo rm {{bin-dst}} {{desktop-dst}} {{icon-dst}}

@@ -40,7 +40,9 @@ fn base_row() -> widget::Row<'static, Message, cosmic::Theme> {
 }
 
 fn app_icon(icon_size: u16) -> widget::Icon {
-    widget::icon(widget::icon::from_svg_bytes(ICON)).size(icon_size)
+    // symbolic(true) makes COSMIC recolor `currentColor` in the SVG to the
+    // theme's text color, so the icon adapts to light/dark themes.
+    widget::icon(widget::icon::from_svg_bytes(ICON).symbolic(true)).size(icon_size)
 }
 
 fn build_icon_only(icon_size: u16) -> widget::Row<'static, Message, cosmic::Theme> {
