@@ -1012,12 +1012,17 @@ impl AppModel {
 
                 if triggered {
                     if self.config.alerts_enabled {
-                        let msg = format!(
-                            "{} — {}\nPrice: {} | Change: {:.2} %",
-                            alert.symbol,
-                            Self::alert_condition_description(&alert.condition),
-                            quote.formatted_price(),
-                            quote.change_percent,
+                        let msg = crate::fl!(
+                            "alert-notification",
+                            HashMap::from([
+                                ("symbol", alert.symbol.clone()),
+                                (
+                                    "description",
+                                    Self::alert_condition_description(&alert.condition)
+                                ),
+                                ("price", quote.formatted_price()),
+                                ("change", format!("{:.2}", quote.change_percent)),
+                            ])
                         );
                         Self::send_notification(&alert.symbol, &msg);
                     }
@@ -1036,13 +1041,19 @@ impl AppModel {
     }
 
     fn alert_condition_description(condition: &AlertCondition) -> String {
+        let value = |v: f64| HashMap::from([("value", format!("{v:.2}"))]);
+
         match condition {
-            AlertCondition::PriceAbove(v) => format!("Price above {v:.2}"),
-            AlertCondition::PriceBelow(v) => format!("Price below {v:.2}"),
-            AlertCondition::VariationAbove(v) => format!("Variation above {v:.2}%"),
-            AlertCondition::VariationBelow(v) => format!("Variation below {v:.2}%"),
-            AlertCondition::TurnPositive => "Turned positive".to_string(),
-            AlertCondition::TurnNegative => "Turned negative".to_string(),
+            AlertCondition::PriceAbove(v) => crate::fl!("alert-description-price-above", value(*v)),
+            AlertCondition::PriceBelow(v) => crate::fl!("alert-description-price-below", value(*v)),
+            AlertCondition::VariationAbove(v) => {
+                crate::fl!("alert-description-variation-above", value(*v))
+            }
+            AlertCondition::VariationBelow(v) => {
+                crate::fl!("alert-description-variation-below", value(*v))
+            }
+            AlertCondition::TurnPositive => crate::fl!("alert-description-turned-positive"),
+            AlertCondition::TurnNegative => crate::fl!("alert-description-turned-negative"),
         }
     }
 }

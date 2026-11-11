@@ -101,12 +101,12 @@ fn build_loading_display() -> widget::Row<'static, Message, cosmic::Theme> {
     base_row()
         .spacing(12)
         .push(widget::icon::from_name("process-working-symbolic").symbolic(true))
-        .push(widget::text("Loading..."))
+        .push(widget::text(crate::fl!("display-loading")))
 }
 
 fn build_error_display() -> widget::Row<'static, Message, cosmic::Theme> {
     base_row()
         .spacing(8)
         .push(widget::icon::from_name("dialog-error-symbolic").symbolic(true))
-        .push(widget::text("Error"))
+        .push(widget::text(crate::fl!("display-error")))
 }

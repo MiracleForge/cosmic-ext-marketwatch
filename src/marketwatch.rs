@@ -470,37 +470,26 @@ pub fn format_publish_time(timestamp: u64) -> String {
         .as_secs();
 
     if timestamp > now {
-        return "just now".to_string();
+        return crate::fl!("time-just-now");
     }
 
     let diff = now - timestamp;
+    let count = |n: u64| HashMap::from([("count", n)]);
 
     if diff < 60 {
-        "just now".to_string()
+        crate::fl!("time-just-now")
     } else if diff < 3600 {
-        let mins = diff / 60;
-        if mins == 1 {
-            "1 min ago".to_string()
-        } else {
-            format!("{mins} min ago")
-        }
+        crate::fl!("time-minutes-ago", count(diff / 60))
     } else if diff < 86400 {
-        let hours = diff / 3600;
-        if hours == 1 {
-            "1 hour ago".to_string()
-        } else {
-            format!("{hours} hours ago")
-        }
+        crate::fl!("time-hours-ago", count(diff / 3600))
     } else if diff < 172_800 {
-        "yesterday".to_string()
+        crate::fl!("time-yesterday")
     } else {
         let days = diff / 86400;
         if days < 7 {
-            format!("{days} days ago")
-        } else if days < 14 {
-            "1 week ago".to_string()
+            crate::fl!("time-days-ago", count(days))
         } else {
-            format!("{} weeks ago", days / 7)
+            crate::fl!("time-weeks-ago", count(days / 7))
         }
     }
 }

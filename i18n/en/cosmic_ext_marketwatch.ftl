@@ -4,6 +4,13 @@ welcome = Welcome to COSMIC! ✨
 page-id = Page { $num }
 git-description = Git commit {$hash} on {$date}
 
+wallet-view = US Market Overview
+wallet-name = Wallet name
+wallet-updated-at = Updated at { $time }
+
+display-loading = Loading...
+display-error = Error 
+
 assets-add = ADD ASSET
 assets-limit = Asset limit reached ({ $max } max).
 assets-search-by = Search by symbol (e.g. AAPL, PETR4)", search_input
@@ -47,6 +54,16 @@ alerts-label-variation-below = Variation < { $value }%
 alerts-label-turns-positive = Turns Positive
 alerts-label-turns-negative = Turns Negative
 
+alert-notification =
+    { $symbol } — { $description }
+    Price: { $price } | Change: { $change } %
+alert-description-price-above = Price above { $value }
+alert-description-price-below = Price below { $value }
+alert-description-variation-above = Variation above { $value }%
+alert-description-variation-below = Variation below { $value }%
+alert-description-turned-positive = Turned positive
+alert-description-turned-negative = Turned negative
+
 settings-panel = Panel
 settings-show-icon-only = Show icon only
 settings-show-logos = Show logos in screeners
@@ -63,3 +80,19 @@ settings-stock-rotation-interval = Stock rotation interval (seconds)
 settings-tip-kofi = Support development via Ko-fi
 settings-refresh-interval = Refresh interval
 settings-min = min
+
+time-just-now = just now
+time-minutes-ago = { $count } min ago
+time-hours-ago = { $count ->
+    [one] { $count } hour ago
+   *[other] { $count } hours ago
+}
+time-yesterday = yesterday
+time-days-ago = { $count ->
+    [one] { $count } day ago
+   *[other] { $count } days ago
+}
+time-weeks-ago = { $count ->
+    [one] { $count } week ago
+   *[other] { $count } weeks ago
+}

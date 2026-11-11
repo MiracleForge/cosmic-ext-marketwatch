@@ -4,6 +4,13 @@ welcome = Bem-vindo ao COSMIC! ✨
 page-id = Página { $num }
 git-description = Commit do Git {$hash} em {$date}
 
+wallet-view = Visão do mercado dos EUA
+wallet-name = Nome da carteira
+wallet-updated-at = Atualizado às { $time }
+
+display-loading = Carregando...
+display-error = Erro
+
 assets-add = ADICIONAR ATIVO
 assets-limit = Limite de ativos atingido (máx. { $max }).
 assets-search-by = Buscar por símbolo (ex.: AAPL, PETR4)
@@ -46,6 +53,16 @@ alerts-label-variation-below = Variação < { $value }%
 alerts-label-turns-positive = Fica positivo
 alerts-label-turns-negative = Fica negativo
 
+alert-notification =
+    { $symbol } — { $description }
+    Preço: { $price } | Variação: { $change } %
+alert-description-price-above = Preço acima de { $value }
+alert-description-price-below = Preço abaixo de { $value }
+alert-description-variation-above = Variação acima de { $value }%
+alert-description-variation-below = Variação abaixo de { $value }%
+alert-description-turned-positive = Ficou positivo
+alert-description-turned-negative = Ficou negativo
+
 settings-panel = Painel
 settings-show-icon-only = Mostrar apenas o ícone
 settings-show-logos = Mostrar logos nos screeners
@@ -61,3 +78,19 @@ settings-refresh = Atualização
 settings-tip-kofi = Apoie o desenvolvimento pelo Ko-fi
 settings-refresh-interval = Intervalo de atualização
 settings-min = min
+
+time-just-now = agora mesmo
+time-minutes-ago = há { $count } min
+time-hours-ago = { $count ->
+    [one] há { $count } hora
+   *[other] há { $count } horas
+}
+time-yesterday = ontem
+time-days-ago = { $count ->
+    [one] há { $count } dia
+   *[other] há { $count } dias
+}
+time-weeks-ago = { $count ->
+    [one] há { $count } semana
+   *[other] há { $count } semanas
+}

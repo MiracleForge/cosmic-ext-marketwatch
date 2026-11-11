@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 // SPDX-License-Identifier: GPL-3.0-only
 use crate::app::{MAX_WALLETS, Message};
 use crate::config::PopupTab;
@@ -30,13 +32,13 @@ pub fn header<'a>(
     let in_alerts = active_tab == PopupTab::Alerts;
 
     let title: Element<'a, Message> = if current_index == 0 {
-        widget::text::heading("US Market Overview").into()
+        widget::text::heading(crate::fl!("wallet-view")).into()
     } else if rename_mode {
         widget::row![]
             .spacing(4)
             .align_y(Alignment::Center)
             .push(
-                widget::text_input("Wallet Name", rename_input)
+                widget::text_input(crate::fl!("wallet-name"), rename_input)
                     .on_input(Message::RenameWallet)
                     .on_submit(|_| Message::ConfirmRenameWallet)
                     .width(Length::Fixed(140.0)),
@@ -115,7 +117,12 @@ pub fn header<'a>(
 
 fn top_header(last_updated: Option<String>) -> Element<'static, Message> {
     let text = last_updated
-        .map(|t| format!("Updated at {t}"))
+        .map(|t| {
+            crate::fl!(
+                "wallet-updated-at",
+                HashMap::from([("time", t.to_string())])
+            )
+        })
         .unwrap_or_default();
     widget::container(
         widget::text(text)
