@@ -60,12 +60,14 @@
   </categories>
 
 <releases>
-  <release version="1.3.2" date="2026-11-10">
+  <release version="1.3.2" date="2026-11-11">
     <description>
-      <p>Minor update with localization and bug fixes.</p>
+      <p>Minor update with localization, dependency updates and bug fixes.</p>
       <ul>
         <li>Added Brazilian Portuguese (pt-BR) localization</li>
+        <li>Popup now responds to the COSMIC Frosted Glass style</li>
         <li>The panel icon now syncs with the COSMIC theme</li>
+        <li>Updated libcosmic and dependencies</li>
       </ul>
     </description>
   </release>
