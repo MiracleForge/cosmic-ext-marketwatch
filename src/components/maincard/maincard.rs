@@ -137,22 +137,21 @@ fn render_add_asset_section<'a>(
 ) -> Element<'a, Message> {
     let mut col = widget::column![]
         .spacing(SPACING_TAB)
-        .push(category_header("ADD ASSET"));
+        .push(category_header(crate::fl!("assets-add")));
 
     if asset_limit_reached {
+        let args = HashMap::from([("max", MAX_ASSETS_PER_WALLET)]);
         return col
             .push(
-                widget::text(format!(
-                    "Asset limit reached ({MAX_ASSETS_PER_WALLET} max)."
-                ))
-                .size(TEXT_BODY)
-                .class(cosmic::theme::Text::Accent),
+                widget::text(crate::fl!("assets-limit", args))
+                    .size(TEXT_BODY)
+                    .class(cosmic::theme::Text::Accent),
             )
             .into();
     }
 
     col = col.push(
-        widget::text_input("Search by symbol (e.g. AAPL, PETR4)", search_input)
+        widget::text_input(crate::fl!("assets-search-by"), search_input)
             .on_input(Message::StockSearchInput)
             .width(Length::Fill),
     );
@@ -160,7 +159,7 @@ fn render_add_asset_section<'a>(
     if search_loading {
         return col
             .push(
-                widget::text("Searching...")
+                widget::text(crate::fl!("assets-loading"))
                     .size(TEXT_BODY)
                     .class(cosmic::theme::Text::Accent),
             )
@@ -182,7 +181,7 @@ fn render_add_asset_section<'a>(
 
     if search_input.len() >= 2 {
         col = col.push(
-            widget::text("No results found.")
+            widget::text(crate::fl!("assets-not-found"))
                 .size(TEXT_BODY)
                 .class(cosmic::theme::Text::Accent),
         );
@@ -202,7 +201,7 @@ fn render_portfolio_section<'a>(
         return col
             .push(category_divider())
             .push(
-                widget::text("Your portfolio is empty.")
+                widget::text(crate::fl!("portfolio-empty"))
                     .size(TEXT_BODY)
                     .class(cosmic::theme::Text::Accent),
             )
@@ -210,7 +209,7 @@ fn render_portfolio_section<'a>(
     }
 
     col = col
-        .push(category_header("Your Portfolio"))
+        .push(category_header(crate::fl!("portfolio-your")))
         .push(category_divider());
 
     if quotes.is_empty() {
@@ -238,7 +237,7 @@ fn render_loading_row(symbol: &str) -> Element<'_, Message> {
                 .align_x(Alignment::Start),
         )
         .push(
-            widget::container(widget::text("Loading..."))
+            widget::container(widget::text(crate::fl!("render-loading")))
                 .width(Length::FillPortion(2))
                 .align_x(Alignment::Center),
         )
@@ -330,7 +329,9 @@ fn render_quotes<'a>(
         .padding(PAD_TAB);
 
     match derive_state(market_quotes, error_message) {
-        QuotesState::Loading => content.push(widget::text("Loading market data...")).into(),
+        QuotesState::Loading => content
+            .push(widget::text(crate::fl!("quotes-loading")))
+            .into(),
 
         QuotesState::Error(err) => {
             let friendly = user_friendly_error_message(err);
@@ -359,7 +360,7 @@ fn render_news_section<'a>(news: &'a [YahooNews], expanded: bool) -> Element<'a,
         .align_y(Alignment::Center)
         .width(Length::Fill)
         .push(
-            widget::text("Latest News")
+            widget::text(crate::fl!("news-last"))
                 .size(TEXT_BODY)
                 .class(Text::Accent),
         )
@@ -367,9 +368,9 @@ fn render_news_section<'a>(news: &'a [YahooNews], expanded: bool) -> Element<'a,
         .push_maybe(if has_more {
             Some(
                 widget::button::standard(if expanded {
-                    "Collapse ▲"
+                    crate::fl!("news-colapse")
                 } else {
-                    "View all ▼"
+                    crate::fl!("news-view")
                 })
                 .on_press(Message::ToggleNewsExpanded),
             )
@@ -378,7 +379,7 @@ fn render_news_section<'a>(news: &'a [YahooNews], expanded: bool) -> Element<'a,
         });
 
     let news_content: Element<'a, Message> = if news.is_empty() {
-        widget::text("No news available at the moment.")
+        widget::text(crate::fl!("news-not-avaliable"))
             .size(TEXT_BODY)
             .class(Text::Accent)
             .into()
@@ -446,17 +447,17 @@ fn screens_tab(current: ScreensTab) -> Element<'static, Message> {
         .width(Length::Fill)
         .height(Length::Shrink)
         .push(tab_button(
-            "Most Active",
+            crate::fl!("screeners-tab-active"),
             Message::SetTab(ScreensTab::MostActive),
             current == ScreensTab::MostActive,
         ))
         .push(tab_button(
-            "Gainers",
+            crate::fl!("screeners-tab-gainers"),
             Message::SetTab(ScreensTab::Gainers),
             current == ScreensTab::Gainers,
         ))
         .push(tab_button(
-            "Losers",
+            crate::fl!("screeners-tab-losers"),
             Message::SetTab(ScreensTab::Losers),
             current == ScreensTab::Losers,
         ));
@@ -555,7 +556,7 @@ fn render_quotes_list<'a>(
 
         let text_column = widget::column![].spacing(2).push(top_row).push(bottom_row);
 
-        // ✅ monta a row corretamente (sem Option direto no push)
+        //  monta a row corretamente (sem Option direto no push)
         let mut row = widget::row![].spacing(10).align_y(Alignment::Center);
 
         if let Some(logo) = logo_widget {
@@ -595,7 +596,8 @@ fn item_divider_veritcal<'a>(size: f32) -> Element<'a, Message> {
         .into()
 }
 
-fn category_header(label: &str) -> Element<'_, Message> {
+fn category_header(label: impl Into<String>) -> Element<'static, Message> {
+    let label: String = label.into();
     widget::container(widget::text::heading(label).size(TEXT_BODY + 1))
         .style(|theme| widget::container::Style {
             text_color: Some(cosmic::iced::Color::from(theme.cosmic().accent_color())),
@@ -629,7 +631,11 @@ fn render_alerts_tab<'a>(
                     .on_press(Message::CloseAlertsTab)
                     .padding(PAD_ROW),
             )
-            .push(widget::text("Alerts").size(TEXT_LABEL).class(Text::Accent)),
+            .push(
+                widget::text(crate::fl!("alerts"))
+                    .size(TEXT_LABEL)
+                    .class(Text::Accent),
+            ),
     );
 
     // ================= ASSET CARD =================
@@ -640,7 +646,7 @@ fn render_alerts_tab<'a>(
         Some(sym) => {
             let mut content = widget::column![].spacing(SPACING_COL);
             content = content.push(category_divider());
-            content = content.push(category_header("Selected Asset"));
+            content = content.push(category_header(crate::fl!("alerts-select")));
             content = content.push(widget::text::heading(sym));
 
             if let Some(quote) = selected_quote {
@@ -668,7 +674,7 @@ fn render_alerts_tab<'a>(
         }
 
         None => widget::container(
-            widget::text("Select a stock from the list to create alerts.")
+            widget::text(crate::fl!("alerts-select-stock"))
                 .size(TEXT_BODY)
                 .class(Text::Accent),
         )
@@ -680,13 +686,13 @@ fn render_alerts_tab<'a>(
 
     // ================= ALERT FORM =================
     if selected_symbol.is_some() {
-        let condition_options = &[
-            "Price Above",
-            "Price Below",
-            "Variation Above",
-            "Variation Below",
-            "Turns Positive",
-            "Turns Negative",
+        let condition_options = vec![
+            crate::fl!("alerts-condition-price-above"),
+            crate::fl!("alerts-condition-price-below"),
+            crate::fl!("alerts-condition-variation-above"),
+            crate::fl!("alerts-condition-variation-below"),
+            crate::fl!("alerts-condition-turns-positive"),
+            crate::fl!("alerts-condition-turns-negative"),
         ];
 
         let condition_idx = Some(condition_to_index(selected_condition));
@@ -700,7 +706,7 @@ fn render_alerts_tab<'a>(
         let form = widget::column![]
             .spacing(SPACING_TAB)
             .push(category_divider())
-            .push(category_header("Condition"))
+            .push(category_header(crate::fl!("alerts-condition")))
             .push(
                 widget::dropdown(condition_options, condition_idx, move |idx| {
                     Message::AlertSelectCondition(index_to_condition(idx, &input_for_closure))
@@ -713,21 +719,23 @@ fn render_alerts_tab<'a>(
                     .align_y(Alignment::Center)
                     .push_maybe(if needs_value {
                         Some(
-                            widget::text_input("value", input_value)
+                            widget::text_input(crate::fl!("alerts-value-placeholder"), input_value)
                                 .on_input(Message::AlertSetValue)
                                 .width(Length::Fill),
                         )
                     } else {
                         None
                     })
-                    .push(widget::button::suggested("Add").on_press_maybe(
-                        build_add_alert_message(
-                            wallet_index,
-                            selected_symbol,
-                            selected_condition,
-                            input_value,
+                    .push(
+                        widget::button::suggested(crate::fl!("alerts-value-add")).on_press_maybe(
+                            build_add_alert_message(
+                                wallet_index,
+                                selected_symbol,
+                                selected_condition,
+                                input_value,
+                            ),
                         ),
-                    )),
+                    ),
             );
 
         col = col.push(
@@ -739,11 +747,11 @@ fn render_alerts_tab<'a>(
 
     // ================= ALERT LIST =================
     col = col.push(category_divider());
-    col = col.push(category_header("Your Alerts"));
+    col = col.push(category_header(crate::fl!("alerts-self")));
 
     if alerts.is_empty() {
         col = col.push(
-            widget::text("No alerts yet.")
+            widget::text(crate::fl!("alerts-not-found"))
                 .size(TEXT_BODY)
                 .class(Text::Accent),
         );
@@ -796,13 +804,15 @@ fn render_alert_row(alert: &PriceAlert, wallet_index: usize) -> Element<'_, Mess
 }
 
 fn alert_condition_label(condition: &AlertCondition) -> String {
+    let args = |v: f64| HashMap::from([("value", format!("{v:.2}"))]);
+
     match condition {
-        AlertCondition::PriceAbove(v) => format!("Price > {v:.2}"),
-        AlertCondition::PriceBelow(v) => format!("Price < {v:.2}"),
-        AlertCondition::VariationAbove(v) => format!("Variation > {v:.2}%"),
-        AlertCondition::VariationBelow(v) => format!("Variation < {v:.2}%"),
-        AlertCondition::TurnPositive => "Turns Positive".to_string(),
-        AlertCondition::TurnNegative => "Turns Negative".to_string(),
+        AlertCondition::PriceAbove(v) => crate::fl!("alerts-label-price-above", args(*v)),
+        AlertCondition::PriceBelow(v) => crate::fl!("alerts-label-price-below", args(*v)),
+        AlertCondition::VariationAbove(v) => crate::fl!("alerts-label-variation-above", args(*v)),
+        AlertCondition::VariationBelow(v) => crate::fl!("alerts-label-variation-below", args(*v)),
+        AlertCondition::TurnPositive => crate::fl!("alerts-label-turns-positive"),
+        AlertCondition::TurnNegative => crate::fl!("alerts-label-turns-negative"),
     }
 }
 
@@ -867,12 +877,12 @@ fn render_settings_tab<'a>(config: &'a Config, news_input: &'a str) -> Element<'
         .padding(PAD_TAB)
         .width(Length::Fill)
         .push(category_divider())
-        .push(category_header("Panel"))
+        .push(category_header(crate::fl!("settings-panel")))
         .push(
             widget::row![]
                 .width(Length::Fill)
                 .align_y(Alignment::Center)
-                .push(widget::text("Show icon only"))
+                .push(widget::text(crate::fl!("settings-show-icon-only")))
                 .push(widget::Space::new().width(Length::Fill))
                 .push(
                     widget::toggler(config.show_only_icon).on_toggle(Message::ToggleShowOnlyIcon),
@@ -882,7 +892,7 @@ fn render_settings_tab<'a>(config: &'a Config, news_input: &'a str) -> Element<'
             widget::row![]
                 .width(Length::Fill)
                 .align_y(Alignment::Center)
-                .push(widget::text("Show Logos in Screeners"))
+                .push(widget::text(crate::fl!("settings-show-logos")))
                 .push(widget::Space::new().width(Length::Fill))
                 .push(widget::toggler(config.show_logos).on_toggle(Message::ToggleShowLogos)),
         )
@@ -890,7 +900,7 @@ fn render_settings_tab<'a>(config: &'a Config, news_input: &'a str) -> Element<'
             widget::row![]
                 .width(Length::Fill)
                 .align_y(Alignment::Center)
-                .push(widget::text("Disable Custom Alerts"))
+                .push(widget::text(crate::fl!("settings-disable-custom-alerts")))
                 .push(widget::Space::new().width(Length::Fill))
                 .push(
                     widget::toggler(!config.alerts_enabled)
@@ -901,7 +911,7 @@ fn render_settings_tab<'a>(config: &'a Config, news_input: &'a str) -> Element<'
             widget::row![]
                 .width(Length::Fill)
                 .align_y(Alignment::Center)
-                .push(widget::text("Display news"))
+                .push(widget::text(crate::fl!("settings-display-news")))
                 .push(widget::Space::new().width(Length::Fill))
                 .push(widget::toggler(config.show_news).on_toggle(Message::ToggleShowNews)),
         )
@@ -909,7 +919,7 @@ fn render_settings_tab<'a>(config: &'a Config, news_input: &'a str) -> Element<'
             widget::row![]
                 .width(Length::Fill)
                 .align_y(Alignment::Center)
-                .push(widget::text("News per asset (max 5)"))
+                .push(widget::text(crate::fl!("settings-news-per-asset")))
                 .push(widget::Space::new().width(Length::Fill))
                 .push(
                     widget::text_input("1", news_input)
@@ -918,12 +928,12 @@ fn render_settings_tab<'a>(config: &'a Config, news_input: &'a str) -> Element<'
                 ),
         )
         .push(category_divider())
-        .push(category_header("Refresh"))
+        .push(category_header(crate::fl!("settings-refresh")))
         .push(
             widget::row![]
                 .width(Length::Fill)
                 .align_y(Alignment::Center)
-                .push(widget::text("Stock rotation interval (seconds)"))
+                .push(widget::text(crate::fl!("settings-refresh-interval")))
                 .push(widget::Space::new().width(Length::Fill))
                 .push(
                     widget::text_input("20", config.panel_stoke_rotation_interval.to_string())
@@ -931,15 +941,15 @@ fn render_settings_tab<'a>(config: &'a Config, news_input: &'a str) -> Element<'
                         .width(cosmic::iced::Length::Fixed(60.0)),
                 ),
         )
-        .push(widget::text("Refresh interval"))
+        .push(widget::text(crate::fl!("settings-refresh-interval")))
         .push(refresh_row(config))
         .push(category_divider())
-        .push(category_header("About"))
+        .push(category_header(crate::fl!("settings-about")))
         .push(
             widget::row![]
                 .width(Length::Fill)
                 .align_y(Alignment::Center)
-                .push(widget::text("Version: "))
+                .push(widget::text(crate::fl!("settings-version")))
                 .push(widget::text(crate::app::VERSION))
                 .push(widget::Space::new().width(Length::Fill))
                 .push(
@@ -998,8 +1008,9 @@ fn refresh_button<'a>(
         .into()
 }
 
-fn tab_button<'a>(label: &'static str, msg: Message, selected: bool) -> Element<'a, Message> {
-    let text = widget::text(label);
+fn tab_button<'a>(label: impl Into<String>, msg: Message, selected: bool) -> Element<'a, Message> {
+    let label: String = label.into();
+    let text = widget::text(label).size(TEXT_BODY);
     let underline = widget::container(widget::Space::new())
         .height(2)
         .width(Length::Fill)
