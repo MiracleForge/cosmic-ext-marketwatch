@@ -117,12 +117,7 @@ pub fn header<'a>(
 
 fn top_header(last_updated: Option<String>) -> Element<'static, Message> {
     let text = last_updated
-        .map(|t| {
-            crate::fl!(
-                "wallet-updated-at",
-                HashMap::from([("time", t.to_string())])
-            )
-        })
+        .map(|t| crate::fl!("wallet-updated-at", HashMap::from([("time", t.clone())])))
         .unwrap_or_default();
     widget::container(
         widget::text(text)

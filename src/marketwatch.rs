@@ -282,10 +282,7 @@ pub async fn fetch_by_screeners(
 pub async fn fetch_logos(symbols: Vec<String>) -> HashMap<String, Option<String>> {
     let mut results = HashMap::new();
     for symbol in symbols {
-        let url = format!(
-            "https://financialmodelingprep.com/image-stock/{}.png",
-            symbol
-        );
+        let url = format!("https://financialmodelingprep.com/image-stock/{symbol}.png");
         results.insert(symbol, Some(url)); // sem .clone(), symbol já é owned
     }
     results
@@ -299,12 +296,11 @@ pub async fn fetch_logo_handles(
 ) -> HashMap<String, Vec<u8>> {
     let mut results = HashMap::new();
     for (symbol, url_opt) in logos {
-        if let Some(url) = url_opt {
-            if let Ok(response) = reqwest::get(&url).await {
-                if let Ok(bytes) = response.bytes().await {
-                    results.insert(symbol, bytes.to_vec());
-                }
-            }
+        if let Some(url) = url_opt
+            && let Ok(response) = reqwest::get(&url).await
+            && let Ok(bytes) = response.bytes().await
+        {
+            results.insert(symbol, bytes.to_vec());
         }
     }
     results

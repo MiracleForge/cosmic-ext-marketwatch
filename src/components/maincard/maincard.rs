@@ -31,6 +31,8 @@ const TEXT_LABEL: u16 = 14; // emphasis labels
 const NEWS_PREVIEW_COUNT: usize = 3;
 const HARD_CODED_WIDTH: f32 = 300.0;
 
+const VALUE_WIDTH: f32 = 70.0;
+
 #[allow(clippy::too_many_arguments)]
 pub fn maincard<'a>(
     theme: &Theme,
@@ -313,6 +315,7 @@ fn derive_state<'a>(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn render_quotes<'a>(
     market_quotes: &'a [MarketQuote],
     news_items: &'a [YahooNews],
@@ -474,8 +477,6 @@ fn render_quotes_list<'a>(
     logo_handles: &'a HashMap<String, widget::image::Handle>,
 ) -> widget::Column<'a, Message, cosmic::Theme> {
     content = content.push(screens_tab(current_tab)).push(item_divider());
-
-    const VALUE_WIDTH: f32 = 70.0;
 
     for (i, quote) in market_quotes.iter().enumerate() {
         let color = quote.variation_color(theme);
