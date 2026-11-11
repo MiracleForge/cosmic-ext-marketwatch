@@ -79,3 +79,18 @@ tag version:
     git commit -m 'release: {{version}}'
     git tag -a {{version}} -m ''
 
+# Build Flatpak package
+flatpak-build:
+    flatpak-builder --force-clean --user --repo=repo build-dir flatpak/{{appid}}.json
+
+# Export Flatpak bundle
+flatpak-bundle: flatpak-build
+    flatpak build-bundle repo {{name}}.flatpak {{appid}}
+
+# Install Flatpak locally
+flatpak-install: flatpak-bundle
+    flatpak install --user --reinstall ./{{name}}.flatpak
+
+# Clean Flatpak build files
+flatpak-clean:
+    rm -rf build-dir repo .flatpak-builder {{name}}.flatpak
