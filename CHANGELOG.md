@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Panel icon now follows the COSMIC theme (light/dark) instead of always rendering as a dark silhouette
+- Panel icon now follows the COSMIC theme (light/dark)
 - Fixed `just install` failing because it referenced files that do not exist in the repository
 
 ## [1.3.1] - 2026-05-24

@@ -102,6 +102,13 @@ A [justfile](./justfile) is included by default for the
 
 Translation files are in the [i18n directory](./i18n).
 
+### Available languages
+
+| Language   | Code |
+|------------|------|
+| English    | `en` |
+| Portuguese | `pt` |
+
 New translations may copy the English localization and rename
 `en` to the desired ISO 639-1 language code.
 

@@ -27,7 +27,7 @@ quotes-loading = Carregando dados de mercado...
 news-last = Últimas notícias
 news-collapse = Recolher ▲
 news-view-all = Ver tudo ▼
-news-not-available = Nenhuma notícia disponível no momento.
+news-not-avaliable = Nenhuma notícia disponível no momento.
 
 screeners-tab-active = Mais negociadas
 screeners-tab-gainers = Maiores altas
