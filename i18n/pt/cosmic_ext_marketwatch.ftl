@@ -72,15 +72,20 @@ settings-show-logos = Mostrar logos nos screeners
 settings-disable-custom-alerts = Desativar alertas personalizados
 settings-display-news = Exibir notícias
 settings-news-per-asset = Notícias por ativo (máx. 5)
-
 settings-stock-rotation-interval = Intervalo de rotação das ações (segundos)
-settings-about = Sobre
-settings-version = Versão:
 settings-refresh = Atualização
-
-settings-tip-kofi = Apoie o desenvolvimento pelo Ko-fi
 settings-refresh-interval = Intervalo de atualização
 settings-min = min
+
+info-links = Links
+info-repo = Repositório
+info-sup = Suporte
+info-about = Sobre
+info-dev = Desenvolvimento
+info-license-label = Licença
+info-license = GPL-3.0-only
+info-tip-kofi = Apoie o desenvolvimento pelo Ko-fi
+info-app-desc = Monitor de mercado financeiro
 
 time-just-now = agora mesmo
 time-minutes-ago = há { $count } min

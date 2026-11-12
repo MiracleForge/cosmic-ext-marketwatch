@@ -75,14 +75,22 @@ settings-display-news = Display news
 settings-news-per-asset = News per asset (max 5)
 
 settings-refresh-interval = Stock rotation interval (seconds)
-settings-about = About
-settings-version = Version:
 settings-refresh = Refresh
 
 settings-stock-rotation-interval = Stock rotation interval (seconds)
-settings-tip-kofi = Support development via Ko-fi
 settings-refresh-interval = Refresh interval
 settings-min = min
+
+info-about = About
+info-dev = Development
+
+info-links = Links
+info-repo = Repository
+info-sup = Support
+info-license-label = License
+info-license = GPL-3.0-only
+info-tip-kofi = Support development via Ko-fi
+info-app-desc = Stock market monitor
 
 time-just-now = just now
 time-minutes-ago = { $count } min ago

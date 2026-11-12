@@ -4,15 +4,14 @@ use cosmic::{Element, widget};
 
 use crate::config::PopupTab;
 
-pub fn title_dynamic(active_tab: PopupTab) -> Element<'static, crate::app::Message> {
+pub fn title_dynamic(active_tab: PopupTab) -> Option<Element<'static, crate::app::Message>> {
     match active_tab {
-        PopupTab::Overview => widget::text::heading(crate::fl!("overview-title")).into(),
-        PopupTab::Wallet => widget::text::heading("Wallet").into(),
-        PopupTab::News => widget::text::heading("News").into(),
-        PopupTab::Settings => widget::text::heading(crate::fl!("settings-title")).into(),
-        PopupTab::Alerts => widget::text::heading("Alerts").into(),
-        PopupTab::Trending => widget::text::heading("Alerts").into(),
-        PopupTab::Info => widget::text::heading("MarketWatch").into(),
+        PopupTab::Overview => Some(widget::text::heading(crate::fl!("overview-title")).into()),
+        PopupTab::Wallet => Some(widget::text::heading("Wallet").into()),
+        PopupTab::News => Some(widget::text::heading("News").into()),
+        PopupTab::Settings => Some(widget::text::heading(crate::fl!("settings-title")).into()),
+        PopupTab::Alerts | PopupTab::Trending => Some(widget::text::heading("Alerts").into()),
+        PopupTab::Info => None,
     }
 }
 

@@ -11,7 +11,7 @@ use cosmic::widget;
 pub fn header(last_updated: Option<String>, active_tab: PopupTab) -> Element<'static, Message> {
     widget::column![
         widget::container(navigation(active_tab))
-            .padding([8, 0])
+            .padding([8, PAD_EXT_ROW[1]])
             .width(Length::Fill),
         widget::row![
             widget::column![
@@ -20,7 +20,7 @@ pub fn header(last_updated: Option<String>, active_tab: PopupTab) -> Element<'st
             ]
             .width(Length::Shrink),
             widget::Space::new().width(Length::Fill),
-            (active_tab != PopupTab::Settings)
+            (active_tab == PopupTab::Overview)
                 .then(|| { icon_button(None, "view-refresh-symbolic", Message::RefreshMarket,) }),
         ]
         .spacing(SPACING_ROW)

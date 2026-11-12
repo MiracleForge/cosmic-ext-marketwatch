@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::components::ui::textlabel;
 use crate::constants::{
     HARD_CODED_WIDTH, NEWS_PREVIEW_COUNT, PAD_CARD, PAD_ROW, PAD_TAB, SPACING_COL, SPACING_ROW,
     SPACING_TAB, TEXT_BODY, TEXT_LABEL, TEXT_NORMAL, TEXT_SMALL, VALUE_WIDTH,
@@ -125,7 +126,7 @@ fn render_add_asset_section<'a>(
 ) -> Element<'a, Message> {
     let mut col = widget::column![]
         .spacing(SPACING_TAB)
-        .push(category_header(crate::fl!("assets-add")));
+        .push(textlabel(crate::fl!("assets-add")));
 
     if asset_limit_reached {
         let args = HashMap::from([("max", MAX_ASSETS_PER_WALLET)]);
@@ -197,7 +198,7 @@ fn render_portfolio_section<'a>(
     }
 
     col = col
-        .push(category_header(crate::fl!("portfolio-your")))
+        .push(textlabel(crate::fl!("portfolio-your")))
         .push(category_divider());
 
     if quotes.is_empty() {
@@ -426,7 +427,7 @@ fn news_card(item: &YahooNews) -> Element<'_, Message> {
     widget::button::custom(content)
         .class(cosmic::theme::Button::MenuItem)
         .width(Length::Fill)
-        .on_press(Message::OpenNewsLink(item.link.clone()))
+        .on_press(Message::OpenExternalLink(item.link.clone()))
         .into()
 }
 
@@ -583,16 +584,6 @@ fn item_divider_veritcal<'a>(size: f32) -> Element<'a, Message> {
         .into()
 }
 
-fn category_header(label: impl Into<String>) -> Element<'static, Message> {
-    let label: String = label.into();
-    widget::container(widget::text::heading(label).size(TEXT_BODY + 1))
-        .style(|theme| widget::container::Style {
-            text_color: Some(cosmic::iced::Color::from(theme.cosmic().accent_color())),
-            ..Default::default()
-        })
-        .into()
-}
-
 #[allow(clippy::too_many_lines)]
 fn render_alerts_tab<'a>(
     alerts: &'a [PriceAlert],
@@ -633,7 +624,7 @@ fn render_alerts_tab<'a>(
         Some(sym) => {
             let mut content = widget::column![].spacing(SPACING_COL);
             content = content.push(category_divider());
-            content = content.push(category_header(crate::fl!("alerts-select")));
+            content = content.push(textlabel(crate::fl!("alerts-select")));
             content = content.push(widget::text::heading(sym));
 
             if let Some(quote) = selected_quote {
@@ -693,7 +684,7 @@ fn render_alerts_tab<'a>(
         let form = widget::column![]
             .spacing(SPACING_TAB)
             .push(category_divider())
-            .push(category_header(crate::fl!("alerts-condition")))
+            .push(textlabel(crate::fl!("alerts-condition")))
             .push(
                 widget::dropdown(condition_options, condition_idx, move |idx| {
                     Message::AlertSelectCondition(index_to_condition(idx, &input_for_closure))
@@ -734,7 +725,7 @@ fn render_alerts_tab<'a>(
 
     // ================= ALERT LIST =================
     col = col.push(category_divider());
-    col = col.push(category_header(crate::fl!("alerts-self")));
+    col = col.push(textlabel(crate::fl!("alerts-self")));
 
     if alerts.is_empty() {
         col = col.push(
@@ -864,7 +855,7 @@ fn render_settings_tab<'a>(config: &'a Config, news_input: &'a str) -> Element<'
         .padding(PAD_TAB)
         .width(Length::Fill)
         .push(category_divider())
-        .push(category_header(crate::fl!("settings-panel")))
+        .push(textlabel(crate::fl!("settings-panel")))
         .push(
             widget::row![]
                 .width(Length::Fill)
@@ -915,7 +906,7 @@ fn render_settings_tab<'a>(config: &'a Config, news_input: &'a str) -> Element<'
                 ),
         )
         .push(category_divider())
-        .push(category_header(crate::fl!("settings-refresh")))
+        .push(textlabel(crate::fl!("settings-refresh")))
         .push(
             widget::row![]
                 .width(Length::Fill)
@@ -931,20 +922,6 @@ fn render_settings_tab<'a>(config: &'a Config, news_input: &'a str) -> Element<'
         .push(widget::text(crate::fl!("settings-refresh-interval")))
         .push(refresh_row(config))
         .push(category_divider())
-        .push(category_header(crate::fl!("settings-about")))
-        .push(
-            widget::row![]
-                .width(Length::Fill)
-                .align_y(Alignment::Center)
-                .push(widget::text(crate::fl!("settings-version")))
-                .push(widget::text(crate::app::VERSION))
-                .push(widget::Space::new().width(Length::Fill))
-                .push(
-                    widget::button::standard(crate::fl!("settings-tip-kofi")).on_press(
-                        Message::OpenNewsLink("https://ko-fi.com/paulorosado".to_string()),
-                    ),
-                ),
-        )
         .into()
 }
 

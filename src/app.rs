@@ -5,6 +5,7 @@
 use crate::components::applet::{self};
 
 use crate::components::header::header;
+use crate::components::infocard::infocard;
 use crate::components::maincard::maincard;
 use crate::components::wallet::Wallet;
 use crate::components::wallet::wallet::{load_wallets, save_wallets};
@@ -85,7 +86,7 @@ pub enum Message {
 
     NavigateTo(Option<PopupTab>),
     OpenConfigBUtton,
-    OpenNewsLink(String),
+    OpenExternalLink(String),
     ToggleShowOnlyIcon(bool),
     ToggleShowLogos(bool),
     ToggleShowNews(bool),
@@ -287,7 +288,6 @@ impl cosmic::Application for AppModel {
         let theme = self.core.system_theme();
 
         let header = header(last_updated_ref, self.active_tab);
-
         let body = maincard(
             theme,
             self.active_tab,
@@ -337,15 +337,23 @@ impl cosmic::Application for AppModel {
             .width(Length::Fill)
             .height(Length::Shrink)
             .push(widget::container(header).height(Length::Shrink))
-            .push(widget::container(widget::scrollable(body)).height(Length::Fixed(body_height)));
+            .push_maybe(match self.active_tab {
+                PopupTab::Overview => Some(
+                    widget::container(widget::scrollable(body)).height(Length::Fixed(body_height)),
+                ),
+                PopupTab::Info => {
+                    Some(widget::container(infocard(theme)).height(Length::Fixed(body_height)))
+                }
+                _ => None,
+            });
 
         self.core
             .applet
             .popup_container(content)
             .limits(
                 Limits::NONE
-                    .min_width(480.0)
-                    .max_width(480.0)
+                    .min_width(350.0)
+                    .max_width(350.0)
                     .min_height(200.0)
                     .max_height(f32::INFINITY),
             )
@@ -513,7 +521,7 @@ impl cosmic::Application for AppModel {
                 }
             },
 
-            Message::OpenNewsLink(url) => {
+            Message::OpenExternalLink(url) => {
                 let _ = std::process::Command::new("xdg-open").arg(url).spawn();
             }
 
