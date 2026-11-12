@@ -4,6 +4,8 @@ welcome = Welcome to COSMIC! ✨
 page-id = Page { $num }
 git-description = Git commit {$hash} on {$date}
 
+overview-title = US Market Overview 
+
 wallet-view = US Market Overview
 wallet-name = Wallet name
 wallet-updated-at = Updated at { $time }
@@ -64,6 +66,7 @@ alert-description-variation-below = Variation below { $value }%
 alert-description-turned-positive = Turned positive
 alert-description-turned-negative = Turned negative
 
+settings-title = Configurations
 settings-panel = Panel
 settings-show-icon-only = Show icon only
 settings-show-logos = Show logos in screeners

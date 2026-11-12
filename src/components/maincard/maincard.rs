@@ -1,5 +1,9 @@
 use std::collections::HashMap;
 
+use crate::constants::{
+    HARD_CODED_WIDTH, NEWS_PREVIEW_COUNT, PAD_CARD, PAD_ROW, PAD_TAB, SPACING_COL, SPACING_ROW,
+    SPACING_TAB, TEXT_BODY, TEXT_LABEL, TEXT_NORMAL, TEXT_SMALL, VALUE_WIDTH,
+};
 // SPDX-License-Identifier: GPL-3.0-only
 use crate::marketwatch::{
     AlertCondition, MarketQuote, PriceAlert, ScreensTab, YahooNews, format_publish_time,
@@ -14,24 +18,6 @@ use cosmic::widget;
 
 use crate::app::{MAX_ASSETS_PER_WALLET, Message};
 use crate::config::{Config, PopupTab, RefreshInterval};
-
-// =====================================================================
-// Layout constants — change here to affect the entire UI
-// =====================================================================
-const PAD_TAB: [u16; 2] = [8, 12]; // outer padding for all tabs
-const PAD_CARD: [u16; 2] = [10, 12]; // inner padding for cards
-const PAD_ROW: [u16; 2] = [4, 8]; // padding for icon buttons in rows
-const SPACING_TAB: u16 = 12; // spacing between sections within a tab
-const SPACING_ROW: u16 = 8; // spacing between items in a row
-const SPACING_COL: u16 = 6; // spacing between items in a column
-const TEXT_SMALL: u16 = 11; // labels, badges
-const TEXT_BODY: u16 = 12; // secondary body text
-const TEXT_NORMAL: u16 = 13; // primary body text
-const TEXT_LABEL: u16 = 14; // emphasis labels
-const NEWS_PREVIEW_COUNT: usize = 3;
-const HARD_CODED_WIDTH: f32 = 300.0;
-
-const VALUE_WIDTH: f32 = 70.0;
 
 #[allow(clippy::too_many_arguments)]
 pub fn maincard<'a>(

@@ -3,6 +3,7 @@
 mod app;
 mod components;
 mod config;
+mod constants;
 mod i18n;
 mod marketwatch;
 

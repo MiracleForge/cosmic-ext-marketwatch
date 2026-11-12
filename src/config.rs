@@ -6,10 +6,12 @@ use serde::{Deserialize, Serialize};
 pub enum PopupTab {
     #[default]
     Overview,
+    Wallet,
     Settings,
     Trending,
     News,
     Alerts,
+    Info,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]

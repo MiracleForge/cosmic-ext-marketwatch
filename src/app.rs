@@ -29,6 +29,7 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub const MAX_WALLETS: usize = 10;
 pub const MAX_ASSETS_PER_WALLET: usize = 10;
+pub const UI_DEBUG_MODE: bool = false;
 
 #[allow(clippy::struct_excessive_bools)]
 pub struct AppModel {
@@ -72,6 +73,7 @@ pub struct AppModel {
 pub enum Message {
     Tick,
     SetTab(ScreensTab),
+
     RefreshMarket,
     TogglePopup,
     MarketLoaded(Result<Vec<MarketQuote>, String>),
@@ -80,6 +82,8 @@ pub enum Message {
     NewsLoaded(Result<Vec<YahooNews>, String>),
     PreviusWallet,
     NextWallet,
+
+    NavigateTo(Option<PopupTab>),
     OpenConfigBUtton,
     OpenNewsLink(String),
     ToggleShowOnlyIcon(bool),
@@ -176,7 +180,9 @@ impl cosmic::Application for AppModel {
             0
         };
 
-        let task = if safe_index > 0 {
+        let task = if UI_DEBUG_MODE {
+            Task::none()
+        } else if safe_index > 0 {
             if let Some(wallet) = wallets.get(safe_index - 1) {
                 if wallet.symbols.is_empty() {
                     Task::none()
@@ -280,17 +286,7 @@ impl cosmic::Application for AppModel {
         let last_updated_ref = last_updated;
         let theme = self.core.system_theme();
 
-        let header = header(
-            self.current_wallet_index,
-            self.wallets
-                .get(self.current_wallet_index.saturating_sub(1))
-                .map(|w| w.name.as_str()),
-            self.rename_mode,
-            &self.rename_input,
-            self.wallets.len(),
-            last_updated_ref,
-            self.active_tab,
-        );
+        let header = header(last_updated_ref, self.active_tab);
 
         let body = maincard(
             theme,
@@ -573,6 +569,10 @@ impl cosmic::Application for AppModel {
                     self.config.panel_stoke_rotation_interval = n;
                     self.save_config();
                 }
+            }
+
+            Message::NavigateTo(tab) => {
+                self.active_tab = tab.unwrap_or(PopupTab::Overview);
             }
 
             Message::OpenConfigBUtton => {
