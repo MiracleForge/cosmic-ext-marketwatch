@@ -30,6 +30,10 @@ news-last = Latest News
 news-colapse = Collapse ▲
 news-view = View all ▼
 news-not-avaliable = No news available at the moment.
+news-tab-us = Us Market
+news-tab-folio = Portfolio
+news-disabled-title = News are disabled
+news-disabled-description = Enable news in Settings to see the latest market updates.
 
 screeners-tab-active = Most Active
 screeners-tab-gainers = Gainers

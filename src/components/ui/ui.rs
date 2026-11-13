@@ -1,14 +1,17 @@
 use cosmic::iced::{Border, Length};
+use cosmic::theme::Text;
 use cosmic::widget::button::Catalog;
 use cosmic::{Element, iced::Alignment, widget};
 
 use cosmic::Theme;
 
 use crate::app::Message;
-use crate::components::buttons::refresh_button;
-use crate::constants::{PAD_CARD, PAD_ROW, SPACING_ROW, TEXT_BODY};
+use crate::components::buttons::{refresh_button, segmented_button};
+use crate::components::newscard::NewsTab;
+use crate::constants::{PAD_CARD, PAD_ROW, SPACING_ROW, TEXT_BODY, TEXT_SMALL};
 
 use crate::config::RefreshInterval;
+use crate::marketwatch::{ScreensTab, YahooNews, format_publish_time};
 
 pub fn badge_class(theme: &Theme) -> cosmic::theme::Container<'static> {
     let btn = theme.active(false, false, &cosmic::theme::Button::Standard);
@@ -127,4 +130,84 @@ pub fn textlabel(label: impl Into<String>) -> Element<'static, Message> {
             ..Default::default()
         })
         .into()
+}
+
+pub fn news_frame<'a>(news: &'a YahooNews, theme: &Theme) -> Element<'a, Message> {
+    let publisher = news.publisher.as_deref().unwrap_or("Unknown source");
+
+    let time_str = news
+        .publish_time
+        .map(format_publish_time)
+        .unwrap_or_default();
+
+    let meta_text = if time_str.is_empty() {
+        publisher.to_string()
+    } else {
+        format!("{publisher} · {time_str}")
+    };
+
+    let content = widget::row![
+        widget::column![
+            widget::text::heading(&news.title).size(TEXT_BODY),
+            widget::row![widget::text(meta_text).size(TEXT_SMALL).class(Text::Accent),]
+                .spacing(8)
+                .align_y(Alignment::Center),
+        ]
+        .spacing(4)
+        .width(Length::Fill),
+        widget::button::icon(widget::icon::from_name("link-symbolic"))
+            .on_press(Message::OpenExternalLink(news.link.to_string()))
+            .padding(PAD_ROW),
+    ]
+    .align_y(Alignment::Center)
+    .width(Length::Fill);
+
+    widget::container(content)
+        .padding(PAD_CARD)
+        .width(Length::Fill)
+        .class(badge_class(theme))
+        .into()
+}
+
+pub fn overview_tab(current: ScreensTab) -> Element<'static, Message> {
+    let content = widget::row![]
+        .spacing(0)
+        .width(Length::Fill)
+        .height(Length::Shrink)
+        .push(segmented_button(
+            crate::fl!("screeners-tab-active"),
+            Message::SetTab(ScreensTab::MostActive),
+            current == ScreensTab::MostActive,
+        ))
+        .push(segmented_button(
+            crate::fl!("screeners-tab-gainers"),
+            Message::SetTab(ScreensTab::Gainers),
+            current == ScreensTab::Gainers,
+        ))
+        .push(segmented_button(
+            crate::fl!("screeners-tab-losers"),
+            Message::SetTab(ScreensTab::Losers),
+            current == ScreensTab::Losers,
+        ));
+
+    widget::container(content).padding(10).into()
+}
+
+pub fn news_tab(current_tab: NewsTab) -> Element<'static, Message> {
+    let content = widget::row![]
+        .spacing(0)
+        .width(Length::Fill)
+        .height(Length::Shrink)
+        .push(segmented_button(
+            crate::fl!("news-tab-us"),
+            Message::SetTab(ScreensTab::MostActive),
+            current_tab == NewsTab::USMARKET,
+        ))
+        .push(segmented_button(
+            crate::fl!("news-tab-folio"),
+            Message::SetTab(ScreensTab::Gainers),
+            current_tab == NewsTab::PORTIFOIO,
+        ));
+
+    widget::container(content).padding(10).into()
 }

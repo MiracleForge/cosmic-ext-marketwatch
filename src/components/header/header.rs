@@ -9,6 +9,9 @@ use cosmic::prelude::*;
 use cosmic::widget;
 
 pub fn header(last_updated: Option<String>, active_tab: PopupTab) -> Element<'static, Message> {
+    let refresh_button = matches!(active_tab, PopupTab::Overview | PopupTab::News)
+        .then(|| icon_button(None, "view-refresh-symbolic", Message::RefreshMarket));
+
     widget::column![
         widget::container(navigation(active_tab))
             .padding([8, PAD_EXT_ROW[1]])
@@ -20,8 +23,7 @@ pub fn header(last_updated: Option<String>, active_tab: PopupTab) -> Element<'st
             ]
             .width(Length::Shrink),
             widget::Space::new().width(Length::Fill),
-            (active_tab == PopupTab::Overview)
-                .then(|| { icon_button(None, "view-refresh-symbolic", Message::RefreshMarket,) }),
+            refresh_button
         ]
         .spacing(SPACING_ROW)
         .padding(PAD_EXT_ROW)

@@ -1,9 +1,11 @@
 use std::collections::HashMap;
 
-use crate::components::ui::textlabel;
+use crate::components::buttons::segmented_button;
+use crate::components::newscard::NEWS_PREVIEW_COUNT;
+use crate::components::ui::{overview_tab, textlabel};
 use crate::constants::{
-    HARD_CODED_WIDTH, NEWS_PREVIEW_COUNT, PAD_CARD, PAD_ROW, PAD_TAB, SPACING_COL, SPACING_ROW,
-    SPACING_TAB, TEXT_BODY, TEXT_LABEL, TEXT_NORMAL, TEXT_SMALL, VALUE_WIDTH,
+    HARD_CODED_WIDTH, PAD_CARD, PAD_ROW, PAD_TAB, SPACING_COL, SPACING_ROW, SPACING_TAB, TEXT_BODY,
+    TEXT_LABEL, TEXT_NORMAL, TEXT_SMALL, VALUE_WIDTH,
 };
 // SPDX-License-Identifier: GPL-3.0-only
 use crate::marketwatch::{
@@ -429,30 +431,6 @@ fn news_card(item: &YahooNews) -> Element<'_, Message> {
         .into()
 }
 
-fn screens_tab(current: ScreensTab) -> Element<'static, Message> {
-    let content = widget::row![]
-        .spacing(0)
-        .width(Length::Fill)
-        .height(Length::Shrink)
-        .push(tab_button(
-            crate::fl!("screeners-tab-active"),
-            Message::SetTab(ScreensTab::MostActive),
-            current == ScreensTab::MostActive,
-        ))
-        .push(tab_button(
-            crate::fl!("screeners-tab-gainers"),
-            Message::SetTab(ScreensTab::Gainers),
-            current == ScreensTab::Gainers,
-        ))
-        .push(tab_button(
-            crate::fl!("screeners-tab-losers"),
-            Message::SetTab(ScreensTab::Losers),
-            current == ScreensTab::Losers,
-        ));
-
-    widget::container(content).padding(10).into()
-}
-
 fn render_quotes_list<'a>(
     mut content: widget::Column<'a, Message, cosmic::Theme>,
     market_quotes: &'a [MarketQuote],
@@ -461,7 +439,7 @@ fn render_quotes_list<'a>(
     current_tab: ScreensTab,
     logo_handles: &'a HashMap<String, widget::image::Handle>,
 ) -> widget::Column<'a, Message, cosmic::Theme> {
-    content = content.push(screens_tab(current_tab)).push(item_divider());
+    content = content.push(overview_tab(current_tab)).push(item_divider());
 
     for (i, quote) in market_quotes.iter().enumerate() {
         let color = quote.variation_color(theme);
@@ -845,34 +823,4 @@ fn build_add_alert_message(
         symbol,
         condition: final_condition,
     })
-}
-
-fn tab_button<'a>(label: impl Into<String>, msg: Message, selected: bool) -> Element<'a, Message> {
-    let label: String = label.into();
-    let text = widget::text(label).size(TEXT_BODY);
-    let underline = widget::container(widget::Space::new())
-        .height(2)
-        .width(Length::Fill)
-        .style(move |theme: &cosmic::Theme| {
-            let color = if selected {
-                cosmic::iced::Color::from(theme.cosmic().accent_color())
-            } else {
-                cosmic::iced::Color::TRANSPARENT
-            };
-            widget::container::Style {
-                background: Some(color.into()),
-                ..Default::default()
-            }
-        });
-
-    let content = widget::column(vec![text.into(), underline.into()])
-        .align_x(cosmic::iced::alignment::Horizontal::Center)
-        .spacing(4);
-
-    widget::button::custom(content)
-        .width(Length::FillPortion(1))
-        .padding([8, 0])
-        .class(cosmic::theme::Button::Text)
-        .on_press(msg)
-        .into()
 }

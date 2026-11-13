@@ -6,7 +6,7 @@ use cosmic::{
 
 use crate::{
     app::Message,
-    constants::{PAD_TAB, SPACING_ROW},
+    constants::{PAD_TAB, SPACING_ROW, TEXT_BODY},
 };
 
 use crate::config::RefreshInterval;
@@ -55,5 +55,39 @@ pub fn refresh_button<'a>(
         .width(Length::Fill)
         .padding([8, 0])
         .on_press(message(value))
+        .into()
+}
+
+pub fn segmented_button<'a>(
+    label: impl Into<String>,
+    msg: Message,
+    selected: bool,
+) -> Element<'a, Message> {
+    let label: String = label.into();
+    let text = widget::text(label).size(TEXT_BODY);
+    let underline = widget::container(widget::Space::new())
+        .height(2)
+        .width(Length::Fill)
+        .style(move |theme: &cosmic::Theme| {
+            let color = if selected {
+                cosmic::iced::Color::from(theme.cosmic().accent_color())
+            } else {
+                cosmic::iced::Color::TRANSPARENT
+            };
+            widget::container::Style {
+                background: Some(color.into()),
+                ..Default::default()
+            }
+        });
+
+    let content = widget::column(vec![text.into(), underline.into()])
+        .align_x(cosmic::iced::alignment::Horizontal::Center)
+        .spacing(4);
+
+    widget::button::custom(content)
+        .width(Length::FillPortion(1))
+        .padding([8, 0])
+        .class(cosmic::theme::Button::Text)
+        .on_press(msg)
         .into()
 }

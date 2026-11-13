@@ -17,7 +17,6 @@ pub const TEXT_BODY: u16 = 12; // secondary body text
 pub const TEXT_NORMAL: u16 = 13; // primary body text
 pub const TEXT_LABEL: u16 = 14; // emphasis labels
 
-pub const NEWS_PREVIEW_COUNT: usize = 3;
 pub const HARD_CODED_WIDTH: f32 = 180.0;
 
 pub const VALUE_WIDTH: f32 = 50.0;

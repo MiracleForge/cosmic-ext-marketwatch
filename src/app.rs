@@ -7,6 +7,7 @@ use crate::components::applet::{self};
 use crate::components::header::header;
 use crate::components::infocard::infocard;
 use crate::components::maincard::maincard;
+use crate::components::newscard::news_card;
 use crate::components::settingscard::settingscard;
 use crate::components::wallet::Wallet;
 use crate::components::wallet::wallet::{load_wallets, save_wallets};
@@ -43,7 +44,7 @@ pub struct AppModel {
     applet_id: widget::Id,
     market_quotes: Vec<MarketQuote>,
     pub logo_handles: HashMap<String, widget::image::Handle>,
-    news_items: Vec<YahooNews>,
+    market_news: Vec<YahooNews>,
     news_expanded: bool,
     news_per_symbol_input: String,
     config: Config,
@@ -213,7 +214,7 @@ impl cosmic::Application for AppModel {
             applet_id: widget::Id::unique(),
             market_quotes: Vec::new(),
             logo_handles: HashMap::new(),
-            news_items: Vec::new(),
+            market_news: Vec::new(),
             news_expanded: false,
             news_per_symbol_input: config.count_news_by_simbol.to_string(),
             config,
@@ -297,7 +298,7 @@ impl cosmic::Application for AppModel {
                 .get(self.current_wallet_index.saturating_sub(1))
                 .map_or(&[], |w| w.symbols.as_slice()),
             &self.market_quotes,
-            &self.news_items,
+            &self.market_news,
             self.news_expanded,
             &self.config,
             self.error_message.as_ref(),
@@ -346,6 +347,10 @@ impl cosmic::Application for AppModel {
                 }
                 PopupTab::Settings => Some(
                     widget::container(settingscard(&self.config, theme))
+                        .height(Length::Fixed(body_height)),
+                ),
+                PopupTab::News => Some(
+                    widget::container(news_card(&self.market_news, theme))
                         .height(Length::Fixed(body_height)),
                 ),
                 _ => None,
@@ -421,7 +426,7 @@ impl cosmic::Application for AppModel {
                         self.market_quotes = cached.clone();
                     }
                     if let Some(cached) = self.cached_news.get(&key) {
-                        self.news_items = cached.clone();
+                        self.market_news = cached.clone();
                     }
                     return Task::none();
                 }
@@ -516,9 +521,9 @@ impl cosmic::Application for AppModel {
 
             Message::NewsLoaded(result) => match result {
                 Ok(news) => {
-                    self.news_items = news;
+                    self.market_news = news;
                     let key = self.current_cache_key();
-                    self.cached_news.insert(key, self.news_items.clone());
+                    self.cached_news.insert(key, self.market_news.clone());
                 }
                 Err(err) => {
                     tracing::warn!("{}", user_friendly_error_message(&err));
@@ -532,7 +537,7 @@ impl cosmic::Application for AppModel {
             Message::RefreshMarket => {
                 self.current_index = 0;
                 self.market_quotes.clear();
-                self.news_items.clear();
+                self.market_news.clear();
                 self.error_message = None;
 
                 let key = self.current_cache_key();
@@ -573,6 +578,8 @@ impl cosmic::Application for AppModel {
                     let clamped = n.clamp(1, 5);
                     self.config.count_news_by_simbol = clamped;
                     self.save_config();
+
+                    return self.update(Message::RefreshMarket);
                 }
             }
 
@@ -639,7 +646,7 @@ impl cosmic::Application for AppModel {
                         },
                     );
                 }
-                self.news_items.clear();
+                self.market_news.clear();
             }
 
             Message::ToggleNewsExpanded => {
@@ -655,7 +662,7 @@ impl cosmic::Application for AppModel {
                 self.wallets.push(Wallet::new(format!("Wallet {index}")));
                 self.current_wallet_index = self.wallets.len();
                 self.market_quotes.clear();
-                self.news_items.clear();
+                self.market_news.clear();
                 self.error_message = None;
                 save_wallets(&self.wallets);
             }
@@ -669,7 +676,7 @@ impl cosmic::Application for AppModel {
                 self.stock_search_results.clear();
                 self.rename_mode = false;
                 self.error_message = None;
-                self.news_items.clear();
+                self.market_news.clear();
 
                 if self.active_tab == PopupTab::Alerts {
                     self.active_tab = PopupTab::Overview;
@@ -694,7 +701,7 @@ impl cosmic::Application for AppModel {
                         self.market_quotes = cached.clone();
                     }
                     if let Some(cached) = self.cached_news.get(&key) {
-                        self.news_items = cached.clone();
+                        self.market_news = cached.clone();
                     }
                     return Task::none();
                 }
@@ -858,7 +865,7 @@ impl cosmic::Application for AppModel {
 
                     if symbols.is_empty() {
                         self.market_quotes.clear();
-                        self.news_items.clear();
+                        self.market_news.clear();
                         return Task::none();
                     }
 
