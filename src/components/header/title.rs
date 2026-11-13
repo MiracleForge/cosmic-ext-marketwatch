@@ -29,7 +29,7 @@ pub fn overview_subtitle(
 
     widget::container(
         widget::text::caption_heading(text)
-            .size(12)
+            .size(10)
             .class(cosmic::theme::Text::Default),
     )
     .into()

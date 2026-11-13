@@ -5,7 +5,10 @@ use cosmic::{Element, iced::Alignment, widget};
 use cosmic::Theme;
 
 use crate::app::Message;
-use crate::constants::{PAD_CARD, PAD_ROW, TEXT_BODY};
+use crate::components::buttons::refresh_button;
+use crate::constants::{PAD_CARD, PAD_ROW, SPACING_ROW, TEXT_BODY};
+
+use crate::config::RefreshInterval;
 
 pub fn badge_class(theme: &Theme) -> cosmic::theme::Container<'static> {
     let btn = theme.active(false, false, &cosmic::theme::Button::Standard);
@@ -35,6 +38,79 @@ pub fn external_link_card<'a>(text: String, url: &str, theme: &Theme) -> Element
     ]
     .align_y(Alignment::Center)
     .width(Length::Fill);
+
+    widget::container(content)
+        .padding(PAD_CARD)
+        .width(Length::Fill)
+        .class(badge_class(theme))
+        .into()
+}
+
+pub fn toggle_card<'a>(
+    text: String,
+    value: bool,
+    message: fn(bool) -> Message,
+    theme: &Theme,
+) -> Element<'a, Message> {
+    let content = widget::row![
+        widget::text::heading(text)
+            .size(TEXT_BODY)
+            .width(Length::Fill),
+        widget::toggler(value).on_toggle(message),
+    ]
+    .align_y(Alignment::Center)
+    .width(Length::Fill);
+
+    widget::container(content)
+        .padding(PAD_CARD)
+        .width(Length::Fill)
+        .class(badge_class(theme))
+        .into()
+}
+
+pub fn input_card<'a>(
+    text: String,
+    placeholder: &'a str,
+    input: String,
+    message: fn(String) -> Message,
+    theme: &Theme,
+) -> Element<'a, Message> {
+    let content = widget::row![
+        widget::text::heading(text)
+            .size(TEXT_BODY)
+            .width(Length::Fill),
+        widget::text_input(placeholder, input)
+            .on_input(message)
+            .width(cosmic::iced::Length::Fixed(60.0)),
+    ]
+    .align_y(Alignment::Center)
+    .width(Length::Fill);
+
+    widget::container(content)
+        .padding(PAD_CARD)
+        .width(Length::Fill)
+        .class(badge_class(theme))
+        .into()
+}
+pub fn segmented_card<'a>(
+    text: String,
+    options: &[(&'a str, RefreshInterval)],
+    selected: RefreshInterval,
+    message: fn(RefreshInterval) -> Message,
+    theme: &Theme,
+) -> Element<'a, Message> {
+    let mut row = widget::row![].spacing(4).width(Length::Fill);
+
+    for (label, value) in options {
+        row = row.push(
+            widget::container(refresh_button(label, *value, selected, message))
+                .width(Length::FillPortion(1)),
+        );
+    }
+
+    let content = widget::column![widget::text::heading(text).size(TEXT_BODY), row,]
+        .spacing(SPACING_ROW)
+        .width(Length::Fill);
 
     widget::container(content)
         .padding(PAD_CARD)

@@ -46,12 +46,11 @@ pub fn infocard<'a>(theme: &Theme) -> Element<'a, Message> {
 
     widget::container(
         widget::column![
-            // Application identity
             widget::column![app_icon, title, version_badge]
                 .spacing(SPACING_ROW)
                 .width(Length::Fill)
                 .align_x(Alignment::Center),
-            // Project links
+            //
             widget::column![
                 textlabel(crate::fl!("info-links")),
                 widget::column![repository_card, suport_card]
@@ -61,17 +60,17 @@ pub fn infocard<'a>(theme: &Theme) -> Element<'a, Message> {
             .spacing(SPACING_ROW)
             .width(Length::Fill)
             .align_x(Alignment::Start),
-            // Developer
+            //
             widget::column![textlabel(crate::fl!("info-dev")), kofi_card,]
                 .spacing(SPACING_ROW)
                 .width(Length::Fill)
                 .align_x(Alignment::Start),
-            // License
+            //
             widget::column![textlabel(crate::fl!("info-license-label")), license_card,]
                 .spacing(SPACING_ROW)
                 .width(Length::Fill)
                 .align_x(Alignment::Start),
-            // Application description
+            //
             widget::container(widget::text::body(crate::fl!("info-app-desc")).size(TEXT_BODY))
                 .padding([4, 0]),
         ]

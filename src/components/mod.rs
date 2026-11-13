@@ -3,5 +3,6 @@ pub mod buttons;
 pub mod header;
 pub mod infocard;
 pub mod maincard;
+pub mod settingscard;
 pub mod ui;
 pub mod wallet;

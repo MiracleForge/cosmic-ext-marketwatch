@@ -7,6 +7,7 @@ use crate::components::applet::{self};
 use crate::components::header::header;
 use crate::components::infocard::infocard;
 use crate::components::maincard::maincard;
+use crate::components::settingscard::settingscard;
 use crate::components::wallet::Wallet;
 use crate::components::wallet::wallet::{load_wallets, save_wallets};
 use crate::config::{Config, PopupTab, RefreshInterval};
@@ -327,7 +328,7 @@ impl cosmic::Application for AppModel {
 
         let header_height = 80.0;
 
-        let max_body_height = 500.0;
+        let max_body_height = 520.0;
 
         let body_height = (max_height - header_height).min(max_body_height).max(120.0);
 
@@ -344,6 +345,10 @@ impl cosmic::Application for AppModel {
                 PopupTab::Info => {
                     Some(widget::container(infocard(theme)).height(Length::Fixed(body_height)))
                 }
+                PopupTab::Settings => Some(
+                    widget::container(settingscard(&self.config, theme))
+                        .height(Length::Fixed(body_height)),
+                ),
                 _ => None,
             });
 

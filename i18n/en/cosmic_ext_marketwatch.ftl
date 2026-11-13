@@ -69,15 +69,15 @@ alert-description-turned-negative = Turned negative
 settings-title = Configurations
 settings-panel = Panel
 settings-show-icon-only = Show icon only
-settings-show-logos = Show logos in screeners
-settings-disable-custom-alerts = Disable custom alerts
+settings-disable-custom-alerts = Custom alerts
+
+settings-display = Display
 settings-display-news = Display news
 settings-news-per-asset = News per asset (max 5)
+settings-show-logos = Show logos in screeners
 
-settings-refresh-interval = Stock rotation interval (seconds)
 settings-refresh = Refresh
-
-settings-stock-rotation-interval = Stock rotation interval (seconds)
+settings-panel-rotation-interval = Panel rotation interval (seconds)
 settings-refresh-interval = Refresh interval
 settings-min = min
 

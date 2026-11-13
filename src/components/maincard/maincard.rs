@@ -18,7 +18,7 @@ use cosmic::theme::Text;
 use cosmic::widget;
 
 use crate::app::{MAX_ASSETS_PER_WALLET, Message};
-use crate::config::{Config, PopupTab, RefreshInterval};
+use crate::config::{Config, PopupTab};
 
 #[allow(clippy::too_many_arguments)]
 pub fn maincard<'a>(
@@ -39,12 +39,10 @@ pub fn maincard<'a>(
     alert_selected_symbol: Option<&'a str>,
     alert_selected_condition: &'a AlertCondition,
     alert_input_value: &'a str,
-    news_input: &'a str,
     current_screen_tab: ScreensTab,
     logo_handles: &'a HashMap<String, widget::image::Handle>,
 ) -> Element<'a, Message> {
     match active_tab {
-        PopupTab::Settings => render_settings_tab(config, news_input),
         PopupTab::Alerts => render_alerts_tab(
             wallet_alerts,
             alert_selected_symbol,
@@ -847,129 +845,6 @@ fn build_add_alert_message(
         symbol,
         condition: final_condition,
     })
-}
-
-fn render_settings_tab<'a>(config: &'a Config, news_input: &'a str) -> Element<'a, Message> {
-    widget::column![]
-        .spacing(SPACING_TAB)
-        .padding(PAD_TAB)
-        .width(Length::Fill)
-        .push(category_divider())
-        .push(textlabel(crate::fl!("settings-panel")))
-        .push(
-            widget::row![]
-                .width(Length::Fill)
-                .align_y(Alignment::Center)
-                .push(widget::text(crate::fl!("settings-show-icon-only")))
-                .push(widget::Space::new().width(Length::Fill))
-                .push(
-                    widget::toggler(config.show_only_icon).on_toggle(Message::ToggleShowOnlyIcon),
-                ),
-        )
-        .push(
-            widget::row![]
-                .width(Length::Fill)
-                .align_y(Alignment::Center)
-                .push(widget::text(crate::fl!("settings-show-logos")))
-                .push(widget::Space::new().width(Length::Fill))
-                .push(widget::toggler(config.show_logos).on_toggle(Message::ToggleShowLogos)),
-        )
-        .push(
-            widget::row![]
-                .width(Length::Fill)
-                .align_y(Alignment::Center)
-                .push(widget::text(crate::fl!("settings-disable-custom-alerts")))
-                .push(widget::Space::new().width(Length::Fill))
-                .push(
-                    widget::toggler(!config.alerts_enabled)
-                        .on_toggle(|val| Message::ToggleAlertsEnabled(!val)),
-                ),
-        )
-        .push(
-            widget::row![]
-                .width(Length::Fill)
-                .align_y(Alignment::Center)
-                .push(widget::text(crate::fl!("settings-display-news")))
-                .push(widget::Space::new().width(Length::Fill))
-                .push(widget::toggler(config.show_news).on_toggle(Message::ToggleShowNews)),
-        )
-        .push(
-            widget::row![]
-                .width(Length::Fill)
-                .align_y(Alignment::Center)
-                .push(widget::text(crate::fl!("settings-news-per-asset")))
-                .push(widget::Space::new().width(Length::Fill))
-                .push(
-                    widget::text_input("1", news_input)
-                        .on_input(Message::SetNumberOfNewsBySymbols)
-                        .width(cosmic::iced::Length::Fixed(60.0)),
-                ),
-        )
-        .push(category_divider())
-        .push(textlabel(crate::fl!("settings-refresh")))
-        .push(
-            widget::row![]
-                .width(Length::Fill)
-                .align_y(Alignment::Center)
-                .push(widget::text(crate::fl!("settings-refresh-interval")))
-                .push(widget::Space::new().width(Length::Fill))
-                .push(
-                    widget::text_input("20", config.panel_stoke_rotation_interval.to_string())
-                        .on_input(Message::SetStokeRotationInterval)
-                        .width(cosmic::iced::Length::Fixed(60.0)),
-                ),
-        )
-        .push(widget::text(crate::fl!("settings-refresh-interval")))
-        .push(refresh_row(config))
-        .push(category_divider())
-        .into()
-}
-
-fn refresh_row(config: &Config) -> Element<'_, Message> {
-    let intervals = [
-        ("5 min", RefreshInterval::FiveMinutes),
-        ("10 min", RefreshInterval::TenMinutes),
-        ("15 min", RefreshInterval::FifteenMinutes),
-        ("30 min", RefreshInterval::ThirtyMinutes),
-        ("1h", RefreshInterval::OneHour),
-    ];
-
-    let mut row = widget::row(vec![])
-        .spacing(4)
-        .width(Length::Fill)
-        .height(Length::Shrink);
-
-    for (label, value) in intervals {
-        row = row.push(
-            widget::container(refresh_button(label, value, config.refresh_interval))
-                .width(Length::FillPortion(1)),
-        );
-    }
-
-    row.into()
-}
-
-fn refresh_button<'a>(
-    label: &'static str,
-    value: RefreshInterval,
-    current: RefreshInterval,
-) -> Element<'a, Message> {
-    let selected = value == current;
-
-    let content = widget::container(widget::text(label))
-        .width(Length::Fill)
-        .align_x(cosmic::iced::alignment::Horizontal::Center);
-
-    widget::button::custom(content)
-        .class(if selected {
-            cosmic::theme::Button::Suggested
-        } else {
-            cosmic::theme::Button::Standard
-        })
-        .width(Length::Fill)
-        .padding([8, 0])
-        .on_press(Message::SetRefreshInterval(value))
-        .into()
 }
 
 fn tab_button<'a>(label: impl Into<String>, msg: Message, selected: bool) -> Element<'a, Message> {
