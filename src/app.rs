@@ -313,7 +313,6 @@ impl cosmic::Application for AppModel {
             self.alert_selected_symbol.as_deref(),
             &self.alert_selected_condition,
             &self.alert_input_value,
-            &self.news_per_symbol_input,
             self.screens_tab,
             &self.logo_handles,
         );
