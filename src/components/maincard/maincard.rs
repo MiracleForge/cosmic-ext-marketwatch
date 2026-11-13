@@ -1,16 +1,13 @@
+// SPDX-License-Identifier: GPL-3.0-only
 use std::collections::HashMap;
 
-use crate::components::buttons::segmented_button;
-use crate::components::newscard::NEWS_PREVIEW_COUNT;
 use crate::components::ui::{overview_tab, textlabel};
 use crate::constants::{
-    HARD_CODED_WIDTH, PAD_CARD, PAD_ROW, PAD_TAB, SPACING_COL, SPACING_ROW, SPACING_TAB, TEXT_BODY,
-    TEXT_LABEL, TEXT_NORMAL, TEXT_SMALL, VALUE_WIDTH,
+    PAD_CARD, PAD_ROW, PAD_TAB, SPACING_COL, SPACING_ROW, SPACING_TAB, TEXT_BODY, TEXT_LABEL,
+    TEXT_NORMAL, VALUE_WIDTH,
 };
-// SPDX-License-Identifier: GPL-3.0-only
 use crate::marketwatch::{
-    AlertCondition, MarketQuote, PriceAlert, ScreensTab, YahooNews, format_publish_time,
-    user_friendly_error_message,
+    AlertCondition, MarketQuote, PriceAlert, ScreensTab, YahooNews, user_friendly_error_message,
 };
 use cosmic::Theme;
 use cosmic::iced::font::Weight;
@@ -29,8 +26,6 @@ pub fn maincard<'a>(
     current_wallet_index: usize,
     wallet_symbols: &'a [String],
     market_quotes: &'a [MarketQuote],
-    news_items: &'a [YahooNews],
-    news_expanded: bool,
     config: &'a Config,
     error_message: Option<&'a String>,
     stock_search_input: &'a str,
@@ -58,8 +53,6 @@ pub fn maincard<'a>(
             if current_wallet_index == 0 {
                 render_quotes(
                     market_quotes,
-                    news_items,
-                    news_expanded,
                     config,
                     error_message,
                     theme,
@@ -70,9 +63,6 @@ pub fn maincard<'a>(
                 render_wallet(
                     wallet_symbols,
                     market_quotes,
-                    news_items,
-                    news_expanded,
-                    config,
                     stock_search_input,
                     stock_search_results,
                     stock_search_loading,
@@ -88,9 +78,6 @@ pub fn maincard<'a>(
 fn render_wallet<'a>(
     symbols: &'a [String],
     quotes: &'a [MarketQuote],
-    news_items: &'a [YahooNews],
-    news_expanded: bool,
-    config: &'a Config,
     search_input: &'a str,
     search_results: &'a [String],
     search_loading: bool,
@@ -110,10 +97,6 @@ fn render_wallet<'a>(
     ));
 
     col = col.push(render_portfolio_section(symbols, quotes, theme));
-
-    if config.show_news {
-        col = col.push(render_news_section(news_items, news_expanded));
-    }
 
     col.into()
 }
@@ -305,8 +288,6 @@ fn derive_state<'a>(
 #[allow(clippy::too_many_arguments)]
 fn render_quotes<'a>(
     market_quotes: &'a [MarketQuote],
-    news_items: &'a [YahooNews],
-    news_expanded: bool,
     config: &'a Config,
     error_message: Option<&'a String>,
     theme: &Theme,
@@ -333,102 +314,9 @@ fn render_quotes<'a>(
             let col =
                 render_quotes_list(col, quotes, config, theme, current_screen_tab, logo_handles);
 
-            if config.show_news {
-                col.push(render_news_section(news_items, news_expanded))
-                    .into()
-            } else {
-                col.into()
-            }
+            col.into()
         }
     }
-}
-
-fn render_news_section<'a>(news: &'a [YahooNews], expanded: bool) -> Element<'a, Message> {
-    let has_more = news.len() > NEWS_PREVIEW_COUNT;
-
-    let header_row = widget::row![]
-        .align_y(Alignment::Center)
-        .width(Length::Fill)
-        .push(
-            widget::text(crate::fl!("news-last"))
-                .size(TEXT_BODY)
-                .class(Text::Accent),
-        )
-        .push(widget::Space::new().width(Length::Fill))
-        .push_maybe(if has_more {
-            Some(
-                widget::button::standard(if expanded {
-                    crate::fl!("news-colapse")
-                } else {
-                    crate::fl!("news-view")
-                })
-                .on_press(Message::ToggleNewsExpanded),
-            )
-        } else {
-            None
-        });
-
-    let news_content: Element<'a, Message> = if news.is_empty() {
-        widget::text(crate::fl!("news-not-avaliable"))
-            .size(TEXT_BODY)
-            .class(Text::Accent)
-            .into()
-    } else {
-        let visible = if expanded {
-            news
-        } else {
-            &news[..NEWS_PREVIEW_COUNT.min(news.len())]
-        };
-
-        let cards = widget::column![]
-            .spacing(SPACING_COL)
-            .width(Length::Fill)
-            .extend(visible.iter().map(news_card));
-
-        if expanded {
-            widget::scrollable(cards)
-                .height(Length::Fixed(HARD_CODED_WIDTH))
-                .into()
-        } else {
-            cards.into()
-        }
-    };
-
-    widget::column![]
-        .spacing(SPACING_ROW)
-        .width(Length::Fill)
-        .push(category_divider())
-        .push(header_row)
-        .push(news_content)
-        .into()
-}
-
-fn news_card(item: &YahooNews) -> Element<'_, Message> {
-    let publisher = item.publisher.as_deref().unwrap_or("Unknown source");
-
-    let time_str = item
-        .publish_time
-        .map(format_publish_time)
-        .unwrap_or_default();
-
-    let meta_text = if time_str.is_empty() {
-        publisher.to_string()
-    } else {
-        format!("{publisher} · {time_str}")
-    };
-
-    let content = widget::column![]
-        .spacing(4)
-        .padding(PAD_CARD)
-        .width(Length::Fill)
-        .push(widget::text(&item.title).size(TEXT_NORMAL))
-        .push(widget::text(meta_text).size(TEXT_SMALL).class(Text::Accent));
-
-    widget::button::custom(content)
-        .class(cosmic::theme::Button::MenuItem)
-        .width(Length::Fill)
-        .on_press(Message::OpenExternalLink(item.link.clone()))
-        .into()
 }
 
 fn render_quotes_list<'a>(

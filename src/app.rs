@@ -298,8 +298,6 @@ impl cosmic::Application for AppModel {
                 .get(self.current_wallet_index.saturating_sub(1))
                 .map_or(&[], |w| w.symbols.as_slice()),
             &self.market_quotes,
-            &self.market_news,
-            self.news_expanded,
             &self.config,
             self.error_message.as_ref(),
             &self.stock_search_input,
