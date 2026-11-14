@@ -38,7 +38,7 @@ pub struct SkeletonCfg<'t> {
 pub fn render_card_state<'a, T, F>(
     items: &'a [T],
     error: Option<&'a String>,
-    loading: bool, // novo
+    loading: bool,
     skeleton: Option<SkeletonCfg<'_>>,
     render_ready: F,
 ) -> Element<'a, Message>

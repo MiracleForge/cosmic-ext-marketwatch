@@ -1,3 +1,4 @@
+pub mod alertcard;
 pub mod applet;
 pub mod buttons;
 pub mod header;

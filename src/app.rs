@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // TODO: REMOVE MY OWN SLOP
-//TODO: FIX O(n²) I saw down there
 //TODO: CACHE HELPERS
 use crate::components::applet::{self};
 
+use crate::components::alertcard::notify_alert;
 use crate::components::header::header;
 use crate::components::infocard::infocard;
 use crate::components::newscard::news_card;
@@ -14,7 +14,7 @@ use crate::config::{Config, PopupTab, RefreshInterval};
 use crate::marketwatch::{
     AlertCondition, MarketCacheKey, MarketQuote, PriceAlert, ScreensTab, YahooNews,
     fetch_by_screeners, fetch_by_symbols, fetch_logo_handles, fetch_logos, fetch_news_for_symbols,
-    format_publish_time, search_symbols, user_friendly_error_message,
+    format_publish_time, search_symbols,
 };
 use cosmic::applet::cosmic_panel_config::PanelAnchor;
 use cosmic::cosmic_config::CosmicConfigEntry;
@@ -68,7 +68,6 @@ pub struct AppModel {
     cached_news: HashMap<MarketCacheKey, Vec<YahooNews>>,
 
     next_alert_id: u64,
-    // estado do form de alerta na struct AppModel
     alert_selected_symbol: Option<String>,
     alert_selected_condition: AlertCondition,
     alert_input_value: String,
@@ -88,9 +87,7 @@ pub enum Message {
     NewsLoaded(Result<Vec<YahooNews>, String>),
     PreviusWallet,
     NextWallet,
-
     NavigateTo(Option<PopupTab>),
-    OpenConfigBUtton,
     OpenExternalLink(String),
     ToggleShowOnlyIcon(bool),
     ToggleShowLogos(bool),
@@ -100,7 +97,6 @@ pub enum Message {
     SetStokeRotationInterval(String),
     // wallet navegation
     SwitchWallet(usize),
-
     // wallet management
     AddWallet,
     DeleteCurrentWallet,
@@ -128,12 +124,8 @@ pub enum Message {
         alert_id: u64,
     },
 
-    CloseAlertsTab,
-
-    // Alerts form state
     AlertSelectCondition(AlertCondition),
     AlertSetValue(String),
-    OpenAlertsTab(String),
 
     // Autocomplete
     StockSearchInput(String),
@@ -297,67 +289,62 @@ impl cosmic::Application for AppModel {
                     .unwrap_or_default()
                     .as_secs()
                     .saturating_sub(instant.elapsed().as_secs());
+
                 format_publish_time(timestamp)
             });
 
-        let last_updated_ref = last_updated;
         let theme = self.core.system_theme();
+        let header = header(last_updated, self.active_tab);
 
-        let header = header(last_updated_ref, self.active_tab);
-
-        // After almost lose my mind try to fix this, that is the best I can , the max scale this
-        // applet is capable to work is 200%
+        // Maximum supported applet scale is 200%.
         let max_height = self
             .core
             .applet
             .suggested_bounds
-            .map_or(500.0, |b| b.height);
+            .map_or(500.0, |bounds| bounds.height);
 
-        let header_height = 80.0;
-
-        let max_body_height = 520.0;
-
-        let body_height = (max_height - header_height).min(max_body_height).max(120.0);
-
+        let body_height = (max_height - 80.0).min(520.0).max(120.0);
         let pulse = 0.5 + 0.5 * self.skeleton_phase.sin();
-        let content = widget::column![]
+
+        let body = match self.active_tab {
+            PopupTab::Overview => Some(
+                widget::container(overviewcard(
+                    theme,
+                    &self.market_quotes,
+                    self.error_message.as_ref(),
+                    self.quotes_loading,
+                    self.config.show_logos,
+                    self.screens_tab,
+                    &self.logo_handles,
+                    pulse,
+                ))
+                .height(Length::Fixed(body_height)),
+            ),
+            PopupTab::Info => {
+                Some(widget::container(infocard(theme)).height(Length::Fixed(body_height)))
+            }
+            PopupTab::Settings => Some(
+                widget::container(settingscard(&self.config, theme))
+                    .height(Length::Fixed(body_height)),
+            ),
+            PopupTab::News => Some(
+                widget::container(news_card(
+                    &self.market_news,
+                    self.config.show_news,
+                    self.error_message.as_ref(),
+                    self.news_loading,
+                    theme,
+                ))
+                .height(Length::Fixed(body_height)),
+            ),
+            _ => None,
+        };
+
+        let content = widget::column![widget::container(header).height(Length::Shrink),]
             .padding(0)
             .width(Length::Fill)
             .height(Length::Shrink)
-            .push(widget::container(header).height(Length::Shrink))
-            .push_maybe(match self.active_tab {
-                PopupTab::Overview => Some(
-                    widget::container(widget::container(overviewcard(
-                        theme,
-                        &self.market_quotes,
-                        self.error_message.as_ref(),
-                        self.quotes_loading,
-                        self.config.show_logos,
-                        self.screens_tab,
-                        &self.logo_handles,
-                        pulse,
-                    )))
-                    .height(Length::Fixed(body_height)),
-                ),
-                PopupTab::Info => {
-                    Some(widget::container(infocard(theme)).height(Length::Fixed(body_height)))
-                }
-                PopupTab::Settings => Some(
-                    widget::container(settingscard(&self.config, theme))
-                        .height(Length::Fixed(body_height)),
-                ),
-                PopupTab::News => Some(
-                    widget::container(news_card(
-                        &self.market_news,
-                        self.config.show_news,
-                        self.error_message.as_ref(),
-                        self.news_loading,
-                        theme,
-                    ))
-                    .height(Length::Fixed(body_height)),
-                ),
-                _ => None,
-            });
+            .push_maybe(body);
 
         self.core
             .applet
@@ -429,12 +416,7 @@ impl cosmic::Application for AppModel {
                     .is_some_and(|t| t.elapsed().as_secs() < refresh_secs);
 
                 if cache_valid {
-                    if let Some(cached) = self.cached_quotes.get(&key) {
-                        self.market_quotes = cached.clone();
-                    }
-                    if let Some(cached) = self.cached_news.get(&key) {
-                        self.market_news = cached.clone();
-                    }
+                    self.restore_cached_market(&key);
                     return Task::none();
                 }
 
@@ -498,16 +480,12 @@ impl cosmic::Application for AppModel {
                 }
 
                 Err(err) => {
-                    self.quotes_loading = false;
-                    self.news_loading = false;
+                    self.finish_market_loading();
                     self.news_error = Some(err.clone());
                     self.error_message = Some(err);
                     self.market_quotes.clear();
 
-                    let key = self.current_cache_key();
-                    self.last_fetch_time.remove(&key);
-                    self.cached_quotes.remove(&key);
-                    self.cached_news.remove(&key);
+                    self.invalidate_current_market_cache();
 
                     return Task::done(Action::App(Message::Tick));
                 }
@@ -519,6 +497,7 @@ impl cosmic::Application for AppModel {
                         quote.logo_url = logo.clone();
                     }
                 }
+
                 return Task::perform(fetch_logo_handles(logos), |handles| {
                     Action::App(Message::LogoHandlesLoaded(handles))
                 });
@@ -535,6 +514,7 @@ impl cosmic::Application for AppModel {
                 Ok(news) => {
                     self.market_news = news;
                     self.news_error = None;
+
                     let key = self.current_cache_key();
                     self.cached_news.insert(key, self.market_news.clone());
                 }
@@ -549,26 +529,20 @@ impl cosmic::Application for AppModel {
             }
 
             Message::RefreshMarket => {
-                self.current_index = 0;
-                self.market_quotes.clear();
-                self.market_news.clear();
-                self.error_message = None;
-                self.news_error = None;
-
-                let key = self.current_cache_key();
-                self.last_fetch_time.remove(&key);
-                self.cached_quotes.remove(&key);
-                self.cached_news.remove(&key);
+                self.reset_market_view();
+                self.invalidate_current_market_cache();
 
                 if self.current_wallet_index > 0 {
                     if let Some(wallet) = self.wallets.get(self.current_wallet_index - 1)
                         && !wallet.symbols.is_empty()
                     {
                         let symbols = wallet.symbols.clone();
+
                         return Task::perform(fetch_by_symbols(symbols), |result| {
                             Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
                         });
                     }
+
                     self.quotes_loading = false;
                     return Task::none();
                 }
@@ -583,14 +557,13 @@ impl cosmic::Application for AppModel {
 
             Message::SetRefreshInterval(interval) => {
                 self.config.refresh_interval = interval;
-                self.last_fetch_time.clear();
-                self.cached_quotes.clear();
-                self.cached_news.clear();
+                self.clear_all_market_cache();
                 self.save_config();
             }
 
             Message::SetNumberOfNewsBySymbols(val) => {
                 self.news_per_symbol_input.clone_from(&val);
+
                 if let Ok(n) = val.parse::<u64>() {
                     let clamped = n.clamp(1, 5);
                     self.config.count_news_by_simbol = clamped;
@@ -609,13 +582,6 @@ impl cosmic::Application for AppModel {
 
             Message::NavigateTo(tab) => {
                 self.active_tab = tab.unwrap_or(PopupTab::Overview);
-            }
-
-            Message::OpenConfigBUtton => {
-                self.active_tab = match self.active_tab {
-                    PopupTab::Settings => PopupTab::Overview,
-                    _ => PopupTab::Settings,
-                };
             }
 
             Message::ToggleShowOnlyIcon(new_value) => {
@@ -663,6 +629,7 @@ impl cosmic::Application for AppModel {
                         },
                     );
                 }
+
                 self.market_news.clear();
             }
 
@@ -674,9 +641,10 @@ impl cosmic::Application for AppModel {
                 let index = self.wallets.len() + 1;
                 self.wallets.push(Wallet::new(format!("Wallet {index}")));
                 self.current_wallet_index = self.wallets.len();
-                self.market_quotes.clear();
-                self.market_news.clear();
+
+                self.clear_market_data();
                 self.error_message = None;
+
                 save_wallets(&self.wallets);
             }
 
@@ -693,9 +661,7 @@ impl cosmic::Application for AppModel {
 
                 if self.active_tab == PopupTab::Alerts {
                     self.active_tab = PopupTab::Overview;
-                    self.alert_selected_symbol = None;
-                    self.alert_input_value.clear();
-                    self.alert_selected_condition = AlertCondition::PriceAbove(0.0);
+                    self.reset_alert_form();
                 }
 
                 self.config.last_wallet_index = safe_index;
@@ -710,12 +676,7 @@ impl cosmic::Application for AppModel {
                     .is_some_and(|t| t.elapsed().as_secs() < refresh_secs);
 
                 if cache_valid {
-                    if let Some(cached) = self.cached_quotes.get(&key) {
-                        self.market_quotes = cached.clone();
-                    }
-                    if let Some(cached) = self.cached_news.get(&key) {
-                        self.market_news = cached.clone();
-                    }
+                    self.restore_cached_market(&key);
                     return Task::none();
                 }
 
@@ -726,14 +687,17 @@ impl cosmic::Application for AppModel {
                         && !wallet.symbols.is_empty()
                     {
                         let symbols = wallet.symbols.clone();
+
                         return Task::perform(fetch_by_symbols(symbols), |result| {
                             Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
                         });
                     }
+
                     return Task::none();
                 }
 
                 let count = self.config.count_stokes_at_once;
+
                 return Task::perform(fetch_by_screeners(count, self.screens_tab), |result| {
                     Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
                 });
@@ -743,15 +707,19 @@ impl cosmic::Application for AppModel {
                 if self.active_tab == PopupTab::Alerts {
                     return Task::none();
                 }
+
                 let total = self.wallets.len() + 1;
+
                 if total <= 1 {
                     return Task::none();
                 }
+
                 let new_index = if self.current_wallet_index == 0 {
                     total - 1
                 } else {
                     self.current_wallet_index - 1
                 };
+
                 return self.update(Message::SwitchWallet(new_index));
             }
 
@@ -759,17 +727,22 @@ impl cosmic::Application for AppModel {
                 if self.active_tab == PopupTab::Alerts {
                     return Task::none();
                 }
+
                 let total = self.wallets.len() + 1;
+
                 if total <= 1 {
                     return Task::none();
                 }
+
                 let new_index = (self.current_wallet_index + 1) % total;
+
                 return self.update(Message::SwitchWallet(new_index));
             }
 
             Message::ToggleRenameMode => {
                 if self.current_wallet_index > 0 {
                     self.rename_mode = !self.rename_mode;
+
                     if self.rename_mode {
                         self.rename_input =
                             self.wallets[self.current_wallet_index - 1].name.clone();
@@ -785,31 +758,43 @@ impl cosmic::Application for AppModel {
                 if self.current_wallet_index > 0 && !self.rename_input.trim().is_empty() {
                     self.wallets[self.current_wallet_index - 1].name =
                         self.rename_input.trim().to_string();
+
                     save_wallets(&self.wallets);
                 }
+
                 self.rename_mode = false;
             }
 
             Message::StockSearchInput(val) => {
-                //TODO: DEBOUNCE how to make in rust ?
+                // TODO: DEBOUNCE how to make in rust ?
                 if val.len() >= 2 {
                     self.stock_search_loading = true;
                     let query = val.clone();
                     self.stock_search_input = val;
+
                     return Task::perform(search_symbols(query), |result| {
                         Action::App(Message::StockSearchResults(
                             result.map_err(|e| e.to_string()),
                         ))
                     });
                 }
+
+                self.stock_search_loading = false;
                 self.stock_search_input = val;
                 self.stock_search_results.clear();
             }
 
             Message::StockSearchResults(result) => {
                 self.stock_search_loading = false;
-                if let Ok(results) = result {
-                    self.stock_search_results = results;
+
+                match result {
+                    Ok(results) => {
+                        self.stock_search_results = results;
+                    }
+                    Err(err) => {
+                        tracing::warn!("Stock search failed: {err}");
+                        self.stock_search_results.clear();
+                    }
                 }
             }
 
@@ -831,21 +816,22 @@ impl cosmic::Application for AppModel {
 
                 if self.current_wallet_index > 0 {
                     let wallet = &mut self.wallets[self.current_wallet_index - 1];
+
                     if wallet.symbols.len() >= MAX_ASSETS_PER_WALLET {
                         return Task::none();
                     }
-                    if !wallet.symbols.contains(&symbol) {
-                        wallet.symbols.push(symbol);
-                        save_wallets(&self.wallets);
+
+                    if wallet.symbols.contains(&symbol) {
+                        return Task::none();
                     }
 
-                    // new symbol , invalid cache for this wallet
-                    let key = self.current_cache_key();
-                    self.cached_quotes.remove(&key);
-                    self.cached_news.remove(&key);
-                    self.last_fetch_time.remove(&key);
+                    wallet.symbols.push(symbol);
+                    save_wallets(&self.wallets);
+
+                    self.invalidate_current_market_cache();
 
                     let symbols = self.wallets[self.current_wallet_index - 1].symbols.clone();
+
                     return Task::perform(fetch_by_symbols(symbols), |result| {
                         Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
                     });
@@ -855,30 +841,24 @@ impl cosmic::Application for AppModel {
             Message::RemoveStockFromWallet(symbol) => {
                 if self.current_wallet_index > 0 {
                     let wallet = &mut self.wallets[self.current_wallet_index - 1];
-                    //removem the stock
+
                     wallet.symbols.retain(|s| s != &symbol);
-                    // remove the alarm
                     wallet.alerts.retain(|a| a.symbol != symbol);
-                    // Save wallets
+
                     save_wallets(&self.wallets);
 
-                    // clean alet form
                     if self.alert_selected_symbol.as_deref() == Some(&symbol) {
                         self.alert_selected_symbol = None;
                         self.alert_input_value.clear();
                         self.active_tab = PopupTab::Overview;
                     }
 
-                    let key = self.current_cache_key();
-                    self.last_fetch_time.remove(&key);
-                    self.cached_quotes.remove(&key);
-                    self.cached_news.remove(&key);
+                    self.invalidate_current_market_cache();
 
                     let symbols = self.wallets[self.current_wallet_index - 1].symbols.clone();
 
                     if symbols.is_empty() {
-                        self.market_quotes.clear();
-                        self.market_news.clear();
+                        self.clear_market_data();
                         return Task::none();
                     }
 
@@ -890,21 +870,17 @@ impl cosmic::Application for AppModel {
 
             Message::DeleteCurrentWallet => {
                 if self.current_wallet_index > 0 {
-                    let key = self.current_cache_key();
-                    self.last_fetch_time.remove(&key);
-                    self.cached_quotes.remove(&key);
-                    self.cached_news.remove(&key);
+                    self.invalidate_current_market_cache();
 
                     self.wallets.remove(self.current_wallet_index - 1);
                     self.current_wallet_index = 0;
                     save_wallets(&self.wallets);
 
-                    self.alert_selected_symbol = None;
-                    self.alert_input_value.clear();
-                    self.alert_selected_condition = AlertCondition::PriceAbove(0.0);
                     self.active_tab = PopupTab::Overview;
+                    self.reset_alert_form();
 
                     let count = self.config.count_stokes_at_once;
+
                     return Task::perform(fetch_by_screeners(count, self.screens_tab), |result| {
                         Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
                     });
@@ -971,26 +947,10 @@ impl cosmic::Application for AppModel {
             Message::AlertSetValue(val) => {
                 self.alert_input_value = val;
             }
-
-            Message::OpenAlertsTab(symbol) => {
-                self.active_tab = PopupTab::Alerts;
-                self.alert_selected_symbol = Some(symbol);
-            }
-
-            Message::CloseAlertsTab => {
-                self.active_tab = PopupTab::Overview;
-                self.alert_selected_symbol = None;
-                self.alert_input_value.clear();
-                self.alert_selected_condition = AlertCondition::PriceAbove(0.0);
-            }
         }
 
         Task::none()
     }
-
-    // fn style(&self) -> cosmic::applet::Style {
-    //     cosmic::applet::style()
-    // }
 }
 
 impl AppModel {
@@ -1010,82 +970,83 @@ impl AppModel {
         }
     }
 
-    fn send_notification(symbol: &str, message: &str) {
-        let _ = notify_rust::Notification::new()
-            .summary(&format!("MarketWatch — {symbol}"))
-            .body(message)
-            .icon("utilities-system-monitor")
-            .timeout(notify_rust::Timeout::Milliseconds(6000))
-            .show();
-    }
-
     fn check_and_trigger_alerts(&mut self) {
-        let mut alerts_to_remove: Vec<(usize, u64)> = Vec::new();
-        for (wallet_idx, wallet) in self.wallets.iter().enumerate() {
-            for alert in &wallet.alerts {
+        let quotes: HashMap<&str, &MarketQuote> = self
+            .market_quotes
+            .iter()
+            .map(|q| (q.symbol.as_str(), q))
+            .collect();
+        let notify = self.config.alerts_enabled;
+        let mut changed = false;
+
+        for wallet in &mut self.wallets {
+            wallet.alerts.retain(|alert| {
                 if !alert.enabled {
-                    continue;
+                    return true;
                 }
-
-                //  TODO: O(n²) I can improve later
-                let Some(quote) = self.market_quotes.iter().find(|q| q.symbol == alert.symbol)
-                else {
-                    continue;
+                let Some(quote) = quotes.get(alert.symbol.as_str()) else {
+                    return true;
                 };
-
-                let triggered = match &alert.condition {
-                    AlertCondition::PriceAbove(target) => quote.price > target + 0.001,
-                    AlertCondition::PriceBelow(target) => quote.price < target - 0.001,
-                    AlertCondition::VariationAbove(target) => quote.change_percent > target + 0.001,
-                    AlertCondition::VariationBelow(target) => quote.change_percent < target - 0.001,
-                    AlertCondition::TurnPositive => quote.change_percent > 0.0,
-                    AlertCondition::TurnNegative => quote.change_percent < 0.0,
-                };
-
-                if triggered {
-                    if self.config.alerts_enabled {
-                        let msg = crate::fl!(
-                            "alert-notification",
-                            HashMap::from([
-                                ("symbol", alert.symbol.clone()),
-                                (
-                                    "description",
-                                    Self::alert_condition_description(&alert.condition)
-                                ),
-                                ("price", quote.formatted_price()),
-                                ("change", format!("{:.2}", quote.change_percent)),
-                            ])
-                        );
-                        Self::send_notification(&alert.symbol, &msg);
-                    }
-                    alerts_to_remove.push((wallet_idx, alert.id));
+                if !alert.condition.is_triggered(quote) {
+                    return true;
                 }
-            }
+                if notify {
+                    notify_alert(alert, quote);
+                }
+                changed = true;
+                false
+            });
         }
 
-        let removed = !alerts_to_remove.is_empty();
-        for (wallet_idx, alert_id) in alerts_to_remove {
-            self.wallets[wallet_idx].alerts.retain(|a| a.id != alert_id);
-        }
-        if removed {
+        if changed {
             save_wallets(&self.wallets);
         }
     }
 
-    fn alert_condition_description(condition: &AlertCondition) -> String {
-        let value = |v: f64| HashMap::from([("value", format!("{v:.2}"))]);
+    fn invalidate_current_market_cache(&mut self) {
+        let key = self.current_cache_key();
 
-        match condition {
-            AlertCondition::PriceAbove(v) => crate::fl!("alert-description-price-above", value(*v)),
-            AlertCondition::PriceBelow(v) => crate::fl!("alert-description-price-below", value(*v)),
-            AlertCondition::VariationAbove(v) => {
-                crate::fl!("alert-description-variation-above", value(*v))
-            }
-            AlertCondition::VariationBelow(v) => {
-                crate::fl!("alert-description-variation-below", value(*v))
-            }
-            AlertCondition::TurnPositive => crate::fl!("alert-description-turned-positive"),
-            AlertCondition::TurnNegative => crate::fl!("alert-description-turned-negative"),
+        self.last_fetch_time.remove(&key);
+        self.cached_quotes.remove(&key);
+        self.cached_news.remove(&key);
+    }
+
+    fn clear_all_market_cache(&mut self) {
+        self.last_fetch_time.clear();
+        self.cached_quotes.clear();
+        self.cached_news.clear();
+    }
+
+    fn clear_market_data(&mut self) {
+        self.market_quotes.clear();
+        self.market_news.clear();
+    }
+
+    fn reset_market_view(&mut self) {
+        self.current_index = 0;
+        self.clear_market_data();
+        self.error_message = None;
+        self.news_error = None;
+    }
+
+    fn finish_market_loading(&mut self) {
+        self.quotes_loading = false;
+        self.news_loading = false;
+    }
+
+    fn restore_cached_market(&mut self, key: &MarketCacheKey) {
+        if let Some(cached) = self.cached_quotes.get(key) {
+            self.market_quotes = cached.clone();
         }
+
+        if let Some(cached) = self.cached_news.get(key) {
+            self.market_news = cached.clone();
+        }
+    }
+
+    fn reset_alert_form(&mut self) {
+        self.alert_selected_symbol = None;
+        self.alert_input_value.clear();
+        self.alert_selected_condition = AlertCondition::PriceAbove(0.0);
     }
 }

@@ -1,4 +1,18 @@
-#[allow(clippy::too_many_lines)]
+use cosmic::{Element, Theme, theme::Text};
+
+use cosmic::iced::{Alignment, Length};
+use cosmic::widget;
+
+use crate::components::alertcard::{alert_condition_label, condition_to_index, index_to_condition};
+use crate::{
+    app::Message,
+    constants::{
+        PAD_CARD, PAD_ROW, PAD_TAB, SPACING_COL, SPACING_ROW, SPACING_TAB, TEXT_BODY, TEXT_LABEL,
+        TEXT_NORMAL,
+    },
+    marketwatch::{AlertCondition, MarketQuote, PriceAlert},
+};
+
 fn render_alerts_tab<'a>(
     alerts: &'a [PriceAlert],
     selected_symbol: Option<&'a str>,
@@ -19,11 +33,6 @@ fn render_alerts_tab<'a>(
             .align_y(Alignment::Center)
             .spacing(SPACING_ROW)
             .push(
-                widget::button::icon(widget::icon::from_name("go-previous-symbolic"))
-                    .on_press(Message::CloseAlertsTab)
-                    .padding(PAD_ROW),
-            )
-            .push(
                 widget::text(crate::fl!("alerts"))
                     .size(TEXT_LABEL)
                     .class(Text::Accent),
@@ -37,9 +46,6 @@ fn render_alerts_tab<'a>(
     let asset_card = match selected_symbol {
         Some(sym) => {
             let mut content = widget::column![].spacing(SPACING_COL);
-            content = content.push(category_divider());
-            content = content.push(textlabel(crate::fl!("alerts-select")));
-            content = content.push(widget::text::heading(sym));
 
             if let Some(quote) = selected_quote {
                 let color = quote.variation_color(theme);
@@ -97,8 +103,6 @@ fn render_alerts_tab<'a>(
 
         let form = widget::column![]
             .spacing(SPACING_TAB)
-            .push(category_divider())
-            .push(textlabel(crate::fl!("alerts-condition")))
             .push(
                 widget::dropdown(condition_options, condition_idx, move |idx| {
                     Message::AlertSelectCondition(index_to_condition(idx, &input_for_closure))
@@ -138,8 +142,6 @@ fn render_alerts_tab<'a>(
     }
 
     // ================= ALERT LIST =================
-    col = col.push(category_divider());
-    col = col.push(textlabel(crate::fl!("alerts-self")));
 
     if alerts.is_empty() {
         col = col.push(
@@ -149,9 +151,8 @@ fn render_alerts_tab<'a>(
         );
     } else {
         for alert in alerts {
-            col = col
-                .push(widget::container(render_alert_row(alert, wallet_index)).padding(PAD_ROW))
-                .push(item_divider());
+            col =
+                col.push(widget::container(render_alert_row(alert, wallet_index)).padding(PAD_ROW))
         }
     }
 
@@ -193,42 +194,6 @@ fn render_alert_row(alert: &PriceAlert, wallet_index: usize) -> Element<'_, Mess
                 .padding(PAD_ROW),
         )
         .into()
-}
-
-fn alert_condition_label(condition: &AlertCondition) -> String {
-    let args = |v: f64| HashMap::from([("value", format!("{v:.2}"))]);
-
-    match condition {
-        AlertCondition::PriceAbove(v) => crate::fl!("alerts-label-price-above", args(*v)),
-        AlertCondition::PriceBelow(v) => crate::fl!("alerts-label-price-below", args(*v)),
-        AlertCondition::VariationAbove(v) => crate::fl!("alerts-label-variation-above", args(*v)),
-        AlertCondition::VariationBelow(v) => crate::fl!("alerts-label-variation-below", args(*v)),
-        AlertCondition::TurnPositive => crate::fl!("alerts-label-turns-positive"),
-        AlertCondition::TurnNegative => crate::fl!("alerts-label-turns-negative"),
-    }
-}
-
-fn condition_to_index(condition: &AlertCondition) -> usize {
-    match condition {
-        AlertCondition::PriceAbove(_) => 0,
-        AlertCondition::PriceBelow(_) => 1,
-        AlertCondition::VariationAbove(_) => 2,
-        AlertCondition::VariationBelow(_) => 3,
-        AlertCondition::TurnPositive => 4,
-        AlertCondition::TurnNegative => 5,
-    }
-}
-
-fn index_to_condition(idx: usize, input_value: &str) -> AlertCondition {
-    let val = input_value.parse::<f64>().unwrap_or(0.0);
-    match idx {
-        0 => AlertCondition::PriceAbove(val),
-        1 => AlertCondition::PriceBelow(val),
-        2 => AlertCondition::VariationAbove(val),
-        3 => AlertCondition::VariationBelow(val),
-        4 => AlertCondition::TurnPositive,
-        _ => AlertCondition::TurnNegative,
-    }
 }
 
 fn build_add_alert_message(
