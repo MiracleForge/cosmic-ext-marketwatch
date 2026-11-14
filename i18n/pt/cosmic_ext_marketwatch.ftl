@@ -5,7 +5,7 @@ page-id = Página { $num }
 git-description = Commit do Git {$hash} em {$date}
 
 
-overview-title = Visão do mercado dos EUA
+overview-title = Mercado dos EUA
 
 wallet-name = Nome da carteira
 wallet-updated-at = Atualizado { $time }

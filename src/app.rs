@@ -6,7 +6,7 @@ use crate::components::applet::{self};
 
 use crate::components::header::header;
 use crate::components::infocard::infocard;
-use crate::components::newscard::news_card;
+use crate::components::newscard::{NewsTab, news_card};
 use crate::components::overviewcard::overviewcard;
 use crate::components::settingscard::settingscard;
 use crate::components::walletcard::{Wallet, load_wallets, save_wallets};
@@ -44,7 +44,6 @@ pub struct AppModel {
     market_quotes: Vec<MarketQuote>,
     pub logo_handles: HashMap<String, widget::image::Handle>,
     market_news: Vec<YahooNews>,
-    news_expanded: bool,
     news_per_symbol_input: String,
     config: Config,
     is_horizontal: bool,
@@ -91,7 +90,6 @@ pub enum Message {
     ToggleShowOnlyIcon(bool),
     ToggleShowLogos(bool),
     ToggleShowNews(bool),
-    ToggleNewsExpanded,
     SetRefreshInterval(RefreshInterval),
     SetNumberOfNewsBySymbols(String),
     SetStokeRotationInterval(String),
@@ -214,7 +212,6 @@ impl cosmic::Application for AppModel {
             market_quotes: Vec::new(),
             logo_handles: HashMap::new(),
             market_news: Vec::new(),
-            news_expanded: false,
             news_per_symbol_input: config.count_news_by_simbol.to_string(),
             config,
             is_horizontal,
@@ -328,7 +325,7 @@ impl cosmic::Application for AppModel {
                         .height(Length::Fixed(body_height)),
                 ),
                 PopupTab::News => Some(
-                    widget::container(news_card(&self.market_news, theme))
+                    widget::container(news_card(&self.market_news, self.config.show_news, theme))
                         .height(Length::Fixed(body_height)),
                 ),
                 _ => None,
@@ -625,10 +622,6 @@ impl cosmic::Application for AppModel {
                     );
                 }
                 self.market_news.clear();
-            }
-
-            Message::ToggleNewsExpanded => {
-                self.news_expanded = !self.news_expanded;
             }
 
             Message::AddWallet => {

@@ -136,14 +136,20 @@ pub fn quote_card<'a>(
         .width(Length::Fill);
 
     if show_logo {
-        if let Some(handle) = logo_handle {
-            content = content.push(
-                widget::image(handle.clone())
-                    .width(Length::Fixed(42.0))
-                    .height(Length::Fixed(42.0))
-                    .content_fit(cosmic::iced::ContentFit::Cover),
-            );
-        }
+        let logo: Element<'a, Message> = match logo_handle {
+            Some(handle) => widget::image(handle.clone())
+                .width(Length::Fixed(42.0))
+                .height(Length::Fixed(42.0))
+                .content_fit(cosmic::iced::ContentFit::Cover)
+                .into(),
+
+            None => widget::Space::new()
+                .width(Length::Fixed(42.0))
+                .height(Length::Fixed(42.0))
+                .into(),
+        };
+
+        content = content.push(logo);
     }
 
     content = content.push(
@@ -290,4 +296,26 @@ pub fn render_loading_row(symbol: &str) -> Element<'_, Message> {
             .align_x(Alignment::End),
         )
         .into()
+}
+
+pub fn friendly_message(err_msg: String, err_des: String) -> Element<'static, Message> {
+    widget::container(
+        widget::column![
+            widget::icon::from_name("x-office-news-symbolic").size(32),
+            widget::text::heading(err_msg)
+                .size(TEXT_BODY)
+                .align_x(Alignment::Center),
+            widget::text::body(err_des)
+                .size(TEXT_SMALL)
+                .align_x(Alignment::Center)
+                .class(Text::default())
+        ]
+        .spacing(SPACING_ROW)
+        .align_x(Alignment::Center)
+        .width(Length::Fill),
+    )
+    .width(Length::Fill)
+    .padding([32, 16])
+    .center_y(Length::Fill)
+    .into()
 }

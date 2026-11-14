@@ -4,7 +4,7 @@ welcome = Welcome to COSMIC! ✨
 page-id = Page { $num }
 git-description = Git commit {$hash} on {$date}
 
-overview-title = US Market Overview 
+overview-title = US Market 
 
 wallet-view = US Market Overview
 wallet-name = Wallet name
