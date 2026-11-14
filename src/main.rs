@@ -6,6 +6,7 @@ mod config;
 mod constants;
 mod i18n;
 mod marketwatch;
+mod utils;
 
 fn main() -> cosmic::iced::Result {
     tracing_subscriber::fmt::init();

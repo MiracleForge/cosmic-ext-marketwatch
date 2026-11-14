@@ -3,7 +3,6 @@ use cosmic::Theme;
 use cosmic::iced::Alignment;
 use cosmic::iced::Length;
 use cosmic::prelude::*;
-use cosmic::theme::Text;
 use cosmic::widget;
 
 use crate::app::Message;
@@ -15,7 +14,7 @@ use crate::constants::SPACING_COL;
 use crate::constants::{PAD_CARD, SPACING_ROW};
 
 use crate::marketwatch::YahooNews;
-pub const NEWS_PREVIEW_COUNT: usize = 3;
+use crate::utils::render_card_state;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NewsTab {
@@ -25,19 +24,23 @@ pub enum NewsTab {
 pub fn news_card<'a>(
     news: &'a [YahooNews],
     show_news: bool,
+    error_message: Option<&'a String>,
+    news_loading: bool,
     theme: &Theme,
 ) -> Element<'a, Message> {
-    let cards: Element<'a, Message> = if show_news {
-        widget::column![]
-            .spacing(SPACING_COL)
-            .width(Length::Fill)
-            .extend(news.iter().map(|item| news_frame(item, theme)))
-            .into()
-    } else {
+    let cards: Element<'a, Message> = if !show_news {
         friendly_message(
             crate::fl!("news-disabled-title").to_string(),
             crate::fl!("news-disabled-description").to_string(),
         )
+    } else {
+        render_card_state(news, error_message, news_loading, None, |items| {
+            widget::column![]
+                .spacing(SPACING_COL)
+                .width(Length::Fill)
+                .extend(items.iter().map(|item| news_frame(item, theme)))
+                .into()
+        })
     };
 
     widget::container(

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use cosmic::{Element, widget};
 
-use crate::{config::PopupTab, constants::TEXT_LABEL};
+use crate::config::PopupTab;
 
 pub fn title_dynamic(active_tab: PopupTab) -> Option<Element<'static, crate::app::Message>> {
     let title = match active_tab {
@@ -29,10 +29,10 @@ pub fn overview_subtitle(
         .map(|t| crate::fl!("wallet-updated-at", HashMap::from([("time", t)])))
         .unwrap_or_default();
 
-    widget::container(
-        widget::text::caption_heading(text)
-            .size(10)
-            .class(cosmic::theme::Text::Default),
-    )
-    .into()
+    widget::container(widget::text::caption_heading(text).size(10))
+        .style(|theme| widget::container::Style {
+            text_color: Some(cosmic::iced::Color::from(theme.cosmic().accent_color())),
+            ..Default::default()
+        })
+        .into()
 }

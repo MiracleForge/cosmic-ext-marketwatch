@@ -268,7 +268,7 @@ pub fn news_tab(current_tab: NewsTab) -> Element<'static, Message> {
             current_tab == NewsTab::PORTIFOIO,
         ));
 
-    widget::container(content).padding(10).into()
+    widget::container(content).padding([8, 0]).into()
 }
 
 // TEMP ///

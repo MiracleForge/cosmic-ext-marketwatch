@@ -6,7 +6,7 @@ use crate::components::applet::{self};
 
 use crate::components::header::header;
 use crate::components::infocard::infocard;
-use crate::components::newscard::{NewsTab, news_card};
+use crate::components::newscard::news_card;
 use crate::components::overviewcard::overviewcard;
 use crate::components::settingscard::settingscard;
 use crate::components::walletcard::{Wallet, load_wallets, save_wallets};
@@ -36,6 +36,10 @@ pub const UI_DEBUG_MODE: bool = false;
 #[allow(clippy::struct_excessive_bools)]
 pub struct AppModel {
     active_tab: PopupTab,
+    skeleton_phase: f32,
+    news_error: Option<String>,
+    quotes_loading: bool,
+    news_loading: bool,
     screens_tab: ScreensTab,
     core: cosmic::Core,
     config_handler: Option<cosmic::cosmic_config::Config>,
@@ -73,6 +77,7 @@ pub struct AppModel {
 #[derive(Debug, Clone)]
 pub enum Message {
     Tick,
+    SkeletonTick,
     SetTab(ScreensTab),
 
     RefreshMarket,
@@ -205,6 +210,10 @@ impl cosmic::Application for AppModel {
         let app = AppModel {
             core,
             config_handler,
+            skeleton_phase: 0.0_f32,
+            news_error: None,
+            quotes_loading: true,
+            news_loading: config.show_news,
             popup: None,
             active_tab: PopupTab::Overview,
             screens_tab: ScreensTab::MostActive,
@@ -247,7 +256,16 @@ impl cosmic::Application for AppModel {
         ))
         .map(|_| Message::RefreshMarket);
 
-        Subscription::batch([rotate, refresh])
+        let mut subs = vec![rotate, refresh];
+
+        let loading = self.market_quotes.is_empty() && self.error_message.is_none();
+        if loading {
+            subs.push(
+                cosmic::iced::time::every(Duration::from_millis(50)).map(|_| Message::SkeletonTick),
+            );
+        }
+
+        Subscription::batch(subs)
     }
 
     fn view(&self) -> Element<'_, Self::Message> {
@@ -301,6 +319,7 @@ impl cosmic::Application for AppModel {
 
         let body_height = (max_height - header_height).min(max_body_height).max(120.0);
 
+        let pulse = 0.5 + 0.5 * self.skeleton_phase.sin();
         let content = widget::column![]
             .padding(0)
             .width(Length::Fill)
@@ -311,9 +330,12 @@ impl cosmic::Application for AppModel {
                     widget::container(widget::container(overviewcard(
                         theme,
                         &self.market_quotes,
+                        self.error_message.as_ref(),
+                        self.quotes_loading,
                         self.config.show_logos,
                         self.screens_tab,
                         &self.logo_handles,
+                        pulse,
                     )))
                     .height(Length::Fixed(body_height)),
                 ),
@@ -325,8 +347,14 @@ impl cosmic::Application for AppModel {
                         .height(Length::Fixed(body_height)),
                 ),
                 PopupTab::News => Some(
-                    widget::container(news_card(&self.market_news, self.config.show_news, theme))
-                        .height(Length::Fixed(body_height)),
+                    widget::container(news_card(
+                        &self.market_news,
+                        self.config.show_news,
+                        self.error_message.as_ref(),
+                        self.news_loading,
+                        theme,
+                    ))
+                    .height(Length::Fixed(body_height)),
                 ),
                 _ => None,
             });
@@ -385,6 +413,10 @@ impl cosmic::Application for AppModel {
                 }
             }
 
+            Message::SkeletonTick => {
+                self.skeleton_phase = (self.skeleton_phase + 0.15) % std::f32::consts::TAU;
+            }
+
             Message::SetTab(tab) => {
                 self.screens_tab = tab;
 
@@ -415,6 +447,8 @@ impl cosmic::Application for AppModel {
 
             Message::MarketLoaded(result) => match result {
                 Ok(data) => {
+                    self.quotes_loading = false;
+                    self.news_loading = self.config.show_news;
                     self.market_quotes = data;
                     self.error_message = None;
 
@@ -464,6 +498,9 @@ impl cosmic::Application for AppModel {
                 }
 
                 Err(err) => {
+                    self.quotes_loading = false;
+                    self.news_loading = false;
+                    self.news_error = Some(err.clone());
                     self.error_message = Some(err);
                     self.market_quotes.clear();
 
@@ -497,11 +534,13 @@ impl cosmic::Application for AppModel {
             Message::NewsLoaded(result) => match result {
                 Ok(news) => {
                     self.market_news = news;
+                    self.news_error = None;
                     let key = self.current_cache_key();
                     self.cached_news.insert(key, self.market_news.clone());
                 }
                 Err(err) => {
-                    tracing::warn!("{}", user_friendly_error_message(&err));
+                    tracing::warn!("news fetch failed: {err}");
+                    self.news_error = Some(err.to_string());
                 }
             },
 
@@ -514,6 +553,7 @@ impl cosmic::Application for AppModel {
                 self.market_quotes.clear();
                 self.market_news.clear();
                 self.error_message = None;
+                self.news_error = None;
 
                 let key = self.current_cache_key();
                 self.last_fetch_time.remove(&key);
@@ -529,10 +569,12 @@ impl cosmic::Application for AppModel {
                             Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
                         });
                     }
+                    self.quotes_loading = false;
                     return Task::none();
                 }
 
                 let count = self.config.count_stokes_at_once;
+                self.quotes_loading = true;
 
                 return Task::perform(fetch_by_screeners(count, self.screens_tab), |result| {
                     Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))

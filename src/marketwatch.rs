@@ -2,7 +2,8 @@
 use cosmic::Theme;
 use cosmic::iced::Color;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, sync::OnceLock};
+use std::collections::HashMap;
+use std::{sync::OnceLock, time::Duration};
 
 const USER_AGENT: &str =
     "(cosmic-ext-marketwatch, https://github.com/MiracleForge/cosmic-ext-marketwatch)";
@@ -20,6 +21,8 @@ fn http_client() -> &'static reqwest::Client {
     HTTP_CLIENT.get_or_init(|| {
         reqwest::Client::builder()
             .user_agent(USER_AGENT)
+            .timeout(Duration::from_secs(10))
+            .connect_timeout(Duration::from_secs(5))
             .build()
             .expect("Failed to build HTTP client")
     })
@@ -411,23 +414,44 @@ pub async fn fetch_by_symbols(symbols: Vec<String>) -> Result<Vec<MarketQuote>, 
 //
 // Utils functions
 //
-pub fn user_friendly_error_message(err: &str) -> &'static str {
-    if err.contains("dns error") || err.contains("failed to lookup") {
-        "You're offline. Please check your internet connection."
-    } else if err.contains("timeout") {
-        "The request took too long. Try again in a moment."
+pub fn user_friendly_error_message(err: &str) -> (&'static str, &'static str) {
+    let err = err.to_lowercase();
+
+    if err.contains("dns error")
+        || err.contains("failed to lookup")
+        || err.contains("error trying to connect")
+        || err.contains("network is unreachable")
+        || err.contains("timed out")
+        || err.contains("timeout")
+    {
+        ("You're offline", "Please check your internet connection.")
     } else if err.contains("connection refused") {
-        "Unable to reach the server right now."
+        (
+            "Server unreachable",
+            "Unable to reach the server right now.",
+        )
     } else if err.contains("429") {
-        "Too many requests. Please wait a moment before refreshing."
+        (
+            "Too many requests",
+            "Please wait a moment before refreshing.",
+        )
     } else if err.contains("401") || err.contains("403") {
-        "Access denied. The data source may have changed."
+        ("Access denied", "The data source may have changed.")
     } else if err.contains("404") {
-        "Market data not found. The symbol may be invalid."
+        (
+            "Not found",
+            "Market data not found. The symbol may be invalid.",
+        )
     } else if err.contains("500") || err.contains("502") || err.contains("503") {
-        "The market data service is temporarily unavailable."
+        (
+            "Service unavailable",
+            "The market data service is temporarily unavailable.",
+        )
     } else {
-        "Something went wrong while fetching market data."
+        (
+            "Something went wrong",
+            "An error occurred while fetching market data.",
+        )
     }
 }
 fn format_number(value: f64, decimals: usize, decimal_sep: &str, thousand_sep: &str) -> String {
