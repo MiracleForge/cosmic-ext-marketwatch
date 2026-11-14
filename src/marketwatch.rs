@@ -111,16 +111,16 @@ impl MarketQuote {
 
         let (symbol, decimals, decimal_sep, thousand_sep, symbol_before) =
             match self.currency.as_str() {
-                "USD" => ("$", 2, ".", ",", true),
-                "BRL" => ("R$", 2, ",", ".", true),
-                "EUR" => ("€", 2, ",", ".", false),
-                "GBP" => ("£", 2, ".", ",", true),
-                "JPY" => ("¥", 0, ".", ",", true),
-                "CHF" => ("CHF", 2, ".", "'", false),
-                "CAD" => ("C$", 2, ".", ",", true),
-                "AUD" => ("A$", 2, ".", ",", true),
-                "CNY" => ("¥", 2, ".", ",", true),
-                "INR" => ("₹", 2, ".", ",", true),
+                "USD" => ("$ ", 2, ".", ",", true),
+                "BRL" => ("R$ ", 2, ",", ".", true),
+                "EUR" => ("€ ", 2, ",", ".", false),
+                "GBP" => ("£ ", 2, ".", ",", true),
+                "JPY" => ("¥ ", 0, ".", ",", true),
+                "CHF" => ("CHF ", 2, ".", "'", false),
+                "CAD" => ("C$ ", 2, ".", ",", true),
+                "AUD" => ("A$ ", 2, ".", ",", true),
+                "CNY" => ("¥ ", 2, ".", ",", true),
+                "INR" => ("₹ ", 2, ".", ",", true),
                 _ => (self.currency.as_str(), 2, ".", ",", true),
             };
 
@@ -148,7 +148,7 @@ impl MarketQuote {
     }
 
     pub fn variation_icon(&self) -> &'static str {
-        if self.change >= 0.0 { "▲" } else { "▼" }
+        if self.change >= 0.0 { "+" } else { "-" }
     }
 
     pub fn is_positive(&self) -> bool {

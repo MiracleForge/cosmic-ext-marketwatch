@@ -1,0 +1,85 @@
+
+fn render_wallet<'a>(
+    symbols: &'a [String],
+    quotes: &'a [MarketQuote],
+    search_input: &'a str,
+    search_results: &'a [String],
+    search_loading: bool,
+    asset_limit_reached: bool,
+    theme: &Theme,
+) -> Element<'a, Message> {
+    let mut col = widget::column![]
+        .spacing(SPACING_TAB)
+        .width(Length::Fill)
+        .padding(PAD_TAB);
+
+    col = col.push(render_add_asset_section(
+        search_input,
+        search_results,
+        search_loading,
+        asset_limit_reached,
+    ));
+
+    col.into()
+}
+
+fn render_add_asset_section<'a>(
+    search_input: &'a str,
+    search_results: &'a [String],
+    search_loading: bool,
+    asset_limit_reached: bool,
+) -> Element<'a, Message> {
+    let mut col = widget::column![]
+        .spacing(SPACING_TAB)
+        .push(textlabel(crate::fl!("assets-add")));
+
+    if asset_limit_reached {
+        let args = HashMap::from([("max", MAX_ASSETS_PER_WALLET)]);
+        return col
+            .push(
+                widget::text(crate::fl!("assets-limit", args))
+                    .size(TEXT_BODY)
+                    .class(cosmic::theme::Text::Accent),
+            )
+            .into();
+    }
+
+    col = col.push(
+        widget::text_input(crate::fl!("assets-search-by"), search_input)
+            .on_input(Message::StockSearchInput)
+            .width(Length::Fill),
+    );
+
+    if search_loading {
+        return col
+            .push(
+                widget::text(crate::fl!("assets-loading"))
+                    .size(TEXT_BODY)
+                    .class(cosmic::theme::Text::Accent),
+            )
+            .into();
+    }
+
+    if !search_results.is_empty() {
+        let results_col = widget::column![]
+            .spacing(2)
+            .extend(search_results.iter().map(|label| {
+                widget::button::standard(label.as_str())
+                    .on_press(Message::AddStockToWallet(label.clone()))
+                    .width(Length::Fill)
+                    .into()
+            }));
+
+        return col.push(results_col).into();
+    }
+
+    if search_input.len() >= 2 {
+        col = col.push(
+            widget::text(crate::fl!("assets-not-found"))
+                .size(TEXT_BODY)
+                .class(cosmic::theme::Text::Accent),
+        );
+    }
+
+    col.into()
+}

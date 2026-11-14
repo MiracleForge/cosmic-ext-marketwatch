@@ -8,7 +8,7 @@ git-description = Commit do Git {$hash} em {$date}
 overview-title = Visão do mercado dos EUA
 
 wallet-name = Nome da carteira
-wallet-updated-at = Atualizado às { $time }
+wallet-updated-at = Atualizado { $time }
 
 display-loading = Carregando...
 display-error = Erro
@@ -35,9 +35,9 @@ news-not-avaliable = Nenhuma notícia disponível no momento.
 news-disabled-title = Noticias estão desabilitadas
 news-disabled-description = Ative as noticias nas configurações para ver as ultimas do mercado
 
-screeners-tab-active = Mais negociadas
-screeners-tab-gainers = Maiores altas
-screeners-tab-losers = Maiores baixas
+screeners-tab-active = Volume
+screeners-tab-gainers = Valorização
+screeners-tab-losers = Desvalorização
 
 alerts = Alertas
 alerts-select = Ativo selecionado

@@ -6,11 +6,10 @@ use crate::components::applet::{self};
 
 use crate::components::header::header;
 use crate::components::infocard::infocard;
-use crate::components::maincard::maincard;
 use crate::components::newscard::news_card;
+use crate::components::overviewcard::overviewcard;
 use crate::components::settingscard::settingscard;
-use crate::components::wallet::Wallet;
-use crate::components::wallet::wallet::{load_wallets, save_wallets};
+use crate::components::walletcard::{Wallet, load_wallets, save_wallets};
 use crate::config::{Config, PopupTab, RefreshInterval};
 use crate::marketwatch::{
     AlertCondition, MarketCacheKey, MarketQuote, PriceAlert, ScreensTab, YahooNews,
@@ -290,31 +289,6 @@ impl cosmic::Application for AppModel {
         let theme = self.core.system_theme();
 
         let header = header(last_updated_ref, self.active_tab);
-        let body = maincard(
-            theme,
-            self.active_tab,
-            self.current_wallet_index,
-            self.wallets
-                .get(self.current_wallet_index.saturating_sub(1))
-                .map_or(&[], |w| w.symbols.as_slice()),
-            &self.market_quotes,
-            &self.config,
-            self.error_message.as_ref(),
-            &self.stock_search_input,
-            &self.stock_search_results,
-            self.stock_search_loading,
-            self.wallets
-                .get(self.current_wallet_index.saturating_sub(1))
-                .is_some_and(|w| w.symbols.len() >= MAX_ASSETS_PER_WALLET),
-            self.wallets
-                .get(self.current_wallet_index.saturating_sub(1))
-                .map_or(&[], |w| w.alerts.as_slice()),
-            self.alert_selected_symbol.as_deref(),
-            &self.alert_selected_condition,
-            &self.alert_input_value,
-            self.screens_tab,
-            &self.logo_handles,
-        );
 
         // After almost lose my mind try to fix this, that is the best I can , the max scale this
         // applet is capable to work is 200%
@@ -332,13 +306,19 @@ impl cosmic::Application for AppModel {
 
         let content = widget::column![]
             .padding(0)
-            .spacing(6)
             .width(Length::Fill)
             .height(Length::Shrink)
             .push(widget::container(header).height(Length::Shrink))
             .push_maybe(match self.active_tab {
                 PopupTab::Overview => Some(
-                    widget::container(widget::scrollable(body)).height(Length::Fixed(body_height)),
+                    widget::container(widget::container(overviewcard(
+                        theme,
+                        &self.market_quotes,
+                        self.config.show_logos,
+                        self.screens_tab,
+                        &self.logo_handles,
+                    )))
+                    .height(Length::Fixed(body_height)),
                 ),
                 PopupTab::Info => {
                     Some(widget::container(infocard(theme)).height(Length::Fixed(body_height)))

@@ -11,7 +11,7 @@ use crate::components::newscard::NewsTab;
 use crate::constants::{PAD_CARD, PAD_ROW, SPACING_ROW, TEXT_BODY, TEXT_SMALL};
 
 use crate::config::RefreshInterval;
-use crate::marketwatch::{ScreensTab, YahooNews, format_publish_time};
+use crate::marketwatch::{MarketQuote, ScreensTab, YahooNews, format_publish_time};
 
 pub fn badge_class(theme: &Theme) -> cosmic::theme::Container<'static> {
     let btn = theme.active(false, false, &cosmic::theme::Button::Standard);
@@ -122,6 +122,59 @@ pub fn segmented_card<'a>(
         .into()
 }
 
+pub fn quote_card<'a>(
+    quote: &'a MarketQuote,
+    show_logo: bool,
+    logo_handle: Option<&'a widget::image::Handle>,
+    theme: &Theme,
+) -> Element<'a, Message> {
+    let color = quote.variation_color(theme);
+
+    let mut content = widget::row![]
+        .spacing(SPACING_ROW)
+        .align_y(Alignment::Center)
+        .width(Length::Fill);
+
+    if show_logo {
+        if let Some(handle) = logo_handle {
+            content = content.push(
+                widget::image(handle.clone())
+                    .width(Length::Fixed(42.0))
+                    .height(Length::Fixed(42.0))
+                    .content_fit(cosmic::iced::ContentFit::Cover),
+            );
+        }
+    }
+
+    content = content.push(
+        widget::column![
+            widget::text::heading(&quote.name).size(TEXT_BODY),
+            widget::text::caption_heading(&quote.symbol).size(TEXT_BODY),
+        ]
+        .width(Length::Fill)
+        .spacing(2),
+    );
+
+    content = content.push(
+        widget::column![
+            widget::text::caption_heading(quote.formatted_price())
+                .size(14)
+                .class(Text::Color(color)),
+            widget::text::caption_heading(quote.formatted_variation())
+                .size(TEXT_BODY)
+                .class(Text::Color(color)),
+        ]
+        .align_x(Alignment::End)
+        .spacing(2),
+    );
+
+    widget::container(content)
+        .padding(PAD_CARD)
+        .width(Length::Fill)
+        .class(badge_class(theme))
+        .into()
+}
+
 pub fn textlabel(label: impl Into<String>) -> Element<'static, Message> {
     let label: String = label.into();
     widget::container(widget::text::heading(label).size(TEXT_BODY + 1))
@@ -190,7 +243,7 @@ pub fn overview_tab(current: ScreensTab) -> Element<'static, Message> {
             current == ScreensTab::Losers,
         ));
 
-    widget::container(content).padding(10).into()
+    widget::container(content).padding([8, 0]).into()
 }
 
 pub fn news_tab(current_tab: NewsTab) -> Element<'static, Message> {
@@ -210,4 +263,31 @@ pub fn news_tab(current_tab: NewsTab) -> Element<'static, Message> {
         ));
 
     widget::container(content).padding(10).into()
+}
+
+// TEMP ///
+pub fn render_loading_row(symbol: &str) -> Element<'_, Message> {
+    widget::row![]
+        .align_y(Alignment::Center)
+        .width(Length::Fill)
+        .push(
+            widget::container(widget::text::heading(symbol).class(Text::Default))
+                .width(Length::FillPortion(2))
+                .align_x(Alignment::Start),
+        )
+        .push(
+            widget::container(widget::text(crate::fl!("render-loading")))
+                .width(Length::FillPortion(2))
+                .align_x(Alignment::Center),
+        )
+        .push(
+            widget::container(
+                widget::button::icon(widget::icon::from_name("list-remove-symbolic"))
+                    .on_press(Message::RemoveStockFromWallet(symbol.to_string()))
+                    .padding(PAD_ROW),
+            )
+            .width(Length::FillPortion(1))
+            .align_x(Alignment::End),
+        )
+        .into()
 }

@@ -1,0 +1,20 @@
+
+fn derive_state<'a>(
+    market_quotes: &'a [MarketQuote],
+    error_message: Option<&'a String>,
+) -> QuotesState<'a> {
+    if let Some(err) = error_message {
+        QuotesState::Error(err)
+    } else if market_quotes.is_empty() {
+        QuotesState::Loading
+    } else {
+        QuotesState::Ready(market_quotes)
+    }
+}
+
+
+enum QuotesState<'a> {
+    Loading,
+    Error(&'a str),
+    Ready(&'a [MarketQuote]),
+}

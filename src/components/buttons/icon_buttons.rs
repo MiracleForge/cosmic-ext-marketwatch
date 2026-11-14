@@ -64,21 +64,30 @@ pub fn segmented_button<'a>(
     selected: bool,
 ) -> Element<'a, Message> {
     let label: String = label.into();
-    let text = widget::text(label).size(TEXT_BODY);
-    let underline = widget::container(widget::Space::new())
-        .height(2)
+    let text = widget::text::caption_heading(label);
+
+    // linha: 2px quando ativo, 1px quando inativo
+    let line = widget::container(widget::Space::new())
+        .height(if selected { 2.0 } else { 1.5 })
         .width(Length::Fill)
         .style(move |theme: &cosmic::Theme| {
             let color = if selected {
                 cosmic::iced::Color::from(theme.cosmic().accent_color())
             } else {
-                cosmic::iced::Color::TRANSPARENT
+                let mut c = cosmic::iced::Color::from(theme.cosmic().on_bg_color());
+                c.a = 0.9;
+                c
             };
             widget::container::Style {
                 background: Some(color.into()),
                 ..Default::default()
             }
         });
+
+    let underline = widget::container(line)
+        .height(Length::Fixed(2.0))
+        .width(Length::Fill)
+        .align_y(cosmic::iced::alignment::Vertical::Bottom);
 
     let content = widget::column(vec![text.into(), underline.into()])
         .align_x(cosmic::iced::alignment::Horizontal::Center)
@@ -87,7 +96,11 @@ pub fn segmented_button<'a>(
     widget::button::custom(content)
         .width(Length::FillPortion(1))
         .padding([8, 0])
-        .class(cosmic::theme::Button::Text)
+        .class(if selected {
+            cosmic::theme::Button::Standard
+        } else {
+            cosmic::theme::Button::Text
+        })
         .on_press(msg)
         .into()
 }
