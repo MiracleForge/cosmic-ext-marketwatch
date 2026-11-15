@@ -71,7 +71,7 @@ alert-description-turned-negative = Ficou negativo
 
 settings-title = Configurações
 settings-panel = Painel
-settings-show-icon-only = Mostrar apenas ícones
+settings-show-icon-only = Mostrar apenas o ícone
 settings-disable-custom-alerts = Desativar alertas personalizados
 
 settings-display = Exibição

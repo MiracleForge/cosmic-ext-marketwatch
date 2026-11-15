@@ -20,3 +20,5 @@ pub const TEXT_LABEL: u16 = 14; // emphasis labels
 pub const HARD_CODED_WIDTH: f32 = 180.0;
 
 pub const VALUE_WIDTH: f32 = 50.0;
+
+pub const NEWS_SYMBOLS_LIMIT: usize = 6;

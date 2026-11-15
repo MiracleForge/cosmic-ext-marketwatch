@@ -11,6 +11,7 @@ use crate::components::overviewcard::overviewcard;
 use crate::components::settingscard::settingscard;
 use crate::components::walletcard::{Wallet, load_wallets, save_wallets};
 use crate::config::{Config, PopupTab, RefreshInterval};
+use crate::constants::NEWS_SYMBOLS_LIMIT;
 use crate::marketwatch::{
     AlertCondition, MarketCacheKey, MarketQuote, PriceAlert, ScreensTab, YahooNews,
     fetch_by_screeners, fetch_by_symbols, fetch_logo_handles, fetch_logos, fetch_news_for_symbols,
@@ -81,10 +82,10 @@ pub enum Message {
 
     RefreshMarket,
     TogglePopup,
-    MarketLoaded(Result<Vec<MarketQuote>, String>),
+    MarketLoaded(MarketCacheKey, Result<Vec<MarketQuote>, String>),
     LogosLoaded(HashMap<String, Option<String>>),
     LogoHandlesLoaded(HashMap<String, Vec<u8>>),
-    NewsLoaded(Result<Vec<YahooNews>, String>),
+    NewsLoaded(MarketCacheKey, Result<Vec<YahooNews>, String>),
     PreviusWallet,
     NextWallet,
     NavigateTo(Option<PopupTab>),
@@ -170,12 +171,19 @@ impl cosmic::Application for AppModel {
 
         let count = config.count_stokes_at_once;
         let saved_index = config.last_wallet_index;
-
         let safe_index = if saved_index <= wallets.len() {
             saved_index
         } else {
             0
         };
+
+        let screens_init = ScreensTab::MostActive;
+
+        let should_fetch = !UI_DEBUG_MODE
+            && (safe_index == 0
+                || wallets
+                    .get(safe_index - 1)
+                    .is_some_and(|w| !w.symbols.is_empty()));
 
         let task = if UI_DEBUG_MODE {
             Task::none()
@@ -185,17 +193,26 @@ impl cosmic::Application for AppModel {
                     Task::none()
                 } else {
                     let symbols = wallet.symbols.clone();
-                    Task::perform(fetch_by_symbols(symbols), |result| {
-                        Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
+                    let key = MarketCacheKey::Wallet(safe_index);
+
+                    Task::perform(fetch_by_symbols(symbols), move |result| {
+                        Action::App(Message::MarketLoaded(
+                            key,
+                            result.map_err(|e| e.to_string()),
+                        ))
                     })
                 }
             } else {
                 Task::none()
             }
         } else {
-            let screens_init = ScreensTab::MostActive;
-            Task::perform(fetch_by_screeners(count, screens_init), |result| {
-                Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
+            let key = MarketCacheKey::Screen(screens_init);
+
+            Task::perform(fetch_by_screeners(count, screens_init), move |result| {
+                Action::App(Message::MarketLoaded(
+                    key,
+                    result.map_err(|e| e.to_string()),
+                ))
             })
         };
 
@@ -204,8 +221,8 @@ impl cosmic::Application for AppModel {
             config_handler,
             skeleton_phase: 0.0_f32,
             news_error: None,
-            quotes_loading: true,
-            news_loading: config.show_news,
+            quotes_loading: should_fetch,
+            news_loading: config.show_news && should_fetch,
             popup: None,
             active_tab: PopupTab::Overview,
             screens_tab: ScreensTab::MostActive,
@@ -250,7 +267,9 @@ impl cosmic::Application for AppModel {
 
         let mut subs = vec![rotate, refresh];
 
-        let loading = self.market_quotes.is_empty() && self.error_message.is_none();
+        let loading =
+            self.quotes_loading && self.market_quotes.is_empty() && self.error_message.is_none();
+
         if loading {
             subs.push(
                 cosmic::iced::time::every(Duration::from_millis(50)).map(|_| Message::SkeletonTick),
@@ -417,79 +436,102 @@ impl cosmic::Application for AppModel {
 
                 if cache_valid {
                     self.restore_cached_market(&key);
+                    self.quotes_loading = false;
                     return Task::none();
                 }
 
+                self.market_quotes.clear();
+                self.quotes_loading = true;
                 let count = self.config.count_stokes_at_once;
 
-                return Task::perform(fetch_by_screeners(count, self.screens_tab), |result| {
-                    Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
+                return Task::perform(fetch_by_screeners(count, self.screens_tab), move |result| {
+                    Action::App(Message::MarketLoaded(
+                        key,
+                        result.map_err(|e| e.to_string()),
+                    ))
                 });
             }
 
-            Message::MarketLoaded(result) => match result {
-                Ok(data) => {
-                    self.quotes_loading = false;
-                    self.news_loading = self.config.show_news;
-                    self.market_quotes = data;
-                    self.error_message = None;
+            Message::MarketLoaded(key, result) => {
+                let is_current = key == self.current_cache_key();
 
-                    let key = self.current_cache_key();
-                    self.last_fetch_time.insert(key.clone(), Instant::now());
-                    self.cached_quotes
-                        .insert(key.clone(), self.market_quotes.clone());
+                match result {
+                    Ok(data) => {
+                        // Cache is always written to the ORIGIN key
+                        self.last_fetch_time.insert(key.clone(), Instant::now());
+                        self.cached_quotes.insert(key.clone(), data.clone());
 
-                    self.check_and_trigger_alerts();
-
-                    let mut tasks = Vec::new();
-
-                    if self.config.show_logos {
-                        let logos_symbols: Vec<String> = self
-                            .market_quotes
-                            .iter()
-                            .filter(|q| !self.logo_handles.contains_key(&q.symbol))
-                            .map(|q| q.symbol.clone())
-                            .collect();
-
-                        if !logos_symbols.is_empty() {
-                            tasks.push(Task::perform(fetch_logos(logos_symbols), |logos| {
-                                Action::App(Message::LogosLoaded(logos))
-                            }));
+                        // Response from another tab/wallet: cache only, don't touch the UI
+                        if !is_current {
+                            return Task::none();
                         }
+
+                        self.quotes_loading = false;
+                        self.news_loading = self.config.show_news;
+                        self.market_quotes = data;
+                        self.error_message = None;
+
+                        self.check_and_trigger_alerts();
+
+                        let mut tasks = Vec::new();
+
+                        if self.config.show_logos {
+                            let logos_symbols: Vec<String> = self
+                                .market_quotes
+                                .iter()
+                                .filter(|q| !self.logo_handles.contains_key(&q.symbol))
+                                .map(|q| q.symbol.clone())
+                                .collect();
+
+                            if !logos_symbols.is_empty() {
+                                tasks.push(Task::perform(fetch_logos(logos_symbols), |logos| {
+                                    Action::App(Message::LogosLoaded(logos))
+                                }));
+                            }
+                        }
+
+                        if self.config.show_news {
+                            let news_symbols: Vec<String> = self
+                                .market_quotes
+                                .iter()
+                                .take(NEWS_SYMBOLS_LIMIT)
+                                .map(|q| q.symbol.clone())
+                                .collect();
+                            let count = self.config.count_news_by_simbol;
+                            let news_key = key.clone();
+
+                            tasks.push(Task::perform(
+                                fetch_news_for_symbols(news_symbols, count),
+                                move |result| {
+                                    Action::App(Message::NewsLoaded(
+                                        news_key,
+                                        result.map_err(|e| e.to_string()),
+                                    ))
+                                },
+                            ));
+                        }
+
+                        tasks.push(Task::done(Action::App(Message::Tick)));
+
+                        return Task::batch(tasks);
                     }
 
-                    if self.config.show_news {
-                        let news_symbols: Vec<String> = self
-                            .market_quotes
-                            .iter()
-                            .take(3)
-                            .map(|q| q.symbol.clone())
-                            .collect();
+                    Err(err) => {
+                        // Invalidate the ORIGIN key
+                        self.invalidate_cache_key(&key);
 
-                        tasks.push(Task::perform(
-                            fetch_news_for_symbols(news_symbols, self.config.count_news_by_simbol),
-                            |result| {
-                                Action::App(Message::NewsLoaded(result.map_err(|e| e.to_string())))
-                            },
-                        ));
+                        if !is_current {
+                            return Task::none();
+                        }
+
+                        self.finish_market_loading();
+                        self.error_message = Some(err);
+                        self.market_quotes.clear();
+
+                        return Task::done(Action::App(Message::Tick));
                     }
-
-                    tasks.push(Task::done(Action::App(Message::Tick)));
-
-                    return Task::batch(tasks);
                 }
-
-                Err(err) => {
-                    self.finish_market_loading();
-                    self.news_error = Some(err.clone());
-                    self.error_message = Some(err);
-                    self.market_quotes.clear();
-
-                    self.invalidate_current_market_cache();
-
-                    return Task::done(Action::App(Message::Tick));
-                }
-            },
+            }
 
             Message::LogosLoaded(logos) => {
                 for quote in &mut self.market_quotes {
@@ -510,25 +552,35 @@ impl cosmic::Application for AppModel {
                 }
             }
 
-            Message::NewsLoaded(result) => match result {
-                Ok(news) => {
-                    self.market_news = news;
-                    self.news_error = None;
+            Message::NewsLoaded(key, result) => {
+                let is_current = key == self.current_cache_key();
 
-                    let key = self.current_cache_key();
-                    self.cached_news.insert(key, self.market_news.clone());
+                match result {
+                    Ok(news) => {
+                        self.cached_news.insert(key, news.clone());
+                        if is_current {
+                            self.market_news = news;
+                            self.news_error = None;
+                            self.news_loading = false;
+                        }
+                    }
+                    Err(err) => {
+                        tracing::warn!("news fetch failed: {err}");
+                        if is_current {
+                            self.news_error = Some(err);
+                            self.news_loading = false;
+                        }
+                    }
                 }
-                Err(err) => {
-                    tracing::warn!("news fetch failed: {err}");
-                    self.news_error = Some(err.to_string());
-                }
-            },
+            }
 
             Message::OpenExternalLink(url) => {
                 let _ = std::process::Command::new("xdg-open").arg(url).spawn();
             }
 
             Message::RefreshMarket => {
+                let key = self.current_cache_key(); // 1. captura a chave primeiro
+
                 self.reset_market_view();
                 self.invalidate_current_market_cache();
 
@@ -537,9 +589,13 @@ impl cosmic::Application for AppModel {
                         && !wallet.symbols.is_empty()
                     {
                         let symbols = wallet.symbols.clone();
+                        self.quotes_loading = true;
 
-                        return Task::perform(fetch_by_symbols(symbols), |result| {
-                            Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
+                        return Task::perform(fetch_by_symbols(symbols), move |result| {
+                            Action::App(Message::MarketLoaded(
+                                key,
+                                result.map_err(|e| e.to_string()),
+                            ))
                         });
                     }
 
@@ -550,8 +606,11 @@ impl cosmic::Application for AppModel {
                 let count = self.config.count_stokes_at_once;
                 self.quotes_loading = true;
 
-                return Task::perform(fetch_by_screeners(count, self.screens_tab), |result| {
-                    Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
+                return Task::perform(fetch_by_screeners(count, self.screens_tab), move |result| {
+                    Action::App(Message::MarketLoaded(
+                        key,
+                        result.map_err(|e| e.to_string()),
+                    ))
                 });
             }
 
@@ -612,25 +671,31 @@ impl cosmic::Application for AppModel {
 
             Message::ToggleShowNews(new_value) => {
                 self.config.show_news = new_value;
+                let key = self.current_cache_key();
                 self.save_config();
 
-                if new_value {
+                if new_value && !self.market_quotes.is_empty() {
                     let symbols: Vec<String> = self
                         .market_quotes
                         .iter()
-                        .take(3)
+                        .take(NEWS_SYMBOLS_LIMIT)
                         .map(|q| q.symbol.clone())
                         .collect();
 
+                    self.news_loading = true;
+
                     return Task::perform(
                         fetch_news_for_symbols(symbols, self.config.count_news_by_simbol),
-                        |result| {
-                            Action::App(Message::NewsLoaded(result.map_err(|e| e.to_string())))
+                        move |result| {
+                            Action::App(Message::NewsLoaded(key, result.map_err(|e| e.to_string())))
                         },
                     );
                 }
 
-                self.market_news.clear();
+                if !new_value {
+                    self.market_news.clear();
+                    self.news_loading = false;
+                }
             }
 
             Message::AddWallet => {
@@ -644,7 +709,9 @@ impl cosmic::Application for AppModel {
 
                 self.clear_market_data();
                 self.error_message = None;
-
+                self.quotes_loading = false;
+                self.config.last_wallet_index = self.current_wallet_index;
+                self.save_config();
                 save_wallets(&self.wallets);
             }
 
@@ -677,6 +744,7 @@ impl cosmic::Application for AppModel {
 
                 if cache_valid {
                     self.restore_cached_market(&key);
+                    self.quotes_loading = false;
                     return Task::none();
                 }
 
@@ -687,19 +755,28 @@ impl cosmic::Application for AppModel {
                         && !wallet.symbols.is_empty()
                     {
                         let symbols = wallet.symbols.clone();
+                        self.quotes_loading = true;
 
-                        return Task::perform(fetch_by_symbols(symbols), |result| {
-                            Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
+                        return Task::perform(fetch_by_symbols(symbols), move |result| {
+                            Action::App(Message::MarketLoaded(
+                                key,
+                                result.map_err(|e| e.to_string()),
+                            ))
                         });
                     }
 
+                    self.quotes_loading = false;
                     return Task::none();
                 }
 
                 let count = self.config.count_stokes_at_once;
+                self.quotes_loading = true;
 
-                return Task::perform(fetch_by_screeners(count, self.screens_tab), |result| {
-                    Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
+                return Task::perform(fetch_by_screeners(count, self.screens_tab), move |result| {
+                    Action::App(Message::MarketLoaded(
+                        key,
+                        result.map_err(|e| e.to_string()),
+                    ))
                 });
             }
 
@@ -828,14 +905,21 @@ impl cosmic::Application for AppModel {
                     wallet.symbols.push(symbol);
                     save_wallets(&self.wallets);
 
+                    let key = self.current_cache_key();
                     self.invalidate_current_market_cache();
 
                     let symbols = self.wallets[self.current_wallet_index - 1].symbols.clone();
+                    self.quotes_loading = true;
 
-                    return Task::perform(fetch_by_symbols(symbols), |result| {
-                        Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
+                    return Task::perform(fetch_by_symbols(symbols), move |result| {
+                        Action::App(Message::MarketLoaded(
+                            key,
+                            result.map_err(|e| e.to_string()),
+                        ))
                     });
                 }
+
+                return Task::none();
             }
 
             Message::RemoveStockFromWallet(symbol) => {
@@ -853,37 +937,63 @@ impl cosmic::Application for AppModel {
                         self.active_tab = PopupTab::Overview;
                     }
 
+                    let key = self.current_cache_key();
                     self.invalidate_current_market_cache();
 
                     let symbols = self.wallets[self.current_wallet_index - 1].symbols.clone();
 
                     if symbols.is_empty() {
                         self.clear_market_data();
+                        self.quotes_loading = false;
                         return Task::none();
                     }
 
-                    return Task::perform(fetch_by_symbols(symbols), |result| {
-                        Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
+                    self.quotes_loading = true;
+
+                    return Task::perform(fetch_by_symbols(symbols), move |result| {
+                        Action::App(Message::MarketLoaded(
+                            key,
+                            result.map_err(|e| e.to_string()),
+                        ))
                     });
                 }
             }
 
             Message::DeleteCurrentWallet => {
                 if self.current_wallet_index > 0 {
-                    self.invalidate_current_market_cache();
+                    // Indices shift after removal, so drop ALL wallet caches
+                    self.cached_quotes
+                        .retain(|k, _| !matches!(k, MarketCacheKey::Wallet(_)));
+                    self.last_fetch_time
+                        .retain(|k, _| !matches!(k, MarketCacheKey::Wallet(_)));
+                    self.cached_news
+                        .retain(|k, _| !matches!(k, MarketCacheKey::Wallet(_)));
 
                     self.wallets.remove(self.current_wallet_index - 1);
                     self.current_wallet_index = 0;
                     save_wallets(&self.wallets);
 
+                    self.config.last_wallet_index = 0;
+                    self.save_config();
+
                     self.active_tab = PopupTab::Overview;
                     self.reset_alert_form();
+                    self.clear_market_data();
+                    self.error_message = None;
 
+                    let key = self.current_cache_key();
                     let count = self.config.count_stokes_at_once;
+                    self.quotes_loading = true;
 
-                    return Task::perform(fetch_by_screeners(count, self.screens_tab), |result| {
-                        Action::App(Message::MarketLoaded(result.map_err(|e| e.to_string())))
-                    });
+                    return Task::perform(
+                        fetch_by_screeners(count, self.screens_tab),
+                        move |result| {
+                            Action::App(Message::MarketLoaded(
+                                key,
+                                result.map_err(|e| e.to_string()),
+                            ))
+                        },
+                    );
                 }
             }
 
@@ -1005,10 +1115,13 @@ impl AppModel {
 
     fn invalidate_current_market_cache(&mut self) {
         let key = self.current_cache_key();
+        self.invalidate_cache_key(&key);
+    }
 
-        self.last_fetch_time.remove(&key);
-        self.cached_quotes.remove(&key);
-        self.cached_news.remove(&key);
+    fn invalidate_cache_key(&mut self, key: &MarketCacheKey) {
+        self.last_fetch_time.remove(key);
+        self.cached_quotes.remove(key);
+        self.cached_news.remove(key);
     }
 
     fn clear_all_market_cache(&mut self) {
