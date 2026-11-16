@@ -42,9 +42,14 @@ pub struct AppModel {
     is_horizontal: bool,
 
     skeleton_phase: f32,
+
     market_quotes: Vec<MarketQuote>,
     quotes_loading: bool,
     pub logo_handles: HashMap<String, widget::image::Handle>,
+
+    portfolio_quotes: Vec<MarketQuote>,
+    portfolio_loading: bool,
+    portfolio_error: Option<String>,
 
     market_news: Vec<YahooNews>,
     news_per_symbol_input: String,
@@ -55,6 +60,7 @@ pub struct AppModel {
     error_message: Option<String>,
 
     user_portfolios: Vec<PortFolio>,
+    /// 0 = no portf selected; 1..=N = port selected
     current_portfolio_index: usize,
 
     rename_port_mode: bool,
@@ -169,7 +175,6 @@ impl cosmic::Application for AppModel {
             .max()
             .map_or(0, |max| max + 1);
 
-        let count = config.count_stokes_at_once;
         let saved_index = config.last_portfolio_index;
         let safe_index = if saved_index <= user_portfolios.len() {
             saved_index
@@ -177,57 +182,21 @@ impl cosmic::Application for AppModel {
             0
         };
 
-        let screens_init = ScreensTab::MostActive;
-
-        let should_fetch = !UI_DEBUG_MODE
-            && (safe_index == 0
-                || user_portfolios
-                    .get(safe_index - 1)
-                    .is_some_and(|w| !w.symbols.is_empty()));
-
-        let task = if UI_DEBUG_MODE {
-            Task::none()
-        } else if safe_index > 0 {
-            if let Some(portfolio) = user_portfolios.get(safe_index - 1) {
-                if portfolio.symbols.is_empty() {
-                    Task::none()
-                } else {
-                    let symbols = portfolio.symbols.clone();
-                    let key = MarketCacheKey::Portfolio(safe_index);
-
-                    Task::perform(fetch_by_symbols(symbols), move |result| {
-                        Action::App(Message::MarketLoaded(
-                            key,
-                            result.map_err(|e| e.to_string()),
-                        ))
-                    })
-                }
-            } else {
-                Task::none()
-            }
-        } else {
-            let key = MarketCacheKey::Screen(screens_init);
-
-            Task::perform(fetch_by_screeners(count, screens_init), move |result| {
-                Action::App(Message::MarketLoaded(
-                    key,
-                    result.map_err(|e| e.to_string()),
-                ))
-            })
-        };
-
-        let app = AppModel {
+        let mut app = AppModel {
             core,
             config_handler,
             skeleton_phase: 0.0_f32,
             news_error: None,
-            quotes_loading: should_fetch,
-            news_loading: config.show_news && should_fetch,
+            quotes_loading: false,
+            news_loading: false,
             popup: None,
             active_tab: PopupTab::Overview,
             screens_tab: ScreensTab::MostActive,
             applet_id: widget::Id::unique(),
             market_quotes: Vec::new(),
+            portfolio_quotes: Vec::new(),
+            portfolio_loading: false,
+            portfolio_error: None,
             logo_handles: HashMap::new(),
             market_news: Vec::new(),
             news_per_symbol_input: config.count_news_by_simbol.to_string(),
@@ -251,6 +220,14 @@ impl cosmic::Application for AppModel {
             alert_input_value: String::new(),
         };
 
+        // US market first then portfolio in parallel
+        let task = if UI_DEBUG_MODE {
+            Task::none()
+        } else {
+            app.news_loading = app.config.show_news;
+            Task::batch([app.fetch_market(), app.fetch_current_portfolio()])
+        };
+
         (app, task)
     }
 
@@ -267,10 +244,13 @@ impl cosmic::Application for AppModel {
 
         let mut subs = vec![rotate, refresh];
 
-        let loading =
+        let market_loading =
             self.quotes_loading && self.market_quotes.is_empty() && self.error_message.is_none();
+        let portfolio_loading = self.portfolio_loading
+            && self.portfolio_quotes.is_empty()
+            && self.portfolio_error.is_none();
 
-        if loading {
+        if market_loading || portfolio_loading {
             subs.push(
                 cosmic::iced::time::every(Duration::from_millis(50)).map(|_| Message::SkeletonTick),
             );
@@ -358,28 +338,36 @@ impl cosmic::Application for AppModel {
             ),
 
             PopupTab::Portfolio => {
-                let current_port_name = self
-                    .user_portfolios
-                    .get(self.current_portfolio_index.saturating_sub(1))
-                    .map(|w| w.name.as_str());
+                let has_portfolio = self.current_portfolio_index > 0;
 
-                let current_port_quotes: &[String] = self
-                    .user_portfolios
-                    .get(self.current_portfolio_index.saturating_sub(1))
-                    .map_or(&[], |w| w.symbols.as_slice());
+                let current_portfolio = self
+                    .current_portfolio_index
+                    .checked_sub(1)
+                    .and_then(|i| self.user_portfolios.get(i));
+
+                let current_port_name = current_portfolio.map(|w| w.name.as_str());
+
+                let current_port_symbols: &[String] =
+                    current_portfolio.map_or(&[], |w| w.symbols.as_slice());
+
+                let quotes: &[MarketQuote] = if has_portfolio {
+                    &self.portfolio_quotes
+                } else {
+                    &[]
+                };
 
                 Some(
                     widget::container(portfoliocard(
                         theme,
-                        current_port_quotes,
-                        &self.market_quotes,
+                        current_port_symbols,
+                        quotes,
                         current_port_name,
                         self.current_portfolio_index,
                         self.user_portfolios.len(),
                         self.rename_port_mode,
                         &self.rename_port_input,
-                        self.error_message.as_ref(),
-                        self.quotes_loading,
+                        self.portfolio_error.as_ref(),
+                        self.portfolio_loading,
                         self.config.show_logos,
                         &self.logo_handles,
                         &self.stock_search_input,
@@ -458,7 +446,7 @@ impl cosmic::Application for AppModel {
             Message::SetTab(tab) => {
                 self.screens_tab = tab;
 
-                let key = self.current_cache_key();
+                let key = self.market_key();
                 let refresh_secs = self.config.refresh_interval.as_seconds();
 
                 let cache_valid = self
@@ -473,19 +461,12 @@ impl cosmic::Application for AppModel {
                 }
 
                 self.market_quotes.clear();
-                self.quotes_loading = true;
-                let count = self.config.count_stokes_at_once;
-
-                return Task::perform(fetch_by_screeners(count, self.screens_tab), move |result| {
-                    Action::App(Message::MarketLoaded(
-                        key,
-                        result.map_err(|e| e.to_string()),
-                    ))
-                });
+                return self.fetch_market();
             }
 
             Message::MarketLoaded(key, result) => {
-                let is_current = key == self.current_cache_key();
+                let is_current = self.is_key_current(&key);
+                let is_portfolio = matches!(key, MarketCacheKey::Portfolio(_));
 
                 match result {
                     Ok(data) => {
@@ -498,52 +479,57 @@ impl cosmic::Application for AppModel {
                             return Task::none();
                         }
 
-                        self.quotes_loading = false;
-                        self.news_loading = self.config.show_news;
-                        self.market_quotes = data;
-                        self.error_message = None;
-
-                        self.check_and_trigger_alerts();
-
                         let mut tasks = Vec::new();
 
-                        if self.config.show_logos {
-                            let logos_symbols: Vec<String> = self
-                                .market_quotes
-                                .iter()
-                                .filter(|q| !self.logo_handles.contains_key(&q.symbol))
-                                .map(|q| q.symbol.clone())
-                                .collect();
+                        if is_portfolio {
+                            self.portfolio_loading = false;
+                            self.portfolio_error = None;
+                            self.portfolio_quotes = data;
 
-                            if !logos_symbols.is_empty() {
-                                tasks.push(Task::perform(fetch_logos(logos_symbols), |logos| {
+                            // Alertas pertencem aos portfolios
+                            self.check_and_trigger_alerts();
+                        } else {
+                            self.quotes_loading = false;
+                            self.error_message = None;
+                            self.market_quotes = data;
+
+                            if self.config.show_news {
+                                self.news_loading = true;
+
+                                let news_symbols: Vec<String> = self
+                                    .market_quotes
+                                    .iter()
+                                    .take(NEWS_SYMBOLS_LIMIT)
+                                    .map(|q| q.symbol.clone())
+                                    .collect();
+                                let count = self.config.count_news_by_simbol;
+                                let news_key = key.clone();
+
+                                tasks.push(Task::perform(
+                                    fetch_news_for_symbols(news_symbols, count),
+                                    move |result| {
+                                        Action::App(Message::NewsLoaded(
+                                            news_key,
+                                            result.map_err(|e| e.to_string()),
+                                        ))
+                                    },
+                                ));
+                            } else {
+                                self.news_loading = false;
+                            }
+
+                            tasks.push(Task::done(Action::App(Message::Tick)));
+                        }
+
+                        if self.config.show_logos {
+                            let missing = self.missing_logo_symbols();
+
+                            if !missing.is_empty() {
+                                tasks.push(Task::perform(fetch_logos(missing), |logos| {
                                     Action::App(Message::LogosLoaded(logos))
                                 }));
                             }
                         }
-
-                        if self.config.show_news {
-                            let news_symbols: Vec<String> = self
-                                .market_quotes
-                                .iter()
-                                .take(NEWS_SYMBOLS_LIMIT)
-                                .map(|q| q.symbol.clone())
-                                .collect();
-                            let count = self.config.count_news_by_simbol;
-                            let news_key = key.clone();
-
-                            tasks.push(Task::perform(
-                                fetch_news_for_symbols(news_symbols, count),
-                                move |result| {
-                                    Action::App(Message::NewsLoaded(
-                                        news_key,
-                                        result.map_err(|e| e.to_string()),
-                                    ))
-                                },
-                            ));
-                        }
-
-                        tasks.push(Task::done(Action::App(Message::Tick)));
 
                         return Task::batch(tasks);
                     }
@@ -553,6 +539,13 @@ impl cosmic::Application for AppModel {
                         self.invalidate_cache_key(&key);
 
                         if !is_current {
+                            return Task::none();
+                        }
+
+                        if is_portfolio {
+                            self.portfolio_loading = false;
+                            self.portfolio_error = Some(err);
+                            self.portfolio_quotes.clear();
                             return Task::none();
                         }
 
@@ -566,7 +559,11 @@ impl cosmic::Application for AppModel {
             }
 
             Message::LogosLoaded(logos) => {
-                for quote in &mut self.market_quotes {
+                for quote in self
+                    .market_quotes
+                    .iter_mut()
+                    .chain(self.portfolio_quotes.iter_mut())
+                {
                     if let Some(logo) = logos.get(&quote.symbol) {
                         quote.logo_url = logo.clone();
                     }
@@ -585,7 +582,7 @@ impl cosmic::Application for AppModel {
             }
 
             Message::NewsLoaded(key, result) => {
-                let is_current = key == self.current_cache_key();
+                let is_current = self.is_key_current(&key);
 
                 match result {
                     Ok(news) => {
@@ -611,40 +608,20 @@ impl cosmic::Application for AppModel {
             }
 
             Message::RefreshMarket => {
-                let key = self.current_cache_key();
-
                 self.reset_market_view();
-                self.invalidate_current_market_cache();
+
+                let market_key = self.market_key();
+                self.invalidate_cache_key(&market_key);
+
+                let mut tasks = vec![self.fetch_market()];
 
                 if self.current_portfolio_index > 0 {
-                    if let Some(portfolio) =
-                        self.user_portfolios.get(self.current_portfolio_index - 1)
-                        && !portfolio.symbols.is_empty()
-                    {
-                        let symbols = portfolio.symbols.clone();
-                        self.quotes_loading = true;
-
-                        return Task::perform(fetch_by_symbols(symbols), move |result| {
-                            Action::App(Message::MarketLoaded(
-                                key,
-                                result.map_err(|e| e.to_string()),
-                            ))
-                        });
-                    }
-
-                    self.quotes_loading = false;
-                    return Task::none();
+                    let portfolio_key = self.portfolio_key();
+                    self.invalidate_cache_key(&portfolio_key);
+                    tasks.push(self.fetch_current_portfolio());
                 }
 
-                let count = self.config.count_stokes_at_once;
-                self.quotes_loading = true;
-
-                return Task::perform(fetch_by_screeners(count, self.screens_tab), move |result| {
-                    Action::App(Message::MarketLoaded(
-                        key,
-                        result.map_err(|e| e.to_string()),
-                    ))
-                });
+                return Task::batch(tasks);
             }
 
             Message::SetRefreshInterval(interval) => {
@@ -673,7 +650,15 @@ impl cosmic::Application for AppModel {
             }
 
             Message::NavigateTo(tab) => {
-                self.active_tab = tab.unwrap_or(PopupTab::Overview);
+                let tab = tab.unwrap_or(PopupTab::Overview);
+                self.active_tab = tab;
+
+                if tab == PopupTab::Portfolio
+                    && self.current_portfolio_index == 0
+                    && !self.user_portfolios.is_empty()
+                {
+                    return self.update(Message::SwitchPortfolio(1));
+                }
             }
 
             Message::ToggleShowOnlyIcon(new_value) => {
@@ -687,12 +672,7 @@ impl cosmic::Application for AppModel {
                 self.save_config();
 
                 if new_value {
-                    let missing: Vec<String> = self
-                        .market_quotes
-                        .iter()
-                        .filter(|q| !self.logo_handles.contains_key(&q.symbol))
-                        .map(|q| q.symbol.clone())
-                        .collect();
+                    let missing = self.missing_logo_symbols();
 
                     if !missing.is_empty() {
                         return Task::perform(fetch_logos(missing), |logos| {
@@ -704,7 +684,7 @@ impl cosmic::Application for AppModel {
 
             Message::ToggleShowNews(new_value) => {
                 self.config.show_news = new_value;
-                let key = self.current_cache_key();
+                let key = self.market_key();
                 self.save_config();
 
                 if new_value && !self.market_quotes.is_empty() {
@@ -741,24 +721,28 @@ impl cosmic::Application for AppModel {
                     .push(PortFolio::new(format!("Portfolio {index}")));
                 self.current_portfolio_index = self.user_portfolios.len();
 
-                self.clear_market_data();
-                self.error_message = None;
-                self.quotes_loading = false;
+                // Only clear port
+                self.portfolio_quotes.clear();
+                self.portfolio_error = None;
+                self.portfolio_loading = false;
+
                 self.config.last_portfolio_index = self.current_portfolio_index;
                 self.save_config();
                 save_portfolios(&self.user_portfolios);
             }
 
             Message::SwitchPortfolio(index) => {
-                let total = self.user_portfolios.len() + 1;
-                let safe_index = if index < total { index } else { 0 };
+                let safe_index = if index <= self.user_portfolios.len() {
+                    index
+                } else {
+                    0
+                };
 
                 self.current_portfolio_index = safe_index;
                 self.stock_search_input.clear();
                 self.stock_search_results.clear();
                 self.rename_port_mode = false;
-                self.error_message = None;
-                self.market_news.clear();
+                self.portfolio_error = None;
 
                 if self.active_tab == PopupTab::Alerts {
                     self.active_tab = PopupTab::Overview;
@@ -768,8 +752,14 @@ impl cosmic::Application for AppModel {
                 self.config.last_portfolio_index = safe_index;
                 self.save_config();
 
+                if safe_index == 0 {
+                    self.portfolio_quotes.clear();
+                    self.portfolio_loading = false;
+                    return Task::none();
+                }
+
+                let key = self.portfolio_key();
                 let refresh_secs = self.config.refresh_interval.as_seconds();
-                let key = self.current_cache_key();
 
                 let cache_valid = self
                     .last_fetch_time
@@ -778,76 +768,30 @@ impl cosmic::Application for AppModel {
 
                 if cache_valid {
                     self.restore_cached_market(&key);
-                    self.quotes_loading = false;
+                    self.portfolio_loading = false;
                     return Task::none();
                 }
 
-                self.market_quotes.clear();
-
-                if safe_index > 0 {
-                    if let Some(portfolio) = self.user_portfolios.get(safe_index - 1)
-                        && !portfolio.symbols.is_empty()
-                    {
-                        let symbols = portfolio.symbols.clone();
-                        self.quotes_loading = true;
-
-                        return Task::perform(fetch_by_symbols(symbols), move |result| {
-                            Action::App(Message::MarketLoaded(
-                                key,
-                                result.map_err(|e| e.to_string()),
-                            ))
-                        });
-                    }
-
-                    self.quotes_loading = false;
-                    return Task::none();
-                }
-
-                let count = self.config.count_stokes_at_once;
-                self.quotes_loading = true;
-
-                return Task::perform(fetch_by_screeners(count, self.screens_tab), move |result| {
-                    Action::App(Message::MarketLoaded(
-                        key,
-                        result.map_err(|e| e.to_string()),
-                    ))
-                });
+                self.portfolio_quotes.clear();
+                return self.fetch_current_portfolio();
             }
 
             Message::PreviusPortfolio => {
-                if self.active_tab == PopupTab::Alerts {
+                if self.active_tab == PopupTab::Alerts || self.current_portfolio_index <= 1 {
                     return Task::none();
                 }
 
-                let total = self.user_portfolios.len() + 1;
-
-                if total <= 1 {
-                    return Task::none();
-                }
-
-                let new_index = if self.current_portfolio_index == 0 {
-                    total - 1
-                } else {
-                    self.current_portfolio_index - 1
-                };
-
-                return self.update(Message::SwitchPortfolio(new_index));
+                return self.update(Message::SwitchPortfolio(self.current_portfolio_index - 1));
             }
 
             Message::NextPortfolio => {
-                if self.active_tab == PopupTab::Alerts {
+                if self.active_tab == PopupTab::Alerts
+                    || self.current_portfolio_index >= self.user_portfolios.len()
+                {
                     return Task::none();
                 }
 
-                let total = self.user_portfolios.len() + 1;
-
-                if total <= 1 {
-                    return Task::none();
-                }
-
-                let new_index = (self.current_portfolio_index + 1) % total;
-
-                return self.update(Message::SwitchPortfolio(new_index));
+                return self.update(Message::SwitchPortfolio(self.current_portfolio_index + 1));
             }
 
             Message::ToggleRenameMode => {
@@ -941,20 +885,10 @@ impl cosmic::Application for AppModel {
                     portfolio.symbols.push(symbol);
                     save_portfolios(&self.user_portfolios);
 
-                    let key = self.current_cache_key();
-                    self.invalidate_current_market_cache();
+                    let key = self.portfolio_key();
+                    self.invalidate_cache_key(&key);
 
-                    let symbols = self.user_portfolios[self.current_portfolio_index - 1]
-                        .symbols
-                        .clone();
-                    self.quotes_loading = true;
-
-                    return Task::perform(fetch_by_symbols(symbols), move |result| {
-                        Action::App(Message::MarketLoaded(
-                            key,
-                            result.map_err(|e| e.to_string()),
-                        ))
-                    });
+                    return self.fetch_current_portfolio();
                 }
 
                 return Task::none();
@@ -975,27 +909,11 @@ impl cosmic::Application for AppModel {
                         self.active_tab = PopupTab::Overview;
                     }
 
-                    let key = self.current_cache_key();
-                    self.invalidate_current_market_cache();
+                    let key = self.portfolio_key();
+                    self.invalidate_cache_key(&key);
+                    self.portfolio_error = None;
 
-                    let symbols = self.user_portfolios[self.current_portfolio_index - 1]
-                        .symbols
-                        .clone();
-
-                    if symbols.is_empty() {
-                        self.clear_market_data();
-                        self.quotes_loading = false;
-                        return Task::none();
-                    }
-
-                    self.quotes_loading = true;
-
-                    return Task::perform(fetch_by_symbols(symbols), move |result| {
-                        Action::App(Message::MarketLoaded(
-                            key,
-                            result.map_err(|e| e.to_string()),
-                        ))
-                    });
+                    return self.fetch_current_portfolio();
                 }
             }
 
@@ -1011,30 +929,23 @@ impl cosmic::Application for AppModel {
 
                     self.user_portfolios
                         .remove(self.current_portfolio_index - 1);
-                    self.current_portfolio_index = 0;
+
+                    self.current_portfolio_index =
+                        self.current_portfolio_index.min(self.user_portfolios.len());
+
+                    self.portfolio_quotes.clear();
+                    self.portfolio_error = None;
+                    self.portfolio_loading = false;
+                    self.rename_port_mode = false;
                     save_portfolios(&self.user_portfolios);
 
-                    self.config.last_portfolio_index = 0;
+                    self.config.last_portfolio_index = self.current_portfolio_index;
                     self.save_config();
 
                     self.active_tab = PopupTab::Overview;
                     self.reset_alert_form();
-                    self.clear_market_data();
-                    self.error_message = None;
 
-                    let key = self.current_cache_key();
-                    let count = self.config.count_stokes_at_once;
-                    self.quotes_loading = true;
-
-                    return Task::perform(
-                        fetch_by_screeners(count, self.screens_tab),
-                        move |result| {
-                            Action::App(Message::MarketLoaded(
-                                key,
-                                result.map_err(|e| e.to_string()),
-                            ))
-                        },
-                    );
+                    return self.fetch_current_portfolio();
                 }
             }
 
@@ -1113,17 +1024,86 @@ impl AppModel {
         }
     }
 
+    fn market_key(&self) -> MarketCacheKey {
+        MarketCacheKey::Screen(self.screens_tab)
+    }
+
+    fn portfolio_key(&self) -> MarketCacheKey {
+        MarketCacheKey::Portfolio(self.current_portfolio_index)
+    }
+
     fn current_cache_key(&self) -> MarketCacheKey {
-        if self.current_portfolio_index > 0 {
-            MarketCacheKey::Portfolio(self.current_portfolio_index)
+        if self.active_tab == PopupTab::Portfolio && self.current_portfolio_index > 0 {
+            self.portfolio_key()
         } else {
-            MarketCacheKey::Screen(self.screens_tab)
+            self.market_key()
         }
+    }
+
+    fn is_key_current(&self, key: &MarketCacheKey) -> bool {
+        match key {
+            MarketCacheKey::Screen(tab) => *tab == self.screens_tab,
+            MarketCacheKey::Portfolio(i) => *i == self.current_portfolio_index,
+        }
+    }
+
+    fn fetch_market(&mut self) -> Task<cosmic::Action<Message>> {
+        self.quotes_loading = true;
+
+        let key = self.market_key();
+        let count = self.config.count_stokes_at_once;
+
+        Task::perform(fetch_by_screeners(count, self.screens_tab), move |result| {
+            Action::App(Message::MarketLoaded(
+                key,
+                result.map_err(|e| e.to_string()),
+            ))
+        })
+    }
+
+    fn fetch_current_portfolio(&mut self) -> Task<cosmic::Action<Message>> {
+        let symbols = self
+            .current_portfolio_index
+            .checked_sub(1)
+            .and_then(|i| self.user_portfolios.get(i))
+            .map(|p| p.symbols.clone())
+            .unwrap_or_default();
+
+        if symbols.is_empty() {
+            self.portfolio_quotes.clear();
+            self.portfolio_loading = false;
+            return Task::none();
+        }
+
+        self.portfolio_loading = true;
+
+        let key = self.portfolio_key();
+
+        Task::perform(fetch_by_symbols(symbols), move |result| {
+            Action::App(Message::MarketLoaded(
+                key,
+                result.map_err(|e| e.to_string()),
+            ))
+        })
+    }
+
+    fn missing_logo_symbols(&self) -> Vec<String> {
+        let mut missing: Vec<String> = self
+            .market_quotes
+            .iter()
+            .chain(&self.portfolio_quotes)
+            .filter(|q| !self.logo_handles.contains_key(&q.symbol))
+            .map(|q| q.symbol.clone())
+            .collect();
+
+        missing.sort();
+        missing.dedup();
+        missing
     }
 
     fn check_and_trigger_alerts(&mut self) {
         let quotes: HashMap<&str, &MarketQuote> = self
-            .market_quotes
+            .portfolio_quotes
             .iter()
             .map(|q| (q.symbol.as_str(), q))
             .collect();
@@ -1152,11 +1132,6 @@ impl AppModel {
         if changed {
             save_portfolios(&self.user_portfolios);
         }
-    }
-
-    fn invalidate_current_market_cache(&mut self) {
-        let key = self.current_cache_key();
-        self.invalidate_cache_key(&key);
     }
 
     fn invalidate_cache_key(&mut self, key: &MarketCacheKey) {
@@ -1189,12 +1164,21 @@ impl AppModel {
     }
 
     fn restore_cached_market(&mut self, key: &MarketCacheKey) {
-        if let Some(cached) = self.cached_quotes.get(key) {
-            self.market_quotes = cached.clone();
-        }
+        let Some(cached) = self.cached_quotes.get(key) else {
+            return;
+        };
 
-        if let Some(cached) = self.cached_news.get(key) {
-            self.market_news = cached.clone();
+        match key {
+            MarketCacheKey::Portfolio(_) => {
+                self.portfolio_quotes = cached.clone();
+            }
+            MarketCacheKey::Screen(_) => {
+                self.market_quotes = cached.clone();
+
+                if let Some(news) = self.cached_news.get(key) {
+                    self.market_news = news.clone();
+                }
+            }
         }
     }
 

@@ -31,7 +31,9 @@ pub fn portfoliocard<'a>(
 ) -> Element<'a, Message> {
     let search_input = stock_search_input(crate::fl!("assets-search-by").to_string(), search_value);
 
-    let rename_button = (number_of_port > 0).then(|| {
+    let has_selected = number_of_port > 0 && current_index > 0;
+
+    let rename_button = has_selected.then(|| {
         let (icon, message) = if rename_mode {
             ("emblem-ok-symbolic", Message::ConfirmRenamePortfolio)
         } else {
@@ -44,15 +46,7 @@ pub fn portfoliocard<'a>(
         icon_button(None, icon, message)
     });
 
-    let previous_button = icon_button(
-        Some(number_of_port > 0 && current_index == 1),
-        "go-previous-symbolic",
-        Message::PreviusPortfolio,
-    );
-
-    let next_button = icon_button(None, "go-next-symbolic", Message::NextPortfolio);
-
-    let name_space: Option<Element<'_, Message>> = (number_of_port > 0).then(|| {
+    let name_space: Option<Element<'_, Message>> = has_selected.then(|| {
         if rename_mode {
             widget::text_input(crate::fl!("wallet-name"), rename_input)
                 .on_input(Message::RenamePortfolio)
@@ -64,13 +58,22 @@ pub fn portfoliocard<'a>(
         }
     });
 
-    let delete_button = (number_of_port > 0).then(|| {
-        icon_button(
-            Some(number_of_port > 0),
-            "user-trash-symbolic",
-            Message::DeleteCurrentPortfolio,
-        )
-    });
+    // None = habilitado (sem flag de desabilitar)
+    let delete_button = has_selected
+        .then(|| icon_button(None, "user-trash-symbolic", Message::DeleteCurrentPortfolio));
+
+    // A navegação agora só anda entre 1..=N, então as pontas ficam desabilitadas
+    let previous_button = icon_button(
+        Some(!has_selected || current_index <= 1),
+        "go-previous-symbolic",
+        Message::PreviusPortfolio,
+    );
+
+    let next_button = icon_button(
+        Some(!has_selected || current_index >= number_of_port),
+        "go-next-symbolic",
+        Message::NextPortfolio,
+    );
 
     let portfolio_bar = widget::row![
         name_space,
