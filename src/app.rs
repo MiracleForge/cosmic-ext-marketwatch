@@ -280,8 +280,8 @@ impl cosmic::Application for AppModel {
 
     fn view_window(&self, _id: Id) -> Element<'_, Self::Message> {
         let last_updated = self
-            .last_fetch_time
-            .get(&self.current_cache_key())
+            .last_updated_key()
+            .and_then(|key| self.last_fetch_time.get(&key))
             .map(|instant| {
                 let timestamp = std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
@@ -1032,11 +1032,12 @@ impl AppModel {
         MarketCacheKey::Portfolio(self.current_portfolio_index)
     }
 
-    fn current_cache_key(&self) -> MarketCacheKey {
-        if self.active_tab == PopupTab::Portfolio && self.current_portfolio_index > 0 {
-            self.portfolio_key()
+    fn last_updated_key(&self) -> Option<MarketCacheKey> {
+        if self.active_tab == PopupTab::Portfolio {
+            // Sem portfolio selecionado, não mostra nada
+            (self.current_portfolio_index > 0).then(|| self.portfolio_key())
         } else {
-            self.market_key()
+            Some(self.market_key())
         }
     }
 

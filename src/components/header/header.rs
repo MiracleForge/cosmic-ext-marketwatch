@@ -19,7 +19,6 @@ pub fn header(
     )
     .then(|| icon_button(None, "view-refresh-symbolic", Message::RefreshMarket));
 
-    // TODO:CHANGE MESSAGE
     let create_port_button = (matches!(active_tab, PopupTab::Portfolio)
         && portfolio_count < MAX_PORTFOLIOS)
         .then(|| icon_button(None, "list-add-symbolic", Message::AddPortfolio));
