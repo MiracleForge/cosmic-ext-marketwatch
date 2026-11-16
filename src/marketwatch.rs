@@ -95,7 +95,7 @@ impl ScreensTab {
 
 #[derive(Hash, Eq, PartialEq, Clone, Debug)]
 pub enum MarketCacheKey {
-    Wallet(usize),
+    Portfolio(usize),
     Screen(ScreensTab),
 }
 

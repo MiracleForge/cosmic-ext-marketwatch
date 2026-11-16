@@ -7,7 +7,7 @@ use crate::config::PopupTab;
 pub fn title_dynamic(active_tab: PopupTab) -> Option<Element<'static, crate::app::Message>> {
     let title = match active_tab {
         PopupTab::Overview => crate::fl!("overview-title").to_string(),
-        PopupTab::Wallet => "Wallet".to_string(),
+        PopupTab::Portfolio => crate::fl!("port-base").to_string(),
         PopupTab::News => "News".to_string(),
         PopupTab::Settings => crate::fl!("settings-title").to_string(),
         PopupTab::Alerts | PopupTab::Trending => "Alerts".to_string(),
@@ -21,7 +21,7 @@ pub fn overview_subtitle(
     active_tab: PopupTab,
     last_updated: Option<String>,
 ) -> Element<'static, crate::app::Message> {
-    if active_tab != PopupTab::Overview {
+    if !matches!(active_tab, PopupTab::Overview | PopupTab::Portfolio) {
         return widget::Space::new().into();
     }
 

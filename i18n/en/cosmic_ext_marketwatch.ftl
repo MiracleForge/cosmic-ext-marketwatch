@@ -9,6 +9,7 @@ overview-title = US Market
 wallet-view = US Market Overview
 wallet-name = Wallet name
 wallet-updated-at = Updated at { $time }
+port-base = My portfolio
 
 display-loading = Loading...
 display-error = Error 

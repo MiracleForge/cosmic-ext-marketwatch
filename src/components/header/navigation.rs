@@ -23,7 +23,7 @@ pub fn navigation(active_tab: PopupTab) -> Element<'static, Message> {
             icon_button(
                 None,
                 "payment-card-symbolic",
-                Message::NavigateTo(Some(PopupTab::Wallet)),
+                Message::NavigateTo(Some(PopupTab::Portfolio)),
             ),
             icon_button(
                 None,

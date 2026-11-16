@@ -18,7 +18,7 @@ fn render_alerts_tab<'a>(
     selected_symbol: Option<&'a str>,
     selected_condition: &'a AlertCondition,
     input_value: &'a str,
-    wallet_index: usize,
+    portfolio_index: usize,
     market_quotes: &'a [MarketQuote],
     theme: &Theme,
 ) -> Element<'a, Message> {
@@ -125,7 +125,7 @@ fn render_alerts_tab<'a>(
                     .push(
                         widget::button::suggested(crate::fl!("alerts-value-add")).on_press_maybe(
                             build_add_alert_message(
-                                wallet_index,
+                                portfolio_index,
                                 selected_symbol,
                                 selected_condition,
                                 input_value,
@@ -151,15 +151,15 @@ fn render_alerts_tab<'a>(
         );
     } else {
         for alert in alerts {
-            col =
-                col.push(widget::container(render_alert_row(alert, wallet_index)).padding(PAD_ROW))
+            col = col
+                .push(widget::container(render_alert_row(alert, portfolio_index)).padding(PAD_ROW))
         }
     }
 
     col.into()
 }
 
-fn render_alert_row(alert: &PriceAlert, wallet_index: usize) -> Element<'_, Message> {
+fn render_alert_row(alert: &PriceAlert, portfolio_index: usize) -> Element<'_, Message> {
     let label = alert_condition_label(&alert.condition);
     let toggle_icon = if alert.enabled {
         "media-playback-pause-symbolic"
@@ -180,7 +180,7 @@ fn render_alert_row(alert: &PriceAlert, wallet_index: usize) -> Element<'_, Mess
         .push(
             widget::button::icon(widget::icon::from_name(toggle_icon))
                 .on_press(Message::ToggleAlert {
-                    wallet_index,
+                    portfolio_index,
                     alert_id: alert.id,
                 })
                 .padding(PAD_ROW),
@@ -188,7 +188,7 @@ fn render_alert_row(alert: &PriceAlert, wallet_index: usize) -> Element<'_, Mess
         .push(
             widget::button::icon(widget::icon::from_name("list-remove-symbolic"))
                 .on_press(Message::RemoveAlert {
-                    wallet_index,
+                    portfolio_index,
                     alert_id: alert.id,
                 })
                 .padding(PAD_ROW),
@@ -197,7 +197,7 @@ fn render_alert_row(alert: &PriceAlert, wallet_index: usize) -> Element<'_, Mess
 }
 
 fn build_add_alert_message(
-    wallet_index: usize,
+    portfolio_index: usize,
     selected_symbol: Option<&str>,
     condition: &AlertCondition,
     input_value: &str,
@@ -222,7 +222,7 @@ fn build_add_alert_message(
     };
 
     Some(Message::AddAlert {
-        wallet_index,
+        portfolio_index,
         symbol,
         condition: final_condition,
     })

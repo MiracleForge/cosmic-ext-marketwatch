@@ -1,14 +1,3 @@
-// SPDX-License-Identifier: GPL-3.0-only
-
-use crate::components::ui::{overview_tab, textlabel};
-use crate::constants::{SPACING_COL, TEXT_BODY};
-use crate::marketwatch::MarketQuote;
-use cosmic::Theme;
-use cosmic::prelude::*;
-use cosmic::widget;
-
-use crate::app::Message;
-
 fn render_portfolio_section<'a>(
     _symbols: &'a [String],
     _quotes: &'a [MarketQuote],

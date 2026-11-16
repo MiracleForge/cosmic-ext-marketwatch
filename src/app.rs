@@ -1,6 +1,4 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// TODO: REMOVE MY OWN SLOP
-//TODO: CACHE HELPERS
 use crate::components::applet::{self};
 
 use crate::components::alertcard::notify_alert;
@@ -8,10 +6,10 @@ use crate::components::header::header;
 use crate::components::infocard::infocard;
 use crate::components::newscard::news_card;
 use crate::components::overviewcard::overviewcard;
+use crate::components::portfoliocard::{PortFolio, load_portfolio, portfoliocard, save_portfolios};
 use crate::components::settingscard::settingscard;
-use crate::components::walletcard::{Wallet, load_wallets, save_wallets};
 use crate::config::{Config, PopupTab, RefreshInterval};
-use crate::constants::NEWS_SYMBOLS_LIMIT;
+use crate::constants::{MAX_ASSETS_PER_PORTFOLIO, MAX_PORTFOLIOS, NEWS_SYMBOLS_LIMIT};
 use crate::marketwatch::{
     AlertCondition, MarketCacheKey, MarketQuote, PriceAlert, ScreensTab, YahooNews,
     fetch_by_screeners, fetch_by_symbols, fetch_logo_handles, fetch_logos, fetch_news_for_symbols,
@@ -30,35 +28,37 @@ use std::time::{Duration, Instant};
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-pub const MAX_WALLETS: usize = 10;
-pub const MAX_ASSETS_PER_WALLET: usize = 10;
 pub const UI_DEBUG_MODE: bool = false;
 
 #[allow(clippy::struct_excessive_bools)]
 pub struct AppModel {
-    active_tab: PopupTab,
-    skeleton_phase: f32,
-    news_error: Option<String>,
-    quotes_loading: bool,
-    news_loading: bool,
-    screens_tab: ScreensTab,
-    core: cosmic::Core,
-    config_handler: Option<cosmic::cosmic_config::Config>,
-    popup: Option<Id>,
     applet_id: widget::Id,
+    popup: Option<Id>,
+    config_handler: Option<cosmic::cosmic_config::Config>,
+    config: Config,
+    core: cosmic::Core,
+    active_tab: PopupTab,
+    screens_tab: ScreensTab,
+    is_horizontal: bool,
+
+    skeleton_phase: f32,
     market_quotes: Vec<MarketQuote>,
+    quotes_loading: bool,
     pub logo_handles: HashMap<String, widget::image::Handle>,
+
     market_news: Vec<YahooNews>,
     news_per_symbol_input: String,
-    config: Config,
-    is_horizontal: bool,
+    news_loading: bool,
+    news_error: Option<String>,
+
     current_index: usize,
     error_message: Option<String>,
-    wallets: Vec<Wallet>,
-    current_wallet_index: usize,
 
-    rename_mode: bool,
-    rename_input: String,
+    user_portfolios: Vec<PortFolio>,
+    current_portfolio_index: usize,
+
+    rename_port_mode: bool,
+    rename_port_input: String,
 
     stock_search_input: String,
     stock_search_results: Vec<String>,
@@ -86,8 +86,8 @@ pub enum Message {
     LogosLoaded(HashMap<String, Option<String>>),
     LogoHandlesLoaded(HashMap<String, Vec<u8>>),
     NewsLoaded(MarketCacheKey, Result<Vec<YahooNews>, String>),
-    PreviusWallet,
-    NextWallet,
+    PreviusPortfolio,
+    NextPortfolio,
     NavigateTo(Option<PopupTab>),
     OpenExternalLink(String),
     ToggleShowOnlyIcon(bool),
@@ -97,31 +97,31 @@ pub enum Message {
     SetNumberOfNewsBySymbols(String),
     SetStokeRotationInterval(String),
     // wallet navegation
-    SwitchWallet(usize),
+    SwitchPortfolio(usize),
     // wallet management
-    AddWallet,
-    DeleteCurrentWallet,
-    RenameWallet(String),
-    ConfirmRenameWallet,
+    AddPortfolio,
+    DeleteCurrentPortfolio,
+    RenamePortfolio(String),
+    ConfirmRenamePortfolio,
     ToggleRenameMode,
 
     ToggleAlertsEnabled(bool),
     // Stocks on wallet
-    AddStockToWallet(String),
-    RemoveStockFromWallet(String),
+    AddStockToPortfolio(String),
+    RemoveStockFromPortfolio(String),
 
     // Alerts
     AddAlert {
-        wallet_index: usize,
+        portfolio_index: usize,
         symbol: String,
         condition: AlertCondition,
     },
     RemoveAlert {
-        wallet_index: usize,
+        portfolio_index: usize,
         alert_id: u64,
     },
     ToggleAlert {
-        wallet_index: usize,
+        portfolio_index: usize,
         alert_id: u64,
     },
 
@@ -160,9 +160,9 @@ impl cosmic::Application for AppModel {
             .unwrap_or_default();
         let is_horizontal = matches!(core.applet.anchor, PanelAnchor::Top | PanelAnchor::Bottom);
 
-        let wallets = load_wallets();
+        let user_portfolios = load_portfolio();
 
-        let next_alert_id = wallets
+        let next_alert_id = user_portfolios
             .iter()
             .flat_map(|w| &w.alerts)
             .map(|a| a.id)
@@ -170,8 +170,8 @@ impl cosmic::Application for AppModel {
             .map_or(0, |max| max + 1);
 
         let count = config.count_stokes_at_once;
-        let saved_index = config.last_wallet_index;
-        let safe_index = if saved_index <= wallets.len() {
+        let saved_index = config.last_portfolio_index;
+        let safe_index = if saved_index <= user_portfolios.len() {
             saved_index
         } else {
             0
@@ -181,19 +181,19 @@ impl cosmic::Application for AppModel {
 
         let should_fetch = !UI_DEBUG_MODE
             && (safe_index == 0
-                || wallets
+                || user_portfolios
                     .get(safe_index - 1)
                     .is_some_and(|w| !w.symbols.is_empty()));
 
         let task = if UI_DEBUG_MODE {
             Task::none()
         } else if safe_index > 0 {
-            if let Some(wallet) = wallets.get(safe_index - 1) {
-                if wallet.symbols.is_empty() {
+            if let Some(portfolio) = user_portfolios.get(safe_index - 1) {
+                if portfolio.symbols.is_empty() {
                     Task::none()
                 } else {
-                    let symbols = wallet.symbols.clone();
-                    let key = MarketCacheKey::Wallet(safe_index);
+                    let symbols = portfolio.symbols.clone();
+                    let key = MarketCacheKey::Portfolio(safe_index);
 
                     Task::perform(fetch_by_symbols(symbols), move |result| {
                         Action::App(Message::MarketLoaded(
@@ -235,10 +235,10 @@ impl cosmic::Application for AppModel {
             is_horizontal,
             current_index: 0,
             error_message: None,
-            wallets,
-            current_wallet_index: safe_index,
-            rename_mode: false,
-            rename_input: String::new(),
+            user_portfolios,
+            current_portfolio_index: safe_index,
+            rename_port_mode: false,
+            rename_port_input: String::new(),
             stock_search_input: String::new(),
             stock_search_results: Vec::new(),
             stock_search_loading: false,
@@ -353,6 +353,20 @@ impl cosmic::Application for AppModel {
                     self.error_message.as_ref(),
                     self.news_loading,
                     theme,
+                ))
+                .height(Length::Fixed(body_height)),
+            ),
+
+            PopupTab::Portfolio => Some(
+                widget::container(portfoliocard(
+                    theme,
+                    &self.market_quotes,
+                    self.error_message.as_ref(),
+                    self.quotes_loading,
+                    self.config.show_logos,
+                    &self.logo_handles,
+                    &self.stock_search_input,
+                    pulse,
                 ))
                 .height(Length::Fixed(body_height)),
             ),
@@ -579,16 +593,17 @@ impl cosmic::Application for AppModel {
             }
 
             Message::RefreshMarket => {
-                let key = self.current_cache_key(); // 1. captura a chave primeiro
+                let key = self.current_cache_key();
 
                 self.reset_market_view();
                 self.invalidate_current_market_cache();
 
-                if self.current_wallet_index > 0 {
-                    if let Some(wallet) = self.wallets.get(self.current_wallet_index - 1)
-                        && !wallet.symbols.is_empty()
+                if self.current_portfolio_index > 0 {
+                    if let Some(portfolio) =
+                        self.user_portfolios.get(self.current_portfolio_index - 1)
+                        && !portfolio.symbols.is_empty()
                     {
-                        let symbols = wallet.symbols.clone();
+                        let symbols = portfolio.symbols.clone();
                         self.quotes_loading = true;
 
                         return Task::perform(fetch_by_symbols(symbols), move |result| {
@@ -698,31 +713,32 @@ impl cosmic::Application for AppModel {
                 }
             }
 
-            Message::AddWallet => {
-                if self.wallets.len() >= MAX_WALLETS {
+            Message::AddPortfolio => {
+                if self.user_portfolios.len() >= MAX_PORTFOLIOS {
                     return Task::none();
                 }
 
-                let index = self.wallets.len() + 1;
-                self.wallets.push(Wallet::new(format!("Wallet {index}")));
-                self.current_wallet_index = self.wallets.len();
+                let index = self.user_portfolios.len() + 1;
+                self.user_portfolios
+                    .push(PortFolio::new(format!("Portfolio {index}")));
+                self.current_portfolio_index = self.user_portfolios.len();
 
                 self.clear_market_data();
                 self.error_message = None;
                 self.quotes_loading = false;
-                self.config.last_wallet_index = self.current_wallet_index;
+                self.config.last_portfolio_index = self.current_portfolio_index;
                 self.save_config();
-                save_wallets(&self.wallets);
+                save_portfolios(&self.user_portfolios);
             }
 
-            Message::SwitchWallet(index) => {
-                let total = self.wallets.len() + 1;
+            Message::SwitchPortfolio(index) => {
+                let total = self.user_portfolios.len() + 1;
                 let safe_index = if index < total { index } else { 0 };
 
-                self.current_wallet_index = safe_index;
+                self.current_portfolio_index = safe_index;
                 self.stock_search_input.clear();
                 self.stock_search_results.clear();
-                self.rename_mode = false;
+                self.rename_port_mode = false;
                 self.error_message = None;
                 self.market_news.clear();
 
@@ -731,7 +747,7 @@ impl cosmic::Application for AppModel {
                     self.reset_alert_form();
                 }
 
-                self.config.last_wallet_index = safe_index;
+                self.config.last_portfolio_index = safe_index;
                 self.save_config();
 
                 let refresh_secs = self.config.refresh_interval.as_seconds();
@@ -751,10 +767,10 @@ impl cosmic::Application for AppModel {
                 self.market_quotes.clear();
 
                 if safe_index > 0 {
-                    if let Some(wallet) = self.wallets.get(safe_index - 1)
-                        && !wallet.symbols.is_empty()
+                    if let Some(portfolio) = self.user_portfolios.get(safe_index - 1)
+                        && !portfolio.symbols.is_empty()
                     {
-                        let symbols = wallet.symbols.clone();
+                        let symbols = portfolio.symbols.clone();
                         self.quotes_loading = true;
 
                         return Task::perform(fetch_by_symbols(symbols), move |result| {
@@ -780,66 +796,68 @@ impl cosmic::Application for AppModel {
                 });
             }
 
-            Message::PreviusWallet => {
+            Message::PreviusPortfolio => {
                 if self.active_tab == PopupTab::Alerts {
                     return Task::none();
                 }
 
-                let total = self.wallets.len() + 1;
+                let total = self.user_portfolios.len() + 1;
 
                 if total <= 1 {
                     return Task::none();
                 }
 
-                let new_index = if self.current_wallet_index == 0 {
+                let new_index = if self.current_portfolio_index == 0 {
                     total - 1
                 } else {
-                    self.current_wallet_index - 1
+                    self.current_portfolio_index - 1
                 };
 
-                return self.update(Message::SwitchWallet(new_index));
+                return self.update(Message::SwitchPortfolio(new_index));
             }
 
-            Message::NextWallet => {
+            Message::NextPortfolio => {
                 if self.active_tab == PopupTab::Alerts {
                     return Task::none();
                 }
 
-                let total = self.wallets.len() + 1;
+                let total = self.user_portfolios.len() + 1;
 
                 if total <= 1 {
                     return Task::none();
                 }
 
-                let new_index = (self.current_wallet_index + 1) % total;
+                let new_index = (self.current_portfolio_index + 1) % total;
 
-                return self.update(Message::SwitchWallet(new_index));
+                return self.update(Message::SwitchPortfolio(new_index));
             }
 
             Message::ToggleRenameMode => {
-                if self.current_wallet_index > 0 {
-                    self.rename_mode = !self.rename_mode;
+                if self.current_portfolio_index > 0 {
+                    self.rename_port_mode = !self.rename_port_mode;
 
-                    if self.rename_mode {
-                        self.rename_input =
-                            self.wallets[self.current_wallet_index - 1].name.clone();
+                    if self.rename_port_mode {
+                        self.rename_port_input = self.user_portfolios
+                            [self.current_portfolio_index - 1]
+                            .name
+                            .clone();
                     }
                 }
             }
 
-            Message::RenameWallet(val) => {
-                self.rename_input = val;
+            Message::RenamePortfolio(val) => {
+                self.rename_port_input = val;
             }
 
-            Message::ConfirmRenameWallet => {
-                if self.current_wallet_index > 0 && !self.rename_input.trim().is_empty() {
-                    self.wallets[self.current_wallet_index - 1].name =
-                        self.rename_input.trim().to_string();
+            Message::ConfirmRenamePortfolio => {
+                if self.current_portfolio_index > 0 && !self.rename_port_input.trim().is_empty() {
+                    self.user_portfolios[self.current_portfolio_index - 1].name =
+                        self.rename_port_input.trim().to_string();
 
-                    save_wallets(&self.wallets);
+                    save_portfolios(&self.user_portfolios);
                 }
 
-                self.rename_mode = false;
+                self.rename_port_mode = false;
             }
 
             Message::StockSearchInput(val) => {
@@ -875,7 +893,7 @@ impl cosmic::Application for AppModel {
                 }
             }
 
-            Message::AddStockToWallet(symbol_label) => {
+            Message::AddStockToPortfolio(symbol_label) => {
                 let is_valid = self.stock_search_results.iter().any(|r| r == &symbol_label);
 
                 if !is_valid {
@@ -891,24 +909,26 @@ impl cosmic::Application for AppModel {
                 self.stock_search_input.clear();
                 self.stock_search_results.clear();
 
-                if self.current_wallet_index > 0 {
-                    let wallet = &mut self.wallets[self.current_wallet_index - 1];
+                if self.current_portfolio_index > 0 {
+                    let portfolio = &mut self.user_portfolios[self.current_portfolio_index - 1];
 
-                    if wallet.symbols.len() >= MAX_ASSETS_PER_WALLET {
+                    if portfolio.symbols.len() >= MAX_ASSETS_PER_PORTFOLIO {
                         return Task::none();
                     }
 
-                    if wallet.symbols.contains(&symbol) {
+                    if portfolio.symbols.contains(&symbol) {
                         return Task::none();
                     }
 
-                    wallet.symbols.push(symbol);
-                    save_wallets(&self.wallets);
+                    portfolio.symbols.push(symbol);
+                    save_portfolios(&self.user_portfolios);
 
                     let key = self.current_cache_key();
                     self.invalidate_current_market_cache();
 
-                    let symbols = self.wallets[self.current_wallet_index - 1].symbols.clone();
+                    let symbols = self.user_portfolios[self.current_portfolio_index - 1]
+                        .symbols
+                        .clone();
                     self.quotes_loading = true;
 
                     return Task::perform(fetch_by_symbols(symbols), move |result| {
@@ -922,14 +942,14 @@ impl cosmic::Application for AppModel {
                 return Task::none();
             }
 
-            Message::RemoveStockFromWallet(symbol) => {
-                if self.current_wallet_index > 0 {
-                    let wallet = &mut self.wallets[self.current_wallet_index - 1];
+            Message::RemoveStockFromPortfolio(symbol) => {
+                if self.current_portfolio_index > 0 {
+                    let portfolio = &mut self.user_portfolios[self.current_portfolio_index - 1];
 
-                    wallet.symbols.retain(|s| s != &symbol);
-                    wallet.alerts.retain(|a| a.symbol != symbol);
+                    portfolio.symbols.retain(|s| s != &symbol);
+                    portfolio.alerts.retain(|a| a.symbol != symbol);
 
-                    save_wallets(&self.wallets);
+                    save_portfolios(&self.user_portfolios);
 
                     if self.alert_selected_symbol.as_deref() == Some(&symbol) {
                         self.alert_selected_symbol = None;
@@ -940,7 +960,9 @@ impl cosmic::Application for AppModel {
                     let key = self.current_cache_key();
                     self.invalidate_current_market_cache();
 
-                    let symbols = self.wallets[self.current_wallet_index - 1].symbols.clone();
+                    let symbols = self.user_portfolios[self.current_portfolio_index - 1]
+                        .symbols
+                        .clone();
 
                     if symbols.is_empty() {
                         self.clear_market_data();
@@ -959,21 +981,22 @@ impl cosmic::Application for AppModel {
                 }
             }
 
-            Message::DeleteCurrentWallet => {
-                if self.current_wallet_index > 0 {
+            Message::DeleteCurrentPortfolio => {
+                if self.current_portfolio_index > 0 {
                     // Indices shift after removal, so drop ALL wallet caches
                     self.cached_quotes
-                        .retain(|k, _| !matches!(k, MarketCacheKey::Wallet(_)));
+                        .retain(|k, _| !matches!(k, MarketCacheKey::Portfolio(_)));
                     self.last_fetch_time
-                        .retain(|k, _| !matches!(k, MarketCacheKey::Wallet(_)));
+                        .retain(|k, _| !matches!(k, MarketCacheKey::Portfolio(_)));
                     self.cached_news
-                        .retain(|k, _| !matches!(k, MarketCacheKey::Wallet(_)));
+                        .retain(|k, _| !matches!(k, MarketCacheKey::Portfolio(_)));
 
-                    self.wallets.remove(self.current_wallet_index - 1);
-                    self.current_wallet_index = 0;
-                    save_wallets(&self.wallets);
+                    self.user_portfolios
+                        .remove(self.current_portfolio_index - 1);
+                    self.current_portfolio_index = 0;
+                    save_portfolios(&self.user_portfolios);
 
-                    self.config.last_wallet_index = 0;
+                    self.config.last_portfolio_index = 0;
                     self.save_config();
 
                     self.active_tab = PopupTab::Overview;
@@ -1003,17 +1026,17 @@ impl cosmic::Application for AppModel {
             }
 
             Message::AddAlert {
-                wallet_index,
+                portfolio_index,
                 symbol,
                 condition,
             } => {
-                if wallet_index > 0
-                    && let Some(wallet) = self.wallets.get_mut(wallet_index - 1)
+                if portfolio_index > 0
+                    && let Some(portfolio) = self.user_portfolios.get_mut(portfolio_index - 1)
                 {
                     let id = self.next_alert_id;
                     self.next_alert_id += 1;
 
-                    wallet.alerts.push(PriceAlert {
+                    portfolio.alerts.push(PriceAlert {
                         id,
                         symbol,
                         condition,
@@ -1021,32 +1044,32 @@ impl cosmic::Application for AppModel {
                         enabled: true,
                     });
 
-                    save_wallets(&self.wallets);
+                    save_portfolios(&self.user_portfolios);
                 }
             }
 
             Message::RemoveAlert {
-                wallet_index,
+                portfolio_index,
                 alert_id,
             } => {
-                if wallet_index > 0
-                    && let Some(wallet) = self.wallets.get_mut(wallet_index - 1)
+                if portfolio_index > 0
+                    && let Some(portfolio) = self.user_portfolios.get_mut(portfolio_index - 1)
                 {
-                    wallet.alerts.retain(|a| a.id != alert_id);
-                    save_wallets(&self.wallets);
+                    portfolio.alerts.retain(|a| a.id != alert_id);
+                    save_portfolios(&self.user_portfolios);
                 }
             }
 
             Message::ToggleAlert {
-                wallet_index,
+                portfolio_index,
                 alert_id,
             } => {
-                if wallet_index > 0
-                    && let Some(wallet) = self.wallets.get_mut(wallet_index - 1)
-                    && let Some(alert) = wallet.alerts.iter_mut().find(|a| a.id == alert_id)
+                if portfolio_index > 0
+                    && let Some(portfolio) = self.user_portfolios.get_mut(portfolio_index - 1)
+                    && let Some(alert) = portfolio.alerts.iter_mut().find(|a| a.id == alert_id)
                 {
                     alert.enabled = !alert.enabled;
-                    save_wallets(&self.wallets);
+                    save_portfolios(&self.user_portfolios);
                 }
             }
 
@@ -1073,8 +1096,8 @@ impl AppModel {
     }
 
     fn current_cache_key(&self) -> MarketCacheKey {
-        if self.current_wallet_index > 0 {
-            MarketCacheKey::Wallet(self.current_wallet_index)
+        if self.current_portfolio_index > 0 {
+            MarketCacheKey::Portfolio(self.current_portfolio_index)
         } else {
             MarketCacheKey::Screen(self.screens_tab)
         }
@@ -1089,8 +1112,8 @@ impl AppModel {
         let notify = self.config.alerts_enabled;
         let mut changed = false;
 
-        for wallet in &mut self.wallets {
-            wallet.alerts.retain(|alert| {
+        for portfolio in &mut self.user_portfolios {
+            portfolio.alerts.retain(|alert| {
                 if !alert.enabled {
                     return true;
                 }
@@ -1109,7 +1132,7 @@ impl AppModel {
         }
 
         if changed {
-            save_wallets(&self.wallets);
+            save_portfolios(&self.user_portfolios);
         }
     }
 

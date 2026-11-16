@@ -6,12 +6,22 @@ use serde::{Deserialize, Serialize};
 pub enum PopupTab {
     #[default]
     Overview,
-    Wallet,
+    Portfolio,
     Settings,
     Trending,
     News,
     Alerts,
     Info,
+}
+
+#[derive(Default, Clone, PartialEq)]
+pub enum PortfolioView {
+    #[default]
+    List,
+    AddPostfolio,
+    ConfigureAlert {
+        symbol: String,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -60,7 +70,7 @@ pub struct Config {
     pub count_news_by_simbol: u64,
     #[serde(default)]
     pub default_tab: PopupTab,
-    pub last_wallet_index: usize,
+    pub last_portfolio_index: usize,
     pub panel_stoke_rotation_interval: u64,
     pub refresh_interval: RefreshInterval,
     #[serde(default = "default_show_news")]
@@ -84,7 +94,7 @@ impl Default for Config {
             count_stokes_at_once: 6,
             count_news_by_simbol: 1,
             default_tab: PopupTab::default(),
-            last_wallet_index: 0,
+            last_portfolio_index: 0,
             panel_stoke_rotation_interval: 20,
             refresh_interval: RefreshInterval::default(),
             show_only_icon: true,

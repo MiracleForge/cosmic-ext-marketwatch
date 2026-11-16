@@ -289,7 +289,7 @@ pub fn render_loading_row(symbol: &str) -> Element<'_, Message> {
         .push(
             widget::container(
                 widget::button::icon(widget::icon::from_name("list-remove-symbolic"))
-                    .on_press(Message::RemoveStockFromWallet(symbol.to_string()))
+                    .on_press(Message::RemoveStockFromPortfolio(symbol.to_string()))
                     .padding(PAD_ROW),
             )
             .width(Length::FillPortion(1))
