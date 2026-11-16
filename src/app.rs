@@ -313,7 +313,7 @@ impl cosmic::Application for AppModel {
             });
 
         let theme = self.core.system_theme();
-        let header = header(last_updated, self.active_tab);
+        let header = header(last_updated, self.active_tab, self.user_portfolios.len());
 
         // Maximum supported applet scale is 200%.
         let max_height = self
@@ -357,19 +357,31 @@ impl cosmic::Application for AppModel {
                 .height(Length::Fixed(body_height)),
             ),
 
-            PopupTab::Portfolio => Some(
-                widget::container(portfoliocard(
-                    theme,
-                    &self.market_quotes,
-                    self.error_message.as_ref(),
-                    self.quotes_loading,
-                    self.config.show_logos,
-                    &self.logo_handles,
-                    &self.stock_search_input,
-                    pulse,
-                ))
-                .height(Length::Fixed(body_height)),
-            ),
+            PopupTab::Portfolio => {
+                let current_port_name = self
+                    .user_portfolios
+                    .get(self.current_portfolio_index.saturating_sub(1))
+                    .map(|w| w.name.as_str());
+
+                Some(
+                    widget::container(portfoliocard(
+                        theme,
+                        &self.market_quotes,
+                        current_port_name,
+                        self.current_portfolio_index,
+                        self.user_portfolios.len(),
+                        self.rename_port_mode,
+                        &self.rename_port_input,
+                        self.error_message.as_ref(),
+                        self.quotes_loading,
+                        self.config.show_logos,
+                        &self.logo_handles,
+                        &self.stock_search_input,
+                        pulse,
+                    ))
+                    .height(Length::Fixed(body_height)),
+                )
+            }
             _ => None,
         };
 

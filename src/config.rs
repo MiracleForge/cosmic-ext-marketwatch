@@ -18,7 +18,7 @@ pub enum PopupTab {
 pub enum PortfolioView {
     #[default]
     List,
-    AddPostfolio,
+    AddPortfolio,
     ConfigureAlert {
         symbol: String,
     },

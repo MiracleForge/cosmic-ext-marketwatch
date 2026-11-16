@@ -1,21 +1,26 @@
 // SPDX-License-Identifier: GPL-3.0-only
-use crate::components::buttons::stock_search_input;
+use crate::components::buttons::{icon_button, stock_search_input};
 use crate::marketwatch::MarketQuote;
 use cosmic::Theme;
 use cosmic::prelude::*;
-use cosmic::widget;
+use cosmic::widget::{self, Space};
 
 use crate::app::Message;
 
 use crate::components::ui::quote_card;
 use crate::constants::PAD_CARD;
 use crate::utils::{SkeletonCfg, render_card_state};
-use cosmic::iced::Length;
+use cosmic::iced::{Alignment, Length};
 use std::collections::HashMap;
 
 pub fn portfoliocard<'a>(
     theme: &Theme,
     portfolio_quotes: &'a [MarketQuote],
+    portfolio_name: Option<&'a str>,
+    current_index: usize,
+    number_of_port: usize,
+    rename_mode: bool,
+    rename_input: &'a str,
     error_message: Option<&'a String>,
     quotes_loading: bool,
     show_logos: bool,
@@ -24,6 +29,50 @@ pub fn portfoliocard<'a>(
     pulse: f32,
 ) -> Element<'a, Message> {
     let search_input = stock_search_input(crate::fl!("assets-search-by").to_string(), search_value);
+
+    let rename_button = (number_of_port > 0).then(|| {
+        let (icon, message) = if rename_mode {
+            ("emblem-ok-symbolic", Message::ConfirmRenamePortfolio)
+        } else {
+            (
+                "accessories-text-editor-symbolic",
+                Message::ToggleRenameMode,
+            )
+        };
+
+        icon_button(None, icon, message)
+    });
+
+    let previous_button = icon_button(
+        Some(number_of_port > 0 && current_index == 1),
+        "go-previous-symbolic",
+        Message::PreviusPortfolio,
+    );
+
+    let next_button = icon_button(None, "go-next-symbolic", Message::NextPortfolio);
+
+    let name_space: Option<Element<'_, Message>> = (number_of_port > 0).then(|| {
+        if rename_mode {
+            widget::text_input(crate::fl!("wallet-name"), rename_input)
+                .on_input(Message::RenamePortfolio)
+                .on_submit(|_| Message::ConfirmRenamePortfolio)
+                .width(Length::Fixed(140.0))
+                .into()
+        } else {
+            widget::text::heading(portfolio_name.unwrap_or("Portfolio")).into()
+        }
+    });
+
+    let portfolio_bar = widget::row![
+        name_space,
+        rename_button,
+        Space::new().width(Length::Fill),
+        previous_button,
+        widget::text::heading(format!("{current_index}/{number_of_port}")),
+        next_button,
+    ]
+    .width(Length::Fill)
+    .align_y(Alignment::Center);
 
     let body = render_card_state(
         portfolio_quotes,
@@ -45,7 +94,7 @@ pub fn portfoliocard<'a>(
     );
 
     widget::container(
-        widget::column![search_input, body]
+        widget::column![search_input, portfolio_bar, body,]
             .spacing(1)
             .width(Length::Fill),
     )

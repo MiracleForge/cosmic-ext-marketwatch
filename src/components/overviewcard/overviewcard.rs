@@ -51,7 +51,6 @@ pub fn overviewcard<'a>(
 }
 
 fn skeleton_bar<'a>(width: f32, height: f32, pulse: f32) -> Element<'a, Message> {
-    // pulse vai de 0.0 a 1.0 -> opacidade entre 0.10 e 0.28
     let alpha = 0.10 + 0.18 * pulse;
 
     widget::container(widget::Space::new())

@@ -9,7 +9,7 @@ overview-title = Mercado dos EUA
 
 wallet-name = Nome da carteira
 wallet-updated-at = Atualizado { $time }
-port-base = Meu portfolio
+port-base = Meus portfólios
 
 display-loading = Carregando...
 display-error = Erro
