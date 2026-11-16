@@ -7,7 +7,7 @@ use cosmic::widget::{self, Space};
 
 use crate::app::Message;
 
-use crate::components::ui::quote_card;
+use crate::components::ui::{friendly_message, quote_card};
 use crate::constants::PAD_CARD;
 use crate::utils::{SkeletonCfg, render_card_state};
 use cosmic::iced::{Alignment, Length};
@@ -15,6 +15,7 @@ use std::collections::HashMap;
 
 pub fn portfoliocard<'a>(
     theme: &Theme,
+    symbols: &'a [String],
     portfolio_quotes: &'a [MarketQuote],
     portfolio_name: Option<&'a str>,
     current_index: usize,
@@ -63,10 +64,19 @@ pub fn portfoliocard<'a>(
         }
     });
 
+    let delete_button = (number_of_port > 0).then(|| {
+        icon_button(
+            Some(number_of_port > 0),
+            "user-trash-symbolic",
+            Message::DeleteCurrentPortfolio,
+        )
+    });
+
     let portfolio_bar = widget::row![
         name_space,
         rename_button,
         Space::new().width(Length::Fill),
+        delete_button,
         previous_button,
         widget::text::heading(format!("{current_index}/{number_of_port}")),
         next_button,
@@ -74,25 +84,34 @@ pub fn portfoliocard<'a>(
     .width(Length::Fill)
     .align_y(Alignment::Center);
 
-    let body = render_card_state(
-        portfolio_quotes,
-        error_message,
-        quotes_loading,
-        Some(SkeletonCfg {
-            show_logo: show_logos,
-            pulse,
-            theme,
-        }),
-        |quotes| {
-            let mut list = widget::column![].spacing(1).width(Length::Fill);
-            for quote in quotes {
-                let logo_handle = logo_handles.get(&quote.symbol);
-                list = list.push(quote_card(quote, show_logos, logo_handle, theme));
-            }
-            list.into()
-        },
-    );
+    let body: Element<'a, Message> = if symbols.is_empty() {
+        friendly_message(
+            crate::fl!("port-not-found").to_string(),
+            crate::fl!("port-warning").to_string(),
+        )
+        .into()
+    } else {
+        render_card_state(
+            portfolio_quotes,
+            error_message,
+            quotes_loading,
+            Some(SkeletonCfg {
+                show_logo: show_logos,
+                pulse,
+                theme,
+            }),
+            |quotes| {
+                let mut list = widget::column![].spacing(1).width(Length::Fill);
 
+                for quote in quotes.iter().filter(|q| symbols.contains(&q.symbol)) {
+                    let logo_handle = logo_handles.get(&quote.symbol);
+                    list = list.push(quote_card(quote, show_logos, logo_handle, theme));
+                }
+
+                list.into()
+            },
+        )
+    };
     widget::container(
         widget::column![search_input, portfolio_bar, body,]
             .spacing(1)

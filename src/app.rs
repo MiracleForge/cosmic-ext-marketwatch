@@ -363,9 +363,15 @@ impl cosmic::Application for AppModel {
                     .get(self.current_portfolio_index.saturating_sub(1))
                     .map(|w| w.name.as_str());
 
+                let current_port_quotes: &[String] = self
+                    .user_portfolios
+                    .get(self.current_portfolio_index.saturating_sub(1))
+                    .map_or(&[], |w| w.symbols.as_slice());
+
                 Some(
                     widget::container(portfoliocard(
                         theme,
+                        current_port_quotes,
                         &self.market_quotes,
                         current_port_name,
                         self.current_portfolio_index,

@@ -10,6 +10,8 @@ wallet-view = US Market Overview
 wallet-name = Wallet name
 wallet-updated-at = Updated at { $time }
 port-base = My portfolios
+port-not-found = You don't have any portfolios yet
+port-warning = Click the add button to create your first portfolio.
 
 display-loading = Loading...
 display-error = Error 
