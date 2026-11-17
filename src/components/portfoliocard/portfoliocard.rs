@@ -7,7 +7,7 @@ use cosmic::widget::{self, Space};
 
 use crate::app::Message;
 
-use crate::components::ui::{friendly_message, quote_card};
+use crate::components::ui::{friendly_message, quote_card, render_search_card};
 use crate::constants::PAD_CARD;
 use crate::utils::{SkeletonCfg, render_card_state};
 use cosmic::iced::{Alignment, Length};
@@ -28,10 +28,18 @@ pub fn portfoliocard<'a>(
     logo_handles: &'a HashMap<String, widget::image::Handle>,
     search_value: &'a str,
     pulse: f32,
+    search_results: &'a [String],
+    search_loading: bool,
+    asset_limit_reached: bool,
 ) -> Element<'a, Message> {
-    let search_input = stock_search_input(crate::fl!("assets-search-by").to_string(), search_value);
-
     let has_selected = number_of_port > 0 && current_index > 0;
+
+    let search_input: Element<'a, Message> = if has_selected {
+        stock_search_input(crate::fl!("assets-search-by").to_string(), search_value).into()
+    } else {
+        // Sem on_input, o campo fica desabilitado
+        widget::text_input(crate::fl!("assets-search-by"), "").into()
+    };
 
     let rename_button = has_selected.then(|| {
         let (icon, message) = if rename_mode {
@@ -58,11 +66,9 @@ pub fn portfoliocard<'a>(
         }
     });
 
-    // None = habilitado (sem flag de desabilitar)
     let delete_button = has_selected
         .then(|| icon_button(None, "user-trash-symbolic", Message::DeleteCurrentPortfolio));
 
-    // A navegação agora só anda entre 1..=N, então as pontas ficam desabilitadas
     let previous_button = icon_button(
         Some(!has_selected || current_index <= 1),
         "go-previous-symbolic",
@@ -86,6 +92,14 @@ pub fn portfoliocard<'a>(
     ]
     .width(Length::Fill)
     .align_y(Alignment::Center);
+
+    let input_card = render_search_card(
+        search_value,
+        search_results,
+        search_loading,
+        asset_limit_reached,
+        theme,
+    );
 
     let body: Element<'a, Message> = if symbols.is_empty() {
         friendly_message(
@@ -116,7 +130,7 @@ pub fn portfoliocard<'a>(
         )
     };
     widget::container(
-        widget::column![search_input, portfolio_bar, body,]
+        widget::column![search_input, portfolio_bar, input_card, body,]
             .spacing(1)
             .width(Length::Fill),
     )

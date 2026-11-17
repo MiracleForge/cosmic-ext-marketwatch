@@ -356,6 +356,11 @@ impl cosmic::Application for AppModel {
                     &[]
                 };
 
+                let is_assets_reached = self
+                    .user_portfolios
+                    .get(self.current_portfolio_index.saturating_sub(1))
+                    .is_some_and(|w| w.symbols.len() >= MAX_ASSETS_PER_PORTFOLIO);
+
                 Some(
                     widget::container(portfoliocard(
                         theme,
@@ -372,6 +377,9 @@ impl cosmic::Application for AppModel {
                         &self.logo_handles,
                         &self.stock_search_input,
                         pulse,
+                        &self.stock_search_results,
+                        self.stock_search_loading,
+                        is_assets_reached,
                     ))
                     .height(Length::Fixed(body_height)),
                 )

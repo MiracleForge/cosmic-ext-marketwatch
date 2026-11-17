@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use cosmic::iced::{Border, Length};
 use cosmic::theme::Text;
 use cosmic::widget::button::Catalog;
@@ -8,7 +10,9 @@ use cosmic::Theme;
 use crate::app::Message;
 use crate::components::buttons::{refresh_button, segmented_button};
 use crate::components::newscard::NewsTab;
-use crate::constants::{PAD_CARD, PAD_ROW, SPACING_ROW, TEXT_BODY, TEXT_SMALL};
+use crate::constants::{
+    MAX_ASSETS_PER_PORTFOLIO, PAD_CARD, PAD_ROW, SPACING_ROW, SPACING_TAB, TEXT_BODY, TEXT_SMALL,
+};
 
 use crate::config::RefreshInterval;
 use crate::marketwatch::{MarketQuote, ScreensTab, YahooNews, format_publish_time};
@@ -271,33 +275,6 @@ pub fn news_tab(current_tab: NewsTab) -> Element<'static, Message> {
     widget::container(content).padding([8, 0]).into()
 }
 
-// TEMP ///
-pub fn render_loading_row(symbol: &str) -> Element<'_, Message> {
-    widget::row![]
-        .align_y(Alignment::Center)
-        .width(Length::Fill)
-        .push(
-            widget::container(widget::text::heading(symbol).class(Text::Default))
-                .width(Length::FillPortion(2))
-                .align_x(Alignment::Start),
-        )
-        .push(
-            widget::container(widget::text(crate::fl!("render-loading")))
-                .width(Length::FillPortion(2))
-                .align_x(Alignment::Center),
-        )
-        .push(
-            widget::container(
-                widget::button::icon(widget::icon::from_name("list-remove-symbolic"))
-                    .on_press(Message::RemoveStockFromPortfolio(symbol.to_string()))
-                    .padding(PAD_ROW),
-            )
-            .width(Length::FillPortion(1))
-            .align_x(Alignment::End),
-        )
-        .into()
-}
-
 pub fn friendly_message(err_msg: String, err_des: String) -> Element<'static, Message> {
     widget::container(
         widget::column![
@@ -318,4 +295,92 @@ pub fn friendly_message(err_msg: String, err_des: String) -> Element<'static, Me
     .padding([32, 16])
     .center_y(Length::Fill)
     .into()
+}
+
+pub fn render_search_card<'a>(
+    search_input: &'a str,
+    search_results: &'a [String],
+    search_loading: bool,
+    asset_limit_reached: bool,
+    theme: &Theme,
+) -> Element<'a, Message> {
+    let mut col = widget::column![].spacing(SPACING_TAB);
+
+    if asset_limit_reached {
+        let args = HashMap::from([("max", MAX_ASSETS_PER_PORTFOLIO)]);
+        return col
+            .push(
+                widget::text(crate::fl!("assets-limit", args))
+                    .size(TEXT_BODY)
+                    .class(cosmic::theme::Text::Accent),
+            )
+            .into();
+    }
+
+    if search_loading {
+        return col
+            .push(
+                widget::text(crate::fl!("assets-loading"))
+                    .size(TEXT_BODY)
+                    .class(cosmic::theme::Text::Accent),
+            )
+            .into();
+    }
+
+    if !search_results.is_empty() {
+        let results_col = widget::column![].spacing(1).width(Length::Fill).extend(
+            search_results
+                .iter()
+                .map(|label| search_result_card(label, theme)),
+        );
+
+        return col.push(results_col).into();
+    }
+
+    if search_input.len() >= 2 {
+        col = col.push(
+            widget::text(crate::fl!("assets-not-found"))
+                .size(TEXT_BODY)
+                .class(cosmic::theme::Text::Accent),
+        );
+    }
+
+    col.into()
+}
+
+pub fn search_result_card<'a>(label: &'a str, theme: &Theme) -> Element<'a, Message> {
+    let (symbol, name) = label.split_once(" — ").unwrap_or((label, ""));
+
+    let (title, subtitle) = if name.is_empty() {
+        (label, "")
+    } else {
+        (name, symbol)
+    };
+
+    let mut info = widget::column![widget::text::heading(title).size(TEXT_BODY)]
+        .width(Length::Fill)
+        .spacing(2);
+
+    if !subtitle.is_empty() {
+        info = info.push(widget::text::caption_heading(subtitle).size(TEXT_BODY));
+    }
+
+    let content = widget::row![
+        info,
+        widget::text::caption_heading("+")
+            .size(14)
+            .class(Text::Accent),
+    ]
+    .spacing(SPACING_ROW)
+    .align_y(Alignment::Center)
+    .width(Length::Fill);
+
+    let card = widget::container(content)
+        .padding(PAD_CARD)
+        .width(Length::Fill)
+        .class(badge_class(theme));
+
+    widget::mouse_area(card)
+        .on_press(Message::AddStockToPortfolio(label.to_string()))
+        .into()
 }
