@@ -24,6 +24,8 @@ assets-not-found = Nenhum resultado encontrado.
 
 portfolio-empty = Sua carteira está vazia.
 portfolio-your = Sua carteira
+port-no-assets = Nenhum ativo ainda
+port-no-assets-hint = Pesquise acima para adicionar ações a este portfolio.
 
 render-loading = Carregando...
 

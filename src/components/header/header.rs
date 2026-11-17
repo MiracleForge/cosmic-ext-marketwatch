@@ -13,11 +13,17 @@ pub fn header(
     active_tab: PopupTab,
     portfolio_count: usize,
 ) -> Element<'static, Message> {
+    let refresh_message = if matches!(active_tab, PopupTab::Portfolio) {
+        Message::RefreshPortfolio
+    } else {
+        Message::RefreshMarket
+    };
+
     let refresh_button = matches!(
         active_tab,
         PopupTab::Overview | PopupTab::News | PopupTab::Portfolio
     )
-    .then(|| icon_button(None, "view-refresh-symbolic", Message::RefreshMarket));
+    .then(|| icon_button(None, "view-refresh-symbolic", refresh_message));
 
     let create_port_button = (matches!(active_tab, PopupTab::Portfolio)
         && portfolio_count < MAX_PORTFOLIOS)

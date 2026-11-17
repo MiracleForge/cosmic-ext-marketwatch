@@ -24,6 +24,8 @@ assets-not-found = No results found.
 
 portfolio-empty = Your portfolio is empty.
 portfolio-your = Your Portfolio
+port-no-assets = No assets yet
+port-no-assets-hint = Search above to add stocks to this portfolio.
 
 render-loading = Loading...
 

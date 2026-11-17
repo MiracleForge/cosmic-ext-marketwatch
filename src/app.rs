@@ -87,6 +87,7 @@ pub enum Message {
     SetTab(ScreensTab),
 
     RefreshMarket,
+    RefreshPortfolio,
     TogglePopup,
     MarketLoaded(MarketCacheKey, Result<Vec<MarketQuote>, String>),
     LogosLoaded(HashMap<String, Option<String>>),
@@ -237,15 +238,21 @@ impl cosmic::Application for AppModel {
         ))
         .map(|_| Message::Tick);
 
-        let refresh = cosmic::iced::time::every(Duration::from_secs(
+        let refresh_market = cosmic::iced::time::every(Duration::from_secs(
             self.config.refresh_interval.as_seconds(),
         ))
         .map(|_| Message::RefreshMarket);
 
-        let mut subs = vec![rotate, refresh];
+        let refresh_portfolio = cosmic::iced::time::every(Duration::from_secs(
+            self.config.refresh_interval.as_seconds(),
+        ))
+        .map(|_| Message::RefreshPortfolio);
+
+        let mut subs = vec![rotate, refresh_market, refresh_portfolio];
 
         let market_loading =
             self.quotes_loading && self.market_quotes.is_empty() && self.error_message.is_none();
+
         let portfolio_loading = self.portfolio_loading
             && self.portfolio_quotes.is_empty()
             && self.portfolio_error.is_none();
@@ -618,23 +625,28 @@ impl cosmic::Application for AppModel {
             Message::RefreshMarket => {
                 self.reset_market_view();
 
-                let market_key = self.market_key();
-                self.invalidate_cache_key(&market_key);
+                let key = self.market_key();
+                self.invalidate_cache_key(&key);
 
-                let mut tasks = vec![self.fetch_market()];
+                return self.fetch_market();
+            }
 
-                if self.current_portfolio_index > 0 {
-                    let portfolio_key = self.portfolio_key();
-                    self.invalidate_cache_key(&portfolio_key);
-                    tasks.push(self.fetch_current_portfolio());
+            Message::RefreshPortfolio => {
+                if self.current_portfolio_index == 0 {
+                    return Task::none();
                 }
 
-                return Task::batch(tasks);
+                let key = self.portfolio_key();
+                self.invalidate_cache_key(&key);
+
+                self.portfolio_quotes.clear();
+                self.portfolio_error = None;
+
+                return self.fetch_current_portfolio();
             }
 
             Message::SetRefreshInterval(interval) => {
                 self.config.refresh_interval = interval;
-                self.clear_all_market_cache();
                 self.save_config();
             }
 

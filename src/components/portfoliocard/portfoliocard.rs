@@ -37,7 +37,7 @@ pub fn portfoliocard<'a>(
     let search_input: Element<'a, Message> = if has_selected {
         stock_search_input(crate::fl!("assets-search-by").to_string(), search_value).into()
     } else {
-        // Sem on_input, o campo fica desabilitado
+        // input disable
         widget::text_input(crate::fl!("assets-search-by"), "").into()
     };
 
@@ -59,15 +59,20 @@ pub fn portfoliocard<'a>(
             widget::text_input(crate::fl!("wallet-name"), rename_input)
                 .on_input(Message::RenamePortfolio)
                 .on_submit(|_| Message::ConfirmRenamePortfolio)
-                .width(Length::Fixed(140.0))
+                .width(Length::Shrink)
                 .into()
         } else {
             widget::text::heading(portfolio_name.unwrap_or("Portfolio")).into()
         }
     });
 
-    let delete_button = has_selected
-        .then(|| icon_button(None, "user-trash-symbolic", Message::DeleteCurrentPortfolio));
+    let delete_button = has_selected.then(|| {
+        icon_button(
+            None,
+            "edit-delete-symbolic",
+            Message::DeleteCurrentPortfolio,
+        )
+    });
 
     let previous_button = icon_button(
         Some(!has_selected || current_index <= 1),
@@ -101,14 +106,23 @@ pub fn portfoliocard<'a>(
         theme,
     );
 
-    let body: Element<'a, Message> = if symbols.is_empty() {
-        friendly_message(
+    let body: Element<'a, Message> = match (has_selected, symbols.is_empty()) {
+        // no portf
+        (false, _) => friendly_message(
             crate::fl!("port-not-found").to_string(),
             crate::fl!("port-warning").to_string(),
         )
-        .into()
-    } else {
-        render_card_state(
+        .into(),
+
+        // Portf without assets
+        (true, true) => friendly_message(
+            crate::fl!("port-no-assets").to_string(),
+            crate::fl!("port-no-assets-hint").to_string(),
+        )
+        .into(),
+
+        // Port with assets
+        (true, false) => render_card_state(
             portfolio_quotes,
             error_message,
             quotes_loading,
@@ -118,16 +132,19 @@ pub fn portfoliocard<'a>(
                 theme,
             }),
             |quotes| {
-                let mut list = widget::column![].spacing(1).width(Length::Fill);
-
-                for quote in quotes.iter().filter(|q| symbols.contains(&q.symbol)) {
-                    let logo_handle = logo_handles.get(&quote.symbol);
-                    list = list.push(quote_card(quote, show_logos, logo_handle, theme));
-                }
-
-                list.into()
+                quotes
+                    .iter()
+                    .filter(|q| symbols.contains(&q.symbol))
+                    .fold(
+                        widget::column![].spacing(1).width(Length::Fill),
+                        |list, quote| {
+                            let logo = logo_handles.get(&quote.symbol);
+                            list.push(quote_card(quote, show_logos, logo, theme))
+                        },
+                    )
+                    .into()
             },
-        )
+        ),
     };
     widget::container(
         widget::column![search_input, portfolio_bar, input_card, body,]
