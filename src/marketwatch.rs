@@ -243,6 +243,12 @@ struct ChartMeta {
     symbol: String,
     currency: Option<String>,
 
+    #[serde(rename = "shortName")]
+    short_name: Option<String>,
+
+    #[serde(rename = "longName")]
+    long_name: Option<String>,
+
     #[serde(rename = "regularMarketPrice")]
     regular_market_price: Option<f64>,
 
@@ -383,9 +389,14 @@ pub async fn fetch_by_symbols(symbols: Vec<String>) -> Result<Vec<MarketQuote>, 
                     (change / previous) * 100.0
                 };
 
+                let name: String = meta
+                    .long_name
+                    .clone()
+                    .unwrap_or_else(|| meta.symbol.clone());
+
                 MarketQuote {
                     symbol: meta.symbol.clone(),
-                    name: meta.symbol.clone(),
+                    name: name,
                     price,
                     change,
                     change_percent,
