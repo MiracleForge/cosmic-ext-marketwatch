@@ -7,12 +7,11 @@ use cosmic::widget::{self, Space};
 
 use crate::app::Message;
 
-use crate::components::ui::{friendly_message, quote_card, render_search_card};
+use crate::components::ui::{friendly_message, port_quote_card, quote_card, render_search_card};
 use crate::constants::PAD_CARD;
 use crate::utils::{SkeletonCfg, render_card_state};
 use cosmic::iced::{Alignment, Length};
 use std::collections::HashMap;
-
 pub struct PortfolioView<'a> {
     pub name: Option<&'a str>,
     pub symbols: &'a [String],
@@ -155,7 +154,7 @@ pub fn portfoliocard<'a>(
                         widget::column![].spacing(1).width(Length::Fill),
                         |list, quote| {
                             let logo = logo_handles.get(&quote.symbol);
-                            list.push(quote_card(quote, show_logos, logo, theme))
+                            list.push(port_quote_card(quote, show_logos, logo, theme))
                         },
                     )
                     .into()

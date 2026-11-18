@@ -7,4 +7,5 @@ pub mod newscard;
 pub mod overviewcard;
 pub mod portfoliocard;
 pub mod settingscard;
+pub mod toolscard;
 pub mod ui;

@@ -10,7 +10,7 @@ pub enum PopupTab {
     Settings,
     Trending,
     News,
-    Alerts,
+    Tools,
     Info,
 }
 

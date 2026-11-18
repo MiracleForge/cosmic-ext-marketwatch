@@ -8,8 +8,14 @@ use crate::{
 };
 
 pub fn navigation(active_tab: PopupTab) -> Element<'static, Message> {
-    if active_tab != PopupTab::Overview {
-        return back_button(Message::NavigateTo(None));
+    let back = match active_tab {
+        PopupTab::Overview => None,
+        PopupTab::Tools => Some(Message::NavigateTo(Some(PopupTab::Portfolio))),
+        _ => Some(Message::NavigateTo(None)),
+    };
+
+    if let Some(message) = back {
+        return back_button(message);
     }
 
     widget::row![

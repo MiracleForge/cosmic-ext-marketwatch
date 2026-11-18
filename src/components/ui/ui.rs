@@ -10,11 +10,12 @@ use cosmic::Theme;
 use crate::app::Message;
 use crate::components::buttons::{refresh_button, segmented_button};
 use crate::components::newscard::NewsTab;
+use crate::components::toolscard::SelectedAsset;
 use crate::constants::{
     MAX_ASSETS_PER_PORTFOLIO, PAD_CARD, PAD_ROW, SPACING_ROW, SPACING_TAB, TEXT_BODY, TEXT_SMALL,
 };
 
-use crate::config::RefreshInterval;
+use crate::config::{PopupTab, RefreshInterval};
 use crate::marketwatch::{MarketQuote, ScreensTab, YahooNews, format_publish_time};
 
 pub fn badge_class(theme: &Theme) -> cosmic::theme::Container<'static> {
@@ -382,5 +383,79 @@ pub fn search_result_card<'a>(label: &'a str, theme: &Theme) -> Element<'a, Mess
 
     widget::mouse_area(card)
         .on_press(Message::AddStockToPortfolio(label.to_string()))
+        .into()
+}
+
+pub fn port_quote_card<'a>(
+    quote: &'a MarketQuote,
+    show_logo: bool,
+    logo_handle: Option<&'a widget::image::Handle>,
+    theme: &Theme,
+) -> Element<'a, Message> {
+    let color = quote.variation_color(theme);
+
+    let mut content = widget::row![]
+        .spacing(SPACING_ROW)
+        .align_y(Alignment::Center)
+        .width(Length::Fill);
+
+    if show_logo {
+        let logo: Element<'a, Message> = match logo_handle {
+            Some(handle) => widget::image(handle.clone())
+                .width(Length::Fixed(42.0))
+                .height(Length::Fixed(42.0))
+                .content_fit(cosmic::iced::ContentFit::Cover)
+                .into(),
+
+            None => widget::Space::new()
+                .width(Length::Fixed(42.0))
+                .height(Length::Fixed(42.0))
+                .into(),
+        };
+
+        content = content.push(logo);
+    }
+
+    content = content.push(
+        widget::column![
+            widget::text::heading(&quote.name).size(TEXT_BODY),
+            widget::text::caption_heading(&quote.symbol).size(TEXT_BODY),
+        ]
+        .width(Length::Fill)
+        .spacing(2),
+    );
+
+    content = content
+        .push(
+            widget::column![
+                widget::text::caption_heading(quote.formatted_price())
+                    .size(14)
+                    .class(Text::Color(color)),
+                widget::text::caption_heading(quote.formatted_variation())
+                    .size(TEXT_BODY)
+                    .class(Text::Color(color)),
+            ]
+            .align_x(Alignment::End)
+            .spacing(2),
+        )
+        .width(Length::Fill);
+
+    content = content.push(
+        widget::button::icon(widget::icon::from_name("emblem-system-symbolic"))
+            .on_press(Message::NavigateToTools(SelectedAsset {
+                name: quote.name.clone(),
+                symbol: quote.symbol.clone(),
+                price: quote.price,
+                variation: quote.change_percent,
+                currency: quote.currency.clone(),
+                logo: logo_handle.cloned(),
+            }))
+            .padding(PAD_ROW),
+    );
+
+    widget::container(content)
+        .padding(PAD_CARD)
+        .width(Length::Fill)
+        .class(badge_class(theme))
         .into()
 }

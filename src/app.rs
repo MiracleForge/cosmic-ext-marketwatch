@@ -2,7 +2,7 @@
 use crate::components::applet::{self};
 
 use crate::components::alertcard::notify_alert;
-use crate::components::header::header;
+use crate::components::header::{header, tools_header};
 use crate::components::infocard::infocard;
 use crate::components::newscard::news_card;
 use crate::components::overviewcard::overviewcard;
@@ -11,6 +11,7 @@ use crate::components::portfoliocard::{
     save_portfolios,
 };
 use crate::components::settingscard::settingscard;
+use crate::components::toolscard::{SelectedAsset, toolscard};
 use crate::config::{Config, PopupTab, RefreshInterval};
 use crate::constants::{MAX_ASSETS_PER_PORTFOLIO, MAX_PORTFOLIOS, NEWS_SYMBOLS_LIMIT};
 use crate::marketwatch::{
@@ -78,7 +79,7 @@ pub struct AppModel {
     cached_news: HashMap<MarketCacheKey, Vec<YahooNews>>,
 
     next_alert_id: u64,
-    alert_selected_symbol: Option<String>,
+    tools_selected_asset: Option<SelectedAsset>,
     alert_selected_condition: AlertCondition,
     alert_input_value: String,
 }
@@ -99,6 +100,7 @@ pub enum Message {
     PreviusPortfolio,
     NextPortfolio,
     NavigateTo(Option<PopupTab>),
+    NavigateToTools(SelectedAsset),
     OpenExternalLink(String),
     ToggleShowOnlyIcon(bool),
     ToggleShowLogos(bool),
@@ -219,7 +221,7 @@ impl cosmic::Application for AppModel {
             cached_quotes: HashMap::new(),
             cached_news: HashMap::new(),
             next_alert_id,
-            alert_selected_symbol: None,
+            tools_selected_asset: None,
             alert_selected_condition: AlertCondition::PriceAbove(0.0),
             alert_input_value: String::new(),
         };
@@ -303,7 +305,11 @@ impl cosmic::Application for AppModel {
             });
 
         let theme = self.core.system_theme();
-        let header = header(last_updated, self.active_tab, self.user_portfolios.len());
+        let header = if self.active_tab == PopupTab::Tools {
+            tools_header(last_updated, self.tools_selected_asset.clone())
+        } else {
+            header(last_updated, self.active_tab, self.user_portfolios.len())
+        };
 
         // Maximum supported applet scale is 200%.
         let max_height = self
@@ -391,6 +397,10 @@ impl cosmic::Application for AppModel {
                         .height(Length::Fixed(body_height)),
                 )
             }
+            PopupTab::Tools => Some(
+                widget::container(toolscard(self.tools_selected_asset.as_ref(), theme))
+                    .height(Length::Fixed(body_height)),
+            ),
             _ => None,
         };
 
@@ -681,6 +691,11 @@ impl cosmic::Application for AppModel {
                 }
             }
 
+            Message::NavigateToTools(asset) => {
+                self.active_tab = PopupTab::Tools;
+                self.tools_selected_asset = Some(asset);
+            }
+
             Message::ToggleShowOnlyIcon(new_value) => {
                 self.config.show_only_icon = new_value;
                 self.applet_id = widget::Id::unique();
@@ -764,7 +779,7 @@ impl cosmic::Application for AppModel {
                 self.rename_port_mode = false;
                 self.portfolio_error = None;
 
-                if self.active_tab == PopupTab::Alerts {
+                if self.active_tab == PopupTab::Tools {
                     self.active_tab = PopupTab::Overview;
                     self.reset_alert_form();
                 }
@@ -797,7 +812,7 @@ impl cosmic::Application for AppModel {
             }
 
             Message::PreviusPortfolio => {
-                if self.active_tab == PopupTab::Alerts || self.current_portfolio_index <= 1 {
+                if self.active_tab == PopupTab::Tools || self.current_portfolio_index <= 1 {
                     return Task::none();
                 }
 
@@ -805,7 +820,7 @@ impl cosmic::Application for AppModel {
             }
 
             Message::NextPortfolio => {
-                if self.active_tab == PopupTab::Alerts
+                if self.active_tab == PopupTab::Tools
                     || self.current_portfolio_index >= self.user_portfolios.len()
                 {
                     return Task::none();
@@ -923,10 +938,15 @@ impl cosmic::Application for AppModel {
 
                     save_portfolios(&self.user_portfolios);
 
-                    if self.alert_selected_symbol.as_deref() == Some(&symbol) {
-                        self.alert_selected_symbol = None;
+                    let selected_symbol = self
+                        .tools_selected_asset
+                        .as_ref()
+                        .map(|asset| asset.symbol.as_str());
+
+                    if selected_symbol == Some(symbol.as_str()) {
+                        self.tools_selected_asset = None;
                         self.alert_input_value.clear();
-                        self.active_tab = PopupTab::Overview;
+                        self.active_tab = PopupTab::Portfolio;
                     }
 
                     let key = self.portfolio_key();
@@ -1053,8 +1073,7 @@ impl AppModel {
     }
 
     fn last_updated_key(&self) -> Option<MarketCacheKey> {
-        if self.active_tab == PopupTab::Portfolio {
-            // Sem portfolio selecionado, não mostra nada
+        if self.active_tab == PopupTab::Portfolio || self.active_tab == PopupTab::Tools {
             (self.current_portfolio_index > 0).then(|| self.portfolio_key())
         } else {
             Some(self.market_key())
@@ -1204,7 +1223,7 @@ impl AppModel {
     }
 
     fn reset_alert_form(&mut self) {
-        self.alert_selected_symbol = None;
+        self.tools_selected_asset = None;
         self.alert_input_value.clear();
         self.alert_selected_condition = AlertCondition::PriceAbove(0.0);
     }

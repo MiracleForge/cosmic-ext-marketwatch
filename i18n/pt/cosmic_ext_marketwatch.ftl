@@ -44,6 +44,7 @@ screeners-tab-active = Volume
 screeners-tab-gainers = Valorização
 screeners-tab-losers = Desvalorização
 
+tools-title = Ferramentas
 alerts = Alertas
 alerts-select = Ativo selecionado
 alerts-select-stock = Selecione um ativo da lista para criar alertas.

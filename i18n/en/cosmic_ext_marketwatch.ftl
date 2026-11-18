@@ -44,6 +44,7 @@ screeners-tab-active = Most Active
 screeners-tab-gainers = Gainers
 screeners-tab-losers = Losers
 
+tools-title = Tools
 alerts = Alerts
 alerts-select = Selected Asset
 alerts-select-stock = Select a stock from the list to create alerts.

@@ -10,8 +10,7 @@ pub fn title_dynamic(active_tab: PopupTab) -> Option<Element<'static, crate::app
         PopupTab::Portfolio => crate::fl!("port-base").to_string(),
         PopupTab::News => "News".to_string(),
         PopupTab::Settings => crate::fl!("settings-title").to_string(),
-        PopupTab::Alerts | PopupTab::Trending => "Alerts".to_string(),
-        PopupTab::Info => return None,
+        PopupTab::Tools | PopupTab::Trending | PopupTab::Info => return None,
     };
 
     Some(widget::text::title4(title).into())
@@ -21,7 +20,10 @@ pub fn overview_subtitle(
     active_tab: PopupTab,
     last_updated: Option<String>,
 ) -> Element<'static, crate::app::Message> {
-    if !matches!(active_tab, PopupTab::Overview | PopupTab::Portfolio) {
+    if !matches!(
+        active_tab,
+        PopupTab::Overview | PopupTab::Portfolio | PopupTab::Tools
+    ) {
         return widget::Space::new().into();
     }
 
