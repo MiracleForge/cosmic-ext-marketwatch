@@ -13,29 +13,45 @@ use crate::utils::{SkeletonCfg, render_card_state};
 use cosmic::iced::{Alignment, Length};
 use std::collections::HashMap;
 
+pub struct PortfolioView<'a> {
+    pub name: Option<&'a str>,
+    pub symbols: &'a [String],
+    pub quotes: &'a [MarketQuote],
+    pub index: usize,
+    pub count: usize,
+    pub rename_input: Option<&'a str>,
+    pub error: Option<&'a String>,
+    pub loading: bool,
+}
+
+pub struct SearchView<'a> {
+    pub value: &'a str,
+    pub results: &'a [String],
+    pub loading: bool,
+    pub limit_reached: bool,
+}
+
+pub struct QuoteStyle<'a> {
+    pub show_logos: bool,
+    pub logo_handles: &'a HashMap<String, widget::image::Handle>,
+    pub pulse: f32,
+}
+
 pub fn portfoliocard<'a>(
     theme: &Theme,
-    symbols: &'a [String],
-    portfolio_quotes: &'a [MarketQuote],
-    portfolio_name: Option<&'a str>,
-    current_index: usize,
-    number_of_port: usize,
-    rename_mode: bool,
-    rename_input: &'a str,
-    error_message: Option<&'a String>,
-    quotes_loading: bool,
-    show_logos: bool,
-    logo_handles: &'a HashMap<String, widget::image::Handle>,
-    search_value: &'a str,
-    pulse: f32,
-    search_results: &'a [String],
-    search_loading: bool,
-    asset_limit_reached: bool,
+    portfolio: &PortfolioView<'a>,
+    search: &SearchView<'a>,
+    style: &QuoteStyle<'a>,
 ) -> Element<'a, Message> {
-    let has_selected = number_of_port > 0 && current_index > 0;
+    let symbols = portfolio.symbols;
+    let logo_handles = style.logo_handles;
+    let show_logos = style.show_logos;
+
+    let has_selected = portfolio.count > 0 && portfolio.index > 0;
+    let rename_mode = portfolio.rename_input.is_some();
 
     let search_input: Element<'a, Message> = if has_selected {
-        stock_search_input(crate::fl!("assets-search-by").to_string(), search_value).into()
+        stock_search_input(crate::fl!("assets-search-by").to_string(), search.value).into()
     } else {
         // input disable
         widget::text_input(crate::fl!("assets-search-by"), "").into()
@@ -55,14 +71,14 @@ pub fn portfoliocard<'a>(
     });
 
     let name_space: Option<Element<'_, Message>> = has_selected.then(|| {
-        if rename_mode {
-            widget::text_input(crate::fl!("wallet-name"), rename_input)
+        if let Some(input) = portfolio.rename_input {
+            widget::text_input(crate::fl!("wallet-name"), input)
                 .on_input(Message::RenamePortfolio)
                 .on_submit(|_| Message::ConfirmRenamePortfolio)
                 .width(Length::Shrink)
                 .into()
         } else {
-            widget::text::heading(portfolio_name.unwrap_or("Portfolio")).into()
+            widget::text::heading(portfolio.name.unwrap_or("Portfolio")).into()
         }
     });
 
@@ -75,13 +91,13 @@ pub fn portfoliocard<'a>(
     });
 
     let previous_button = icon_button(
-        Some(!has_selected || current_index <= 1),
+        Some(!has_selected || portfolio.index <= 1),
         "go-previous-symbolic",
         Message::PreviusPortfolio,
     );
 
     let next_button = icon_button(
-        Some(!has_selected || current_index >= number_of_port),
+        Some(!has_selected || portfolio.index >= portfolio.count),
         "go-next-symbolic",
         Message::NextPortfolio,
     );
@@ -92,17 +108,17 @@ pub fn portfoliocard<'a>(
         Space::new().width(Length::Fill),
         delete_button,
         previous_button,
-        widget::text::heading(format!("{current_index}/{number_of_port}")),
+        widget::text::heading(format!("{}/{}", portfolio.index, portfolio.count)),
         next_button,
     ]
     .width(Length::Fill)
     .align_y(Alignment::Center);
 
     let input_card = render_search_card(
-        search_value,
-        search_results,
-        search_loading,
-        asset_limit_reached,
+        search.value,
+        search.results,
+        search.loading,
+        search.limit_reached,
         theme,
     );
 
@@ -123,12 +139,12 @@ pub fn portfoliocard<'a>(
 
         // Port with assets
         (true, false) => render_card_state(
-            portfolio_quotes,
-            error_message,
-            quotes_loading,
+            portfolio.quotes,
+            portfolio.error,
+            portfolio.loading,
             Some(SkeletonCfg {
                 show_logo: show_logos,
-                pulse,
+                pulse: style.pulse,
                 theme,
             }),
             |quotes| {
@@ -146,6 +162,7 @@ pub fn portfoliocard<'a>(
             },
         ),
     };
+
     widget::container(
         widget::column![search_input, portfolio_bar, input_card, body,]
             .spacing(1)

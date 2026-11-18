@@ -1,3 +1,4 @@
+// TODO CHARTDATA :https://query1.finance.yahoo.com/v8/finance/chart/PETR4.SA?range=1d&interval=5m
 // SPDX-License-Identifier: GPL-3.0-only
 use cosmic::Theme;
 use cosmic::iced::Color;

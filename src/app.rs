@@ -6,7 +6,10 @@ use crate::components::header::header;
 use crate::components::infocard::infocard;
 use crate::components::newscard::news_card;
 use crate::components::overviewcard::overviewcard;
-use crate::components::portfoliocard::{PortFolio, load_portfolio, portfoliocard, save_portfolios};
+use crate::components::portfoliocard::{
+    PortFolio, PortfolioView, QuoteStyle, SearchView, load_portfolio, portfoliocard,
+    save_portfolios,
+};
 use crate::components::settingscard::settingscard;
 use crate::config::{Config, PopupTab, RefreshInterval};
 use crate::constants::{MAX_ASSETS_PER_PORTFOLIO, MAX_PORTFOLIOS, NEWS_SYMBOLS_LIMIT};
@@ -352,43 +355,40 @@ impl cosmic::Application for AppModel {
                     .checked_sub(1)
                     .and_then(|i| self.user_portfolios.get(i));
 
-                let current_port_name = current_portfolio.map(|w| w.name.as_str());
-
-                let current_port_symbols: &[String] =
-                    current_portfolio.map_or(&[], |w| w.symbols.as_slice());
-
-                let quotes: &[MarketQuote] = if has_portfolio {
-                    &self.portfolio_quotes
-                } else {
-                    &[]
+                let portfolio = PortfolioView {
+                    name: current_portfolio.map(|w| w.name.as_str()),
+                    symbols: current_portfolio.map_or(&[], |w| w.symbols.as_slice()),
+                    quotes: if has_portfolio {
+                        &self.portfolio_quotes
+                    } else {
+                        &[]
+                    },
+                    index: self.current_portfolio_index,
+                    count: self.user_portfolios.len(),
+                    rename_input: self
+                        .rename_port_mode
+                        .then_some(self.rename_port_input.as_str()),
+                    error: self.portfolio_error.as_ref(),
+                    loading: self.portfolio_loading,
                 };
 
-                let is_assets_reached = self
-                    .user_portfolios
-                    .get(self.current_portfolio_index.saturating_sub(1))
-                    .is_some_and(|w| w.symbols.len() >= MAX_ASSETS_PER_PORTFOLIO);
+                let search = SearchView {
+                    value: &self.stock_search_input,
+                    results: &self.stock_search_results,
+                    loading: self.stock_search_loading,
+                    limit_reached: current_portfolio
+                        .is_some_and(|p| p.symbols.len() >= MAX_ASSETS_PER_PORTFOLIO),
+                };
+
+                let style = QuoteStyle {
+                    show_logos: self.config.show_logos,
+                    logo_handles: &self.logo_handles,
+                    pulse,
+                };
 
                 Some(
-                    widget::container(portfoliocard(
-                        theme,
-                        current_port_symbols,
-                        quotes,
-                        current_port_name,
-                        self.current_portfolio_index,
-                        self.user_portfolios.len(),
-                        self.rename_port_mode,
-                        &self.rename_port_input,
-                        self.portfolio_error.as_ref(),
-                        self.portfolio_loading,
-                        self.config.show_logos,
-                        &self.logo_handles,
-                        &self.stock_search_input,
-                        pulse,
-                        &self.stock_search_results,
-                        self.stock_search_loading,
-                        is_assets_reached,
-                    ))
-                    .height(Length::Fixed(body_height)),
+                    widget::container(portfoliocard(theme, &portfolio, &search, &style))
+                        .height(Length::Fixed(body_height)),
                 )
             }
             _ => None,
