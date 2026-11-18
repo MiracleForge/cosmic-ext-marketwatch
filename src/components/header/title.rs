@@ -1,8 +1,6 @@
-use std::collections::HashMap;
-
-use cosmic::{Element, widget};
-
 use crate::config::PopupTab;
+use cosmic::{Element, widget};
+use std::collections::HashMap;
 
 pub fn title_dynamic(active_tab: PopupTab) -> Option<Element<'static, crate::app::Message>> {
     let title = match active_tab {

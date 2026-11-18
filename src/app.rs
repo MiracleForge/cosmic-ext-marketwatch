@@ -11,7 +11,7 @@ use crate::components::portfoliocard::{
     save_portfolios,
 };
 use crate::components::settingscard::settingscard;
-use crate::components::toolscard::{SelectedAsset, toolscard};
+use crate::components::toolscard::{NewAlert, SelectedAsset, ToolsView, toolscard};
 use crate::config::{Config, PopupTab, RefreshInterval};
 use crate::constants::{MAX_ASSETS_PER_PORTFOLIO, MAX_PORTFOLIOS, NEWS_SYMBOLS_LIMIT};
 use crate::marketwatch::{
@@ -79,6 +79,7 @@ pub struct AppModel {
     cached_news: HashMap<MarketCacheKey, Vec<YahooNews>>,
 
     next_alert_id: u64,
+    alert_enabled: bool,
     tools_selected_asset: Option<SelectedAsset>,
     alert_selected_condition: AlertCondition,
     alert_input_value: String,
@@ -125,9 +126,10 @@ pub enum Message {
     // Alerts
     AddAlert {
         portfolio_index: usize,
-        symbol: String,
-        condition: AlertCondition,
+        alert: NewAlert,
     },
+
+    AlertSetEnabled(bool),
     RemoveAlert {
         portfolio_index: usize,
         alert_id: u64,
@@ -221,6 +223,7 @@ impl cosmic::Application for AppModel {
             cached_quotes: HashMap::new(),
             cached_news: HashMap::new(),
             next_alert_id,
+            alert_enabled: true,
             tools_selected_asset: None,
             alert_selected_condition: AlertCondition::PriceAbove(0.0),
             alert_input_value: String::new(),
@@ -397,10 +400,24 @@ impl cosmic::Application for AppModel {
                         .height(Length::Fixed(body_height)),
                 )
             }
-            PopupTab::Tools => Some(
-                widget::container(toolscard(self.tools_selected_asset.as_ref(), theme))
-                    .height(Length::Fixed(body_height)),
-            ),
+            PopupTab::Tools => {
+                let alerts: &[PriceAlert] = self
+                    .current_portfolio_index
+                    .checked_sub(1)
+                    .and_then(|i| self.user_portfolios.get(i))
+                    .map_or(&[], |p| p.alerts.as_slice());
+
+                let tools = ToolsView {
+                    selected_asset: self.tools_selected_asset.as_ref(),
+                    portfolio_index: self.current_portfolio_index,
+                    alerts,
+                    selected_condition: &self.alert_selected_condition,
+                    input_value: &self.alert_input_value,
+                    new_alert_enabled: self.alert_enabled,
+                };
+
+                Some(widget::container(toolscard(theme, &tools)).height(Length::Fixed(body_height)))
+            }
             _ => None,
         };
 
@@ -996,8 +1013,7 @@ impl cosmic::Application for AppModel {
 
             Message::AddAlert {
                 portfolio_index,
-                symbol,
-                condition,
+                alert,
             } => {
                 if portfolio_index > 0
                     && let Some(portfolio) = self.user_portfolios.get_mut(portfolio_index - 1)
@@ -1005,16 +1021,13 @@ impl cosmic::Application for AppModel {
                     let id = self.next_alert_id;
                     self.next_alert_id += 1;
 
-                    portfolio.alerts.push(PriceAlert {
-                        id,
-                        symbol,
-                        condition,
-                        triggered: false,
-                        enabled: true,
-                    });
-
+                    portfolio.alerts.push(PriceAlert::from_new(id, alert));
                     save_portfolios(&self.user_portfolios);
                 }
+            }
+
+            Message::AlertSetEnabled(val) => {
+                self.alert_enabled = val;
             }
 
             Message::RemoveAlert {
@@ -1221,10 +1234,10 @@ impl AppModel {
             }
         }
     }
-
     fn reset_alert_form(&mut self) {
         self.tools_selected_asset = None;
         self.alert_input_value.clear();
         self.alert_selected_condition = AlertCondition::PriceAbove(0.0);
+        self.alert_enabled = true;
     }
 }

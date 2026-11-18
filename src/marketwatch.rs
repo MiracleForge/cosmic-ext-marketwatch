@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::{sync::OnceLock, time::Duration};
 
+use crate::components::toolscard::SelectedAsset;
+
 const USER_AGENT: &str =
     "(cosmic-ext-marketwatch, https://github.com/MiracleForge/cosmic-ext-marketwatch)";
 
@@ -104,29 +106,35 @@ pub enum MarketCacheKey {
 // ================= IMPLEMENTATION =================
 //
 
-impl MarketQuote {
-    pub fn formatted_price(&self) -> String {
-        self.format_currency(self.price)
+pub trait QuoteFormat {
+    // O que cada tipo precisa fornecer
+    fn price(&self) -> f64;
+    fn change(&self) -> f64;
+    fn change_percent(&self) -> f64;
+    fn currency(&self) -> &str;
+
+    // Tudo abaixo vem de graça para quem implementar
+    fn formatted_price(&self) -> String {
+        self.format_currency(self.price())
     }
 
     fn format_currency(&self, value: f64) -> String {
         let abs_value = value.abs();
         let is_negative = value.is_sign_negative();
 
-        let (symbol, decimals, decimal_sep, thousand_sep, symbol_before) =
-            match self.currency.as_str() {
-                "USD" => ("$ ", 2, ".", ",", true),
-                "BRL" => ("R$ ", 2, ",", ".", true),
-                "EUR" => ("€ ", 2, ",", ".", false),
-                "GBP" => ("£ ", 2, ".", ",", true),
-                "JPY" => ("¥ ", 0, ".", ",", true),
-                "CHF" => ("CHF ", 2, ".", "'", false),
-                "CAD" => ("C$ ", 2, ".", ",", true),
-                "AUD" => ("A$ ", 2, ".", ",", true),
-                "CNY" => ("¥ ", 2, ".", ",", true),
-                "INR" => ("₹ ", 2, ".", ",", true),
-                _ => (self.currency.as_str(), 2, ".", ",", true),
-            };
+        let (symbol, decimals, decimal_sep, thousand_sep, symbol_before) = match self.currency() {
+            "USD" => ("$ ", 2, ".", ",", true),
+            "BRL" => ("R$ ", 2, ",", ".", true),
+            "EUR" => ("€ ", 2, ",", ".", false),
+            "GBP" => ("£ ", 2, ".", ",", true),
+            "JPY" => ("¥ ", 0, ".", ",", true),
+            "CHF" => ("CHF ", 2, ".", "'", false),
+            "CAD" => ("C$ ", 2, ".", ",", true),
+            "AUD" => ("A$ ", 2, ".", ",", true),
+            "CNY" => ("¥ ", 2, ".", ",", true),
+            "INR" => ("₹ ", 2, ".", ",", true),
+            other => (other, 2, ".", ",", true),
+        };
 
         let formatted = format_number(abs_value, decimals, decimal_sep, thousand_sep);
 
@@ -143,28 +151,58 @@ impl MarketQuote {
         }
     }
 
-    pub fn formatted_variation(&self) -> String {
+    fn formatted_variation(&self) -> String {
         format!(
             "{} {:.2}%",
             self.variation_icon(),
-            self.change_percent.abs()
+            self.change_percent().abs()
         )
     }
 
-    pub fn variation_icon(&self) -> &'static str {
-        if self.change >= 0.0 { "+" } else { "-" }
+    fn variation_icon(&self) -> &'static str {
+        if self.is_positive() { "+" } else { "-" }
     }
 
-    pub fn is_positive(&self) -> bool {
-        self.change >= 0.0
+    fn is_positive(&self) -> bool {
+        self.change() >= 0.0
     }
 
-    pub fn variation_color(&self, theme: &Theme) -> Color {
+    fn variation_color(&self, theme: &Theme) -> Color {
         if self.is_positive() {
             theme.cosmic().success_text_color().into()
         } else {
             theme.cosmic().destructive_color().into()
         }
+    }
+}
+
+impl QuoteFormat for MarketQuote {
+    fn price(&self) -> f64 {
+        self.price
+    }
+    fn change(&self) -> f64 {
+        self.change
+    }
+    fn change_percent(&self) -> f64 {
+        self.change_percent
+    }
+    fn currency(&self) -> &str {
+        &self.currency
+    }
+}
+
+impl QuoteFormat for SelectedAsset {
+    fn price(&self) -> f64 {
+        self.price
+    }
+    fn change(&self) -> f64 {
+        self.change
+    }
+    fn change_percent(&self) -> f64 {
+        self.change_percent
+    }
+    fn currency(&self) -> &str {
+        &self.currency
     }
 }
 

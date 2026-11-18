@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::marketwatch::QuoteFormat;
 use crate::marketwatch::{AlertCondition, MarketQuote, PriceAlert};
 
 impl AlertCondition {

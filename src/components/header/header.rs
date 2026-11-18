@@ -108,10 +108,6 @@ pub fn tools_header(
         .padding(PAD_EXT_ROW)
         .align_y(Alignment::Center)
         .width(Length::Fill)
-        .spacing(SPACING_ROW)
-        .padding(PAD_EXT_ROW)
-        .align_y(Alignment::Center)
-        .width(Length::Fill),
     ]
     .width(Length::Fill)
     .into()

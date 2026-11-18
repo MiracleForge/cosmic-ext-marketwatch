@@ -8,6 +8,7 @@ use cosmic::{Element, iced::Alignment, widget};
 use cosmic::Theme;
 
 use crate::app::Message;
+use crate::components::alertcard::alert_condition_label;
 use crate::components::buttons::{refresh_button, segmented_button};
 use crate::components::newscard::NewsTab;
 use crate::components::toolscard::SelectedAsset;
@@ -16,7 +17,9 @@ use crate::constants::{
 };
 
 use crate::config::{PopupTab, RefreshInterval};
-use crate::marketwatch::{MarketQuote, ScreensTab, YahooNews, format_publish_time};
+use crate::marketwatch::{
+    MarketQuote, PriceAlert, QuoteFormat, ScreensTab, YahooNews, format_publish_time,
+};
 
 pub fn badge_class(theme: &Theme) -> cosmic::theme::Container<'static> {
     let btn = theme.active(false, false, &cosmic::theme::Button::Standard);
@@ -188,7 +191,7 @@ pub fn quote_card<'a>(
 
 pub fn textlabel(label: impl Into<String>) -> Element<'static, Message> {
     let label: String = label.into();
-    widget::container(widget::text::heading(label).size(TEXT_BODY + 1))
+    widget::container(widget::text::caption_heading(label).size(TEXT_SMALL + 1))
         .style(|theme| widget::container::Style {
             text_color: Some(cosmic::iced::Color::from(theme.cosmic().accent_color())),
             ..Default::default()
@@ -449,9 +452,117 @@ pub fn port_quote_card<'a>(
                 variation: quote.change_percent,
                 currency: quote.currency.clone(),
                 logo: logo_handle.cloned(),
+                change: quote.change,
+                change_percent: quote.change_percent,
             }))
             .padding(PAD_ROW),
     );
+
+    widget::container(content)
+        .padding(PAD_CARD)
+        .width(Length::Fill)
+        .class(badge_class(theme))
+        .into()
+}
+
+pub fn asset_frame<'a>(
+    selected_asset: Option<&'a SelectedAsset>,
+    theme: &Theme,
+) -> Element<'a, Message> {
+    let Some(asset) = selected_asset else {
+        return widget::Space::new().into();
+    };
+
+    let color = asset.variation_color(theme);
+    let content = widget::row![
+        widget::text::caption_heading("Price:"),
+        widget::Space::new().width(Length::Fixed(4.0)),
+        widget::text::caption_heading(asset.formatted_price())
+            .size(14)
+            .class(Text::Color(color)),
+        widget::Space::new().width(Length::Fill),
+        widget::Space::new().width(Length::Fixed(4.0)),
+        widget::text::caption_heading("Variation: "),
+        widget::text::caption_heading(asset.formatted_variation())
+            .size(TEXT_BODY)
+            .class(Text::Color(color))
+    ]
+    .width(Length::Fill)
+    .padding(PAD_ROW)
+    .align_y(Alignment::Center);
+
+    widget::container(content)
+        .padding(PAD_CARD)
+        .width(Length::Fill)
+        .class(badge_class(theme))
+        .into()
+}
+
+pub fn input_select_card<'a>(
+    title: String,
+    placeholder: String,
+    value: &'a str,
+    on_input: impl Fn(String) -> Message + 'a,
+    action: Option<Element<'a, Message>>,
+    theme: &Theme,
+) -> Element<'a, Message> {
+    let input = widget::text_input(placeholder, value)
+        .on_input(on_input)
+        .width(Length::Fill);
+
+    let content = widget::row![
+        widget::text::heading(title).size(TEXT_BODY),
+        widget::Space::new().width(Length::Fill),
+        input,
+        action,
+    ]
+    .spacing(SPACING_ROW)
+    .align_y(Alignment::Center)
+    .width(Length::Fill);
+
+    widget::container(content)
+        .padding(PAD_CARD)
+        .width(Length::Fill)
+        .class(badge_class(theme))
+        .into()
+}
+
+pub fn alert_card<'a>(
+    alert: &'a PriceAlert,
+    portfolio_index: usize,
+    theme: &Theme,
+) -> Element<'a, Message> {
+    let label = alert_condition_label(&alert.condition);
+
+    let toggle_icon = if alert.enabled {
+        "media-playback-pause-symbolic"
+    } else {
+        "media-playback-start-symbolic"
+    };
+
+    let content = widget::row![
+        widget::text::heading(&alert.symbol)
+            .size(TEXT_BODY)
+            .width(Length::FillPortion(1)),
+        widget::text(label)
+            .size(TEXT_BODY)
+            .width(Length::FillPortion(3)),
+        widget::button::icon(widget::icon::from_name(toggle_icon))
+            .on_press(Message::ToggleAlert {
+                portfolio_index,
+                alert_id: alert.id,
+            })
+            .padding(PAD_ROW),
+        widget::button::icon(widget::icon::from_name("list-remove-symbolic"))
+            .on_press(Message::RemoveAlert {
+                portfolio_index,
+                alert_id: alert.id,
+            })
+            .padding(PAD_ROW),
+    ]
+    .spacing(SPACING_ROW)
+    .align_y(Alignment::Center)
+    .width(Length::Fill);
 
     widget::container(content)
         .padding(PAD_CARD)
