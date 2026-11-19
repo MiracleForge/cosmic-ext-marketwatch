@@ -4,7 +4,7 @@ use crate::components::toolscard::{SelectedAsset, alert_inputs, build_add_alert_
 use crate::components::ui::{
     alert_card, asset_frame, badge_class, friendly_message, textlabel, toggle_card,
 };
-use crate::constants::{PAD_CARD, SPACING_ROW, TEXT_BODY};
+use crate::constants::{PAD_CARD, SPACING_ROW, SPACING_TAB, TEXT_BODY};
 use crate::marketwatch::{AlertCondition, PriceAlert};
 
 use cosmic::Theme;
@@ -73,10 +73,16 @@ pub fn toolscard<'a>(theme: &Theme, tools: &ToolsView<'a>) -> Element<'a, Messag
             .into()
     };
 
-    let user_alerts = widget::column![textlabel(crate::fl!("alerts-self")), alerts_body]
-        .spacing(SPACING_ROW)
-        .width(Length::Fill)
-        .align_x(Alignment::Start);
+    let user_alerts = widget::column![
+        textlabel(crate::fl!("alerts-self")),
+        widget::scrollable(alerts_body)
+            .width(Length::Fill)
+            .height(Length::Fill),
+    ]
+    .spacing(SPACING_TAB)
+    .width(Length::Fill)
+    .height(Length::Fill);
+
     widget::container(
         widget::column![
             asset_frame(tools.selected_asset, theme),

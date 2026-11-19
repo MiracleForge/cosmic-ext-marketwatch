@@ -553,7 +553,7 @@ pub fn alert_card<'a>(
                 alert_id: alert.id,
             })
             .padding(PAD_ROW),
-        widget::button::icon(widget::icon::from_name("list-remove-symbolic"))
+        widget::button::icon(widget::icon::from_name("edit-delete-symbolic"))
             .on_press(Message::RemoveAlert {
                 portfolio_index,
                 alert_id: alert.id,
