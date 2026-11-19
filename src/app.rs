@@ -874,6 +874,14 @@ impl cosmic::Application for AppModel {
             }
 
             Message::TogglePinPortfolio => {
+                let current_index = self.current_portfolio_index.saturating_sub(1);
+
+                self.current_index = if self.current_index == current_index {
+                    0
+                } else {
+                    current_index
+                };
+
                 self.active_tab = if self.active_tab == PopupTab::Pinned {
                     PopupTab::Overview
                 } else {
@@ -1271,7 +1279,7 @@ impl AppModel {
                 .then_some(self.rename_port_input.as_str()),
             error: self.portfolio_error.as_ref(),
             loading: self.portfolio_loading,
-            pinned: false,
+            pinned: 1,
         }
     }
 }

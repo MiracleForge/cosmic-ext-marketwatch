@@ -571,12 +571,12 @@ pub fn alert_card<'a>(
         .into()
 }
 
-pub fn pin_button<'a>(pinned: bool, theme: &Theme) -> Element<'a, Message> {
+pub fn pin_button<'a>(pinned: usize, current_index: usize, theme: &Theme) -> Element<'a, Message> {
     let color: cosmic::iced::Color = theme.cosmic().success_text_color().into();
 
     let mut icon = widget::icon::from_name("pin-symbolic").size(16).icon();
 
-    if pinned {
+    if pinned == current_index {
         icon = icon.class(cosmic::theme::Svg::custom(move |_| {
             cosmic::widget::svg::Style { color: Some(color) }
         }));

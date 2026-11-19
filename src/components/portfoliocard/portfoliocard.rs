@@ -23,7 +23,7 @@ pub struct PortfolioView<'a> {
     pub rename_input: Option<&'a str>,
     pub error: Option<&'a String>,
     pub loading: bool,
-    pub pinned: bool,
+    pub pinned: usize,
 }
 
 pub struct SearchView<'a> {
@@ -104,7 +104,7 @@ pub fn portfoliocard<'a>(
         Message::NextPortfolio,
     );
 
-    let pin_button = has_selected.then(|| pin_button(portfolio.pinned, theme));
+    let pin_button = has_selected.then(|| pin_button(portfolio.pinned, portfolio.index, theme));
 
     let portfolio_bar = widget::row![
         name_space,
