@@ -570,3 +570,23 @@ pub fn alert_card<'a>(
         .class(badge_class(theme))
         .into()
 }
+
+fn pin_button<'a>(pinned: bool, theme: &Theme) -> Element<'a, Message> {
+    let color: cosmic::iced::Color = theme.cosmic().success_text_color().into();
+
+    let mut icon = widget::icon::from_name("view-reveal-symbolic")
+        .size(16)
+        .icon();
+
+    if pinned {
+        icon = icon.class(cosmic::theme::Svg::custom(move |_| {
+            cosmic::widget::svg::Style { color: Some(color) }
+        }));
+    }
+
+    widget::button::custom(icon)
+        .class(cosmic::theme::Button::Icon)
+        .padding(8)
+        .on_press(Message::TogglePinPortfolio)
+        .into()
+}

@@ -117,12 +117,11 @@ pub enum Message {
     RenamePortfolio(String),
     ConfirmRenamePortfolio,
     ToggleRenameMode,
-
+    TogglePinPortfolio,
     ToggleAlertsEnabled(bool),
     // Stocks on wallet
     AddStockToPortfolio(String),
     RemoveStockFromPortfolio(String),
-
     // Alerts
     AddAlert {
         portfolio_index: usize,
@@ -872,6 +871,12 @@ impl cosmic::Application for AppModel {
                 }
 
                 self.rename_port_mode = false;
+            }
+
+            Message::TogglePinPortfolio => {
+                if !self.market_quotes.is_empty() {
+                    self.current_index = (self.current_index + 1) % self.market_quotes.len();
+                }
             }
 
             Message::StockSearchInput(val) => {
