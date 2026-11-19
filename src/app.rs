@@ -6,6 +6,7 @@ use crate::components::header::{header, tools_header};
 use crate::components::infocard::infocard;
 use crate::components::newscard::news_card;
 use crate::components::overviewcard::overviewcard;
+use crate::components::pinnedcard::pinnedcard;
 use crate::components::portfoliocard::{
     PortFolio, PortfolioView, QuoteStyle, SearchView, load_portfolio, portfoliocard,
     save_portfolios,
@@ -307,10 +308,21 @@ impl cosmic::Application for AppModel {
             });
 
         let theme = self.core.system_theme();
+
+        let current_portfolio = self
+            .current_portfolio_index
+            .checked_sub(1)
+            .and_then(|i| self.user_portfolios.get(i));
+
         let header = if self.active_tab == PopupTab::Tools {
             tools_header(last_updated, self.tools_selected_asset.clone())
         } else {
-            header(last_updated, self.active_tab, self.user_portfolios.len())
+            header(
+                last_updated,
+                self.active_tab,
+                self.user_portfolios.len(),
+                current_portfolio.map(|w| w.name.clone()),
+            )
         };
 
         // Maximum supported applet scale is 200%.
@@ -322,6 +334,12 @@ impl cosmic::Application for AppModel {
 
         let body_height = (max_height - 80.0).min(520.0).max(120.0);
         let pulse = 0.5 + 0.5 * self.skeleton_phase.sin();
+
+        let style = QuoteStyle {
+            show_logos: self.config.show_logos,
+            logo_handles: &self.logo_handles,
+            pulse,
+        };
 
         let body = match self.active_tab {
             PopupTab::Overview => Some(
@@ -337,13 +355,16 @@ impl cosmic::Application for AppModel {
                 ))
                 .height(Length::Fixed(body_height)),
             ),
+
             PopupTab::Info => {
                 Some(widget::container(infocard(theme)).height(Length::Fixed(body_height)))
             }
+
             PopupTab::Settings => Some(
                 widget::container(settingscard(&self.config, theme))
                     .height(Length::Fixed(body_height)),
             ),
+
             PopupTab::News => Some(
                 widget::container(news_card(
                     &self.market_news,
@@ -356,29 +377,7 @@ impl cosmic::Application for AppModel {
             ),
 
             PopupTab::Portfolio => {
-                let has_portfolio = self.current_portfolio_index > 0;
-
-                let current_portfolio = self
-                    .current_portfolio_index
-                    .checked_sub(1)
-                    .and_then(|i| self.user_portfolios.get(i));
-
-                let portfolio = PortfolioView {
-                    name: current_portfolio.map(|w| w.name.as_str()),
-                    symbols: current_portfolio.map_or(&[], |w| w.symbols.as_slice()),
-                    quotes: if has_portfolio {
-                        &self.portfolio_quotes
-                    } else {
-                        &[]
-                    },
-                    index: self.current_portfolio_index,
-                    count: self.user_portfolios.len(),
-                    rename_input: self
-                        .rename_port_mode
-                        .then_some(self.rename_port_input.as_str()),
-                    error: self.portfolio_error.as_ref(),
-                    loading: self.portfolio_loading,
-                };
+                let portfolio = self.build_portfolio_view();
 
                 let search = SearchView {
                     value: &self.stock_search_input,
@@ -388,23 +387,14 @@ impl cosmic::Application for AppModel {
                         .is_some_and(|p| p.symbols.len() >= MAX_ASSETS_PER_PORTFOLIO),
                 };
 
-                let style = QuoteStyle {
-                    show_logos: self.config.show_logos,
-                    logo_handles: &self.logo_handles,
-                    pulse,
-                };
-
                 Some(
                     widget::container(portfoliocard(theme, &portfolio, &search, &style))
                         .height(Length::Fixed(body_height)),
                 )
             }
+
             PopupTab::Tools => {
-                let alerts: &[PriceAlert] = self
-                    .current_portfolio_index
-                    .checked_sub(1)
-                    .and_then(|i| self.user_portfolios.get(i))
-                    .map_or(&[], |p| p.alerts.as_slice());
+                let alerts: &[PriceAlert] = current_portfolio.map_or(&[], |p| p.alerts.as_slice());
 
                 let tools = ToolsView {
                     selected_asset: self.tools_selected_asset.as_ref(),
@@ -417,6 +407,16 @@ impl cosmic::Application for AppModel {
 
                 Some(widget::container(toolscard(theme, &tools)).height(Length::Fixed(body_height)))
             }
+
+            PopupTab::Pinned => {
+                let portfolio = self.build_portfolio_view();
+
+                Some(
+                    widget::container(pinnedcard(theme, &portfolio, &style))
+                        .height(Length::Fixed(body_height)),
+                )
+            }
+
             _ => None,
         };
 
@@ -874,9 +874,11 @@ impl cosmic::Application for AppModel {
             }
 
             Message::TogglePinPortfolio => {
-                if !self.market_quotes.is_empty() {
-                    self.current_index = (self.current_index + 1) % self.market_quotes.len();
-                }
+                self.active_tab = if self.active_tab == PopupTab::Pinned {
+                    PopupTab::Overview
+                } else {
+                    PopupTab::Pinned
+                };
             }
 
             Message::StockSearchInput(val) => {
@@ -1244,5 +1246,32 @@ impl AppModel {
         self.alert_input_value.clear();
         self.alert_selected_condition = AlertCondition::PriceAbove(0.0);
         self.alert_enabled = true;
+    }
+
+    fn build_portfolio_view(&self) -> PortfolioView<'_> {
+        let current_portfolio = self
+            .current_portfolio_index
+            .checked_sub(1)
+            .and_then(|i| self.user_portfolios.get(i));
+
+        let has_portfolio = self.current_portfolio_index > 0;
+
+        PortfolioView {
+            name: current_portfolio.map(|w| w.name.as_str()),
+            symbols: current_portfolio.map_or(&[], |w| w.symbols.as_slice()),
+            quotes: if has_portfolio {
+                &self.portfolio_quotes
+            } else {
+                &[]
+            },
+            index: self.current_portfolio_index,
+            count: self.user_portfolios.len(),
+            rename_input: self
+                .rename_port_mode
+                .then_some(self.rename_port_input.as_str()),
+            error: self.portfolio_error.as_ref(),
+            loading: self.portfolio_loading,
+            pinned: false,
+        }
     }
 }

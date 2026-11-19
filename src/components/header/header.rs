@@ -13,8 +13,9 @@ pub fn header(
     last_updated: Option<String>,
     active_tab: PopupTab,
     portfolio_count: usize,
+    pinned_port_tittle: Option<String>,
 ) -> Element<'static, Message> {
-    let refresh_message = if matches!(active_tab, PopupTab::Portfolio) {
+    let refresh_message = if matches!(active_tab, PopupTab::Portfolio | PopupTab::Pinned) {
         Message::RefreshPortfolio
     } else {
         Message::RefreshMarket
@@ -22,7 +23,7 @@ pub fn header(
 
     let refresh_button = matches!(
         active_tab,
-        PopupTab::Overview | PopupTab::News | PopupTab::Portfolio
+        PopupTab::Overview | PopupTab::News | PopupTab::Portfolio | PopupTab::Pinned
     )
     .then(|| icon_button(None, "view-refresh-symbolic", refresh_message));
 
@@ -36,7 +37,7 @@ pub fn header(
             .width(Length::Fill),
         widget::row![
             widget::column![
-                title_dynamic(active_tab),
+                title_dynamic(active_tab, pinned_port_tittle),
                 overview_subtitle(active_tab, last_updated),
             ]
             .width(Length::Shrink),

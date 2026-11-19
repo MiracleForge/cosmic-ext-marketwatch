@@ -9,7 +9,7 @@ use crate::{
 
 pub fn navigation(active_tab: PopupTab) -> Element<'static, Message> {
     let back = match active_tab {
-        PopupTab::Overview => None,
+        PopupTab::Overview | PopupTab::Pinned => None,
         PopupTab::Tools => Some(Message::NavigateTo(Some(PopupTab::Portfolio))),
         _ => Some(Message::NavigateTo(None)),
     };
@@ -26,6 +26,11 @@ pub fn navigation(active_tab: PopupTab) -> Element<'static, Message> {
         ),
         widget::Space::new().width(cosmic::iced::Length::Fill),
         widget::row![
+            icon_button(
+                None,
+                "go-home-symbolic",
+                Message::NavigateTo(Some(PopupTab::Overview))
+            ),
             icon_button(
                 None,
                 "payment-card-symbolic",

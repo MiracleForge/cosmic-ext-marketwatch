@@ -2,12 +2,16 @@ use crate::config::PopupTab;
 use cosmic::{Element, widget};
 use std::collections::HashMap;
 
-pub fn title_dynamic(active_tab: PopupTab) -> Option<Element<'static, crate::app::Message>> {
+pub fn title_dynamic(
+    active_tab: PopupTab,
+    pinned_port_tittle: Option<String>,
+) -> Option<Element<'static, crate::app::Message>> {
     let title = match active_tab {
         PopupTab::Overview => crate::fl!("overview-title").to_string(),
         PopupTab::Portfolio => crate::fl!("port-base").to_string(),
         PopupTab::News => "News".to_string(),
         PopupTab::Settings => crate::fl!("settings-title").to_string(),
+        PopupTab::Pinned => pinned_port_tittle?,
         PopupTab::Tools | PopupTab::Trending | PopupTab::Info => return None,
     };
 
@@ -20,7 +24,7 @@ pub fn overview_subtitle(
 ) -> Element<'static, crate::app::Message> {
     if !matches!(
         active_tab,
-        PopupTab::Overview | PopupTab::Portfolio | PopupTab::Tools
+        PopupTab::Overview | PopupTab::Portfolio | PopupTab::Tools | PopupTab::Pinned
     ) {
         return widget::Space::new().into();
     }

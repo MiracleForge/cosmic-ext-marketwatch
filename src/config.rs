@@ -12,6 +12,7 @@ pub enum PopupTab {
     News,
     Tools,
     Info,
+    Pinned,
 }
 
 #[derive(Default, Clone, PartialEq)]

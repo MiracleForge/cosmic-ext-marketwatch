@@ -7,7 +7,9 @@ use cosmic::widget::{self, Space};
 
 use crate::app::Message;
 
-use crate::components::ui::{friendly_message, port_quote_card, quote_card, render_search_card};
+use crate::components::ui::{
+    friendly_message, pin_button, port_quote_card, quote_card, render_search_card,
+};
 use crate::constants::PAD_CARD;
 use crate::utils::{SkeletonCfg, render_card_state};
 use cosmic::iced::{Alignment, Length};
@@ -21,6 +23,7 @@ pub struct PortfolioView<'a> {
     pub rename_input: Option<&'a str>,
     pub error: Option<&'a String>,
     pub loading: bool,
+    pub pinned: bool,
 }
 
 pub struct SearchView<'a> {
@@ -101,10 +104,13 @@ pub fn portfoliocard<'a>(
         Message::NextPortfolio,
     );
 
+    let pin_button = has_selected.then(|| pin_button(portfolio.pinned, theme));
+
     let portfolio_bar = widget::row![
         name_space,
         rename_button,
         Space::new().width(Length::Fill),
+        pin_button,
         delete_button,
         previous_button,
         widget::text::heading(format!("{}/{}", portfolio.index, portfolio.count)),

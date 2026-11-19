@@ -5,6 +5,7 @@ pub mod header;
 pub mod infocard;
 pub mod newscard;
 pub mod overviewcard;
+pub mod pinnedcard;
 pub mod portfoliocard;
 pub mod settingscard;
 pub mod toolscard;
