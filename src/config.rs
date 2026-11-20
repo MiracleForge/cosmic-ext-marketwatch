@@ -74,6 +74,7 @@ pub struct Config {
     pub last_portfolio_index: usize,
     pub panel_stoke_rotation_interval: u64,
     pub refresh_interval: RefreshInterval,
+    pub pinned_portfolio_index: Option<usize>,
     #[serde(default = "default_show_news")]
     pub show_news: bool,
     pub show_only_icon: bool,
@@ -100,6 +101,7 @@ impl Default for Config {
             refresh_interval: RefreshInterval::default(),
             show_only_icon: true,
             show_news: true,
+            pinned_portfolio_index: None,
         }
     }
 }

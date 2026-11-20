@@ -190,6 +190,18 @@ impl cosmic::Application for AppModel {
             0
         };
 
+        let pinned_index = config
+            .pinned_portfolio_index
+            .filter(|&index| index > 0 && index <= user_portfolios.len());
+
+        let initial_portfolio_index = pinned_index.unwrap_or(safe_index);
+
+        let initial_tab = if pinned_index.is_some() {
+            PopupTab::Pinned
+        } else {
+            PopupTab::Overview
+        };
+
         let mut app = AppModel {
             core,
             config_handler,
@@ -198,7 +210,7 @@ impl cosmic::Application for AppModel {
             quotes_loading: false,
             news_loading: false,
             popup: None,
-            active_tab: PopupTab::Overview,
+            active_tab: initial_tab,
             screens_tab: ScreensTab::MostActive,
             applet_id: widget::Id::unique(),
             market_quotes: Vec::new(),
@@ -213,7 +225,7 @@ impl cosmic::Application for AppModel {
             current_index: 0,
             error_message: None,
             user_portfolios,
-            current_portfolio_index: safe_index,
+            current_portfolio_index: initial_portfolio_index,
             rename_port_mode: false,
             rename_port_input: String::new(),
             stock_search_input: String::new(),
@@ -275,10 +287,21 @@ impl cosmic::Application for AppModel {
     }
 
     fn view(&self) -> Element<'_, Self::Message> {
+        let pinned_index = self
+            .config
+            .pinned_portfolio_index
+            .filter(|&index| index > 0 && index <= self.user_portfolios.len());
+
+        let (quotes, current_index) = if let Some(index) = pinned_index {
+            (&self.portfolio_quotes, 0)
+        } else {
+            (&self.market_quotes, self.current_index)
+        };
+
         let content = applet::build_applet_content(
             &self.config,
-            &self.market_quotes,
-            self.current_index,
+            quotes,
+            current_index,
             self.is_horizontal,
             self.error_message.as_ref(),
             &self.core,
@@ -447,6 +470,18 @@ impl cosmic::Application for AppModel {
                     self.active_tab = PopupTab::Overview;
                     destroy_popup(p)
                 } else {
+                    let pinned_index = self
+                        .config
+                        .pinned_portfolio_index
+                        .filter(|&index| index > 0 && index <= self.user_portfolios.len());
+
+                    if let Some(index) = pinned_index {
+                        self.current_portfolio_index = index;
+                        self.active_tab = PopupTab::Pinned;
+                    } else {
+                        self.active_tab = PopupTab::Overview;
+                    }
+
                     let new_id = Id::unique();
                     self.popup = Some(new_id);
 
@@ -874,18 +909,22 @@ impl cosmic::Application for AppModel {
             }
 
             Message::TogglePinPortfolio => {
-                let current_index = self.current_portfolio_index.saturating_sub(1);
+                let current_index = self.current_portfolio_index;
 
-                self.current_index = if self.current_index == current_index {
-                    0
+                self.config.pinned_portfolio_index = if current_index == 0
+                    || self.config.pinned_portfolio_index == Some(current_index)
+                {
+                    None
                 } else {
-                    current_index
+                    Some(current_index)
                 };
 
-                self.active_tab = if self.active_tab == PopupTab::Pinned {
-                    PopupTab::Overview
-                } else {
+                self.save_config();
+
+                self.active_tab = if self.config.pinned_portfolio_index.is_some() {
                     PopupTab::Pinned
+                } else {
+                    PopupTab::Overview
                 };
             }
 
@@ -1012,6 +1051,14 @@ impl cosmic::Application for AppModel {
                     save_portfolios(&self.user_portfolios);
 
                     self.config.last_portfolio_index = self.current_portfolio_index;
+                    let deleted_index = self.current_portfolio_index;
+
+                    self.config.pinned_portfolio_index = match self.config.pinned_portfolio_index {
+                        Some(index) if index == deleted_index => None,
+                        Some(index) if index > deleted_index => Some(index - 1),
+                        other => other,
+                    };
+
                     self.save_config();
 
                     self.active_tab = PopupTab::Overview;
@@ -1279,7 +1326,7 @@ impl AppModel {
                 .then_some(self.rename_port_input.as_str()),
             error: self.portfolio_error.as_ref(),
             loading: self.portfolio_loading,
-            pinned: 1,
+            pinned: self.config.pinned_portfolio_index.unwrap_or(0),
         }
     }
 }
