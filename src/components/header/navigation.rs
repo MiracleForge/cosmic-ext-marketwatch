@@ -7,10 +7,16 @@ use crate::{
     constants::SPACING_ROW,
 };
 
-pub fn navigation(active_tab: PopupTab) -> Element<'static, Message> {
+pub fn navigation(
+    active_tab: PopupTab,
+    pinned_port_exists: Option<bool>,
+) -> Element<'static, Message> {
     let back = match active_tab {
         PopupTab::Overview | PopupTab::Pinned => None,
         PopupTab::Tools => Some(Message::NavigateTo(Some(PopupTab::Portfolio))),
+        _ if pinned_port_exists.unwrap_or(false) => {
+            Some(Message::NavigateTo(Some(PopupTab::Pinned)))
+        }
         _ => Some(Message::NavigateTo(None)),
     };
 

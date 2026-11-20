@@ -32,7 +32,7 @@ pub fn header(
         .then(|| icon_button(None, "list-add-symbolic", Message::AddPortfolio));
 
     widget::column![
-        widget::container(navigation(active_tab))
+        widget::container(navigation(active_tab, Some(pinned_port_tittle.is_some())))
             .padding([8, PAD_EXT_ROW[1]])
             .width(Length::Fill),
         widget::row![
@@ -77,7 +77,7 @@ pub fn tools_header(
     };
 
     widget::column![
-        widget::container(navigation(PopupTab::Tools))
+        widget::container(navigation(PopupTab::Tools, None))
             .padding([8, PAD_EXT_ROW[1]])
             .width(Length::Fill),
         widget::row![
