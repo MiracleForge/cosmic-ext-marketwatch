@@ -67,6 +67,7 @@ pub struct AppModel {
     user_portfolios: Vec<PortFolio>,
     /// 0 = no portf selected; 1..=N = port selected
     current_portfolio_index: usize,
+    portfolio_current_index: usize,
 
     rename_port_mode: bool,
     rename_port_input: String,
@@ -226,6 +227,7 @@ impl cosmic::Application for AppModel {
             error_message: None,
             user_portfolios,
             current_portfolio_index: initial_portfolio_index,
+            portfolio_current_index: 0,
             rename_port_mode: false,
             rename_port_input: String::new(),
             stock_search_input: String::new(),
@@ -292,8 +294,8 @@ impl cosmic::Application for AppModel {
             .pinned_portfolio_index
             .filter(|&index| index > 0 && index <= self.user_portfolios.len());
 
-        let (quotes, current_index) = if let Some(index) = pinned_index {
-            (&self.portfolio_quotes, 0)
+        let (quotes, current_index) = if pinned_index.is_some() {
+            (&self.portfolio_quotes, self.portfolio_current_index)
         } else {
             (&self.market_quotes, self.current_index)
         };
@@ -511,7 +513,17 @@ impl cosmic::Application for AppModel {
             }
 
             Message::Tick => {
-                if !self.market_quotes.is_empty() {
+                let pinned = self
+                    .config
+                    .pinned_portfolio_index
+                    .is_some_and(|index| index > 0 && index <= self.user_portfolios.len());
+
+                if pinned {
+                    if !self.portfolio_quotes.is_empty() {
+                        self.portfolio_current_index =
+                            (self.portfolio_current_index + 1) % self.portfolio_quotes.len();
+                    }
+                } else if !self.market_quotes.is_empty() {
                     self.current_index = (self.current_index + 1) % self.market_quotes.len();
                 }
             }
