@@ -88,6 +88,8 @@ settings-display-news = Exibir notícias
 settings-news-per-asset = Notícias por ativo (máx. 5)
 settings-show-logos = Mostrar logos nos screeners
 
+settings-show-logos-panel = Mostrar logos no painel
+
 settings-refresh = Atualização
 settings-panel-rotation-interval = Intervalo de rotação do panel (segundos)
 settings-refresh-interval = Intervalo de atualização

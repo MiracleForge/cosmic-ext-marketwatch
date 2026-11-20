@@ -20,6 +20,13 @@ pub fn settingscard<'a>(config: &'a Config, theme: &Theme) -> Element<'a, Messag
         theme,
     );
 
+    let toggle_panel_logo = toggle_card(
+        crate::fl!("settings-show-logos-panel").to_string(),
+        config.show_panel_logos,
+        Message::ToggleShowLogoPanel,
+        theme,
+    );
+
     let toggle_show_logo = toggle_card(
         crate::fl!("settings-show-logos").to_string(),
         config.show_logos,
@@ -77,7 +84,7 @@ pub fn settingscard<'a>(config: &'a Config, theme: &Theme) -> Element<'a, Messag
         widget::column![
             widget::column![
                 textlabel(crate::fl!("settings-panel")),
-                widget::column![toggle_show_icon, toggle_alert_enable]
+                widget::column![toggle_show_icon, toggle_panel_logo, toggle_alert_enable]
                     .spacing(1)
                     .width(Length::Fill),
             ]

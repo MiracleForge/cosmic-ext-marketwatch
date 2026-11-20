@@ -35,7 +35,10 @@ pub fn build_applet_content<'a>(
 
     match market_quotes.get(current_index) {
         Some(quote) => {
-            let logo_handle = logo_handles.get(&quote.symbol);
+            let logo_handle = config
+                .show_panel_logos
+                .then(|| logo_handles.get(&quote.symbol))
+                .flatten();
 
             if is_horizontal {
                 build_quote_display(quote, logo_handle, theme).into()

@@ -117,6 +117,7 @@ pub enum Message {
     OpenExternalLink(String),
     SetNewsTab(NewsTab),
     ToggleShowOnlyIcon(bool),
+    ToggleShowLogoPanel(bool),
     ToggleShowLogos(bool),
     ToggleShowNews(bool),
     SetRefreshInterval(RefreshInterval),
@@ -736,6 +737,12 @@ impl cosmic::Application for AppModel {
 
             Message::ToggleShowOnlyIcon(new_value) => {
                 self.config.show_only_icon = new_value;
+                self.applet_id = widget::Id::unique();
+                self.save_config();
+            }
+
+            Message::ToggleShowLogoPanel(new_value) => {
+                self.config.show_panel_logos = new_value;
                 self.applet_id = widget::Id::unique();
                 self.save_config();
             }
