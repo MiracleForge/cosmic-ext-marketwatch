@@ -52,19 +52,22 @@ pub fn portfoliocard<'a>(
     };
 
     widget::container(
-        widget::column![
-            search_input,
-            portfolio_bar(theme, portfolio),
-            render_search_card(
-                search.value,
-                search.results,
-                search.loading,
-                search.limit_reached,
-                theme,
-            ),
-            portfolio_body(theme, portfolio, style),
-        ]
-        .spacing(1)
+        widget::scrollable(
+            widget::column![
+                search_input,
+                portfolio_bar(theme, portfolio),
+                render_search_card(
+                    search.value,
+                    search.results,
+                    search.loading,
+                    search.limit_reached,
+                    theme,
+                ),
+                portfolio_body(theme, portfolio, style),
+            ]
+            .spacing(1)
+            .width(Length::Fill),
+        )
         .width(Length::Fill),
     )
     .padding(PAD_CARD)

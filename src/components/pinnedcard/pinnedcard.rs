@@ -41,8 +41,11 @@ pub fn pinnedcard<'a>(
         },
     );
 
-    widget::container(widget::column![body].spacing(1).width(Length::Fill))
-        .padding(PAD_CARD)
-        .width(Length::Fill)
-        .into()
+    widget::container(
+        widget::scrollable(widget::column![body].spacing(1).width(Length::Fill))
+            .width(Length::Fill),
+    )
+    .padding(PAD_CARD)
+    .width(Length::Fill)
+    .into()
 }

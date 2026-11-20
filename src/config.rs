@@ -56,6 +56,7 @@ pub struct Config {
     pub alerts_enabled: bool,
     #[serde(default = "default_show_logos")]
     pub show_logos: bool,
+    pub show_panel_logos: bool,
     pub count_stokes_at_once: u64,
     pub count_news_by_simbol: u64,
     #[serde(default)]
@@ -82,6 +83,7 @@ impl Default for Config {
         Self {
             alerts_enabled: true,
             show_logos: true,
+            show_panel_logos: true,
             count_stokes_at_once: 6,
             count_news_by_simbol: 1,
             default_tab: PopupTab::default(),
