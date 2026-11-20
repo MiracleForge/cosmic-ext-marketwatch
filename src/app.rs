@@ -773,7 +773,13 @@ impl cosmic::Application for AppModel {
                 self.portfolio_quotes.clear();
                 self.portfolio_error = None;
 
-                return self.fetch_current_portfolio();
+                let mut tasks = vec![self.fetch_current_portfolio()];
+
+                if self.config.pinned_portfolio_index == Some(self.current_portfolio_index) {
+                    tasks.push(self.fetch_pinned_portfolio_news());
+                }
+
+                return Task::batch(tasks);
             }
 
             Message::SetRefreshInterval(interval) => {
@@ -1086,7 +1092,13 @@ impl cosmic::Application for AppModel {
                     let key = self.portfolio_key();
                     self.invalidate_cache_key(&key);
 
-                    return self.fetch_current_portfolio();
+                    let mut tasks = vec![self.fetch_current_portfolio()];
+
+                    if self.config.pinned_portfolio_index == Some(self.current_portfolio_index) {
+                        tasks.push(self.fetch_pinned_portfolio_news());
+                    }
+
+                    return Task::batch(tasks);
                 }
 
                 return Task::none();
@@ -1116,7 +1128,13 @@ impl cosmic::Application for AppModel {
                     self.invalidate_cache_key(&key);
                     self.portfolio_error = None;
 
-                    return self.fetch_current_portfolio();
+                    let mut tasks = vec![self.fetch_current_portfolio()];
+
+                    if self.config.pinned_portfolio_index == Some(self.current_portfolio_index) {
+                        tasks.push(self.fetch_pinned_portfolio_news());
+                    }
+
+                    return Task::batch(tasks);
                 }
             }
 
