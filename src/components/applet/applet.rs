@@ -76,8 +76,8 @@ fn build_quote_display<'a>(
     if let Some(handle) = logo_handle {
         row = row.push(
             widget::image(handle.clone())
-                .width(Length::Fixed(24.0))
-                .height(Length::Fixed(24.0))
+                .width(Length::Fixed(16.0))
+                .height(Length::Fixed(16.0))
                 .content_fit(cosmic::iced::ContentFit::Contain),
         );
     }

@@ -69,6 +69,10 @@ pub struct AppModel {
     current_portfolio_index: usize,
     portfolio_current_index: usize,
 
+    pinned_portfolio_quotes: Vec<MarketQuote>,
+    pinned_portfolio_loading: bool,
+    pinned_portfolio_error: Option<String>,
+
     news_tab: NewsTab,
 
     portfolio_news: Vec<YahooNews>,
@@ -239,6 +243,9 @@ impl cosmic::Application for AppModel {
             portfolio_news: Vec::new(),
             portfolio_news_loading: false,
             portfolio_news_error: None,
+            pinned_portfolio_quotes: Vec::new(),
+            pinned_portfolio_loading: false,
+            pinned_portfolio_error: None,
             rename_port_mode: false,
             rename_port_input: String::new(),
             stock_search_input: String::new(),
@@ -310,7 +317,7 @@ impl cosmic::Application for AppModel {
             .filter(|&index| index > 0 && index <= self.user_portfolios.len());
 
         let (quotes, current_index) = if pinned_index.is_some() {
-            (&self.portfolio_quotes, self.portfolio_current_index)
+            (&self.pinned_portfolio_quotes, self.portfolio_current_index)
         } else {
             (&self.market_quotes, self.current_index)
         };
@@ -466,7 +473,7 @@ impl cosmic::Application for AppModel {
             }
 
             PopupTab::Pinned => {
-                let portfolio = self.build_portfolio_view();
+                let portfolio = self.build_pinned_portfolio_view();
 
                 Some(
                     widget::container(pinnedcard(theme, &portfolio, &style))
@@ -550,9 +557,9 @@ impl cosmic::Application for AppModel {
                     .is_some_and(|index| index > 0 && index <= self.user_portfolios.len());
 
                 if pinned {
-                    if !self.portfolio_quotes.is_empty() {
+                    if !self.pinned_portfolio_quotes.is_empty() {
                         self.portfolio_current_index =
-                            (self.portfolio_current_index + 1) % self.portfolio_quotes.len();
+                            (self.portfolio_current_index + 1) % self.pinned_portfolio_quotes.len();
                     }
                 } else if !self.market_quotes.is_empty() {
                     self.current_index = (self.current_index + 1) % self.market_quotes.len();
@@ -586,6 +593,13 @@ impl cosmic::Application for AppModel {
 
             Message::MarketLoaded(key, result) => {
                 let is_current = self.is_key_current(&key);
+
+                let is_pinned = matches!(
+                    &key,
+                    MarketCacheKey::Portfolio(index)
+                        if self.config.pinned_portfolio_index == Some(*index)
+                );
+
                 let is_portfolio = matches!(key, MarketCacheKey::Portfolio(_));
 
                 match result {
@@ -595,18 +609,26 @@ impl cosmic::Application for AppModel {
                         self.cached_quotes.insert(key.clone(), data.clone());
 
                         // Response from another tab/wallet: cache only, don't touch the UI
-                        if !is_current {
+                        if !is_current && !is_pinned {
                             return Task::none();
                         }
 
                         let mut tasks = Vec::new();
 
                         if is_portfolio {
-                            self.portfolio_loading = false;
-                            self.portfolio_error = None;
-                            self.portfolio_quotes = data;
+                            if is_current {
+                                self.portfolio_loading = false;
+                                self.portfolio_error = None;
+                                self.portfolio_quotes = data.clone();
 
-                            self.check_and_trigger_alerts();
+                                self.check_and_trigger_alerts();
+                            }
+
+                            if is_pinned {
+                                self.pinned_portfolio_loading = false;
+                                self.pinned_portfolio_error = None;
+                                self.pinned_portfolio_quotes = data;
+                            }
                         } else {
                             self.quotes_loading = false;
                             self.error_message = None;
@@ -657,14 +679,23 @@ impl cosmic::Application for AppModel {
                         // Invalidate the ORIGIN key
                         self.invalidate_cache_key(&key);
 
-                        if !is_current {
+                        if !is_current && !is_pinned {
                             return Task::none();
                         }
 
                         if is_portfolio {
-                            self.portfolio_loading = false;
-                            self.portfolio_error = Some(err);
-                            self.portfolio_quotes.clear();
+                            if is_current {
+                                self.portfolio_loading = false;
+                                self.portfolio_error = Some(err.clone());
+                                self.portfolio_quotes.clear();
+                            }
+
+                            if is_pinned {
+                                self.pinned_portfolio_loading = false;
+                                self.pinned_portfolio_error = Some(err);
+                                self.pinned_portfolio_quotes.clear();
+                            }
+
                             return Task::none();
                         }
 
@@ -1015,6 +1046,16 @@ impl cosmic::Application for AppModel {
                     Some(current_index)
                 };
 
+                if self.config.pinned_portfolio_index.is_some() {
+                    self.pinned_portfolio_quotes = self.portfolio_quotes.clone();
+                    self.pinned_portfolio_error = self.portfolio_error.clone();
+                    self.pinned_portfolio_loading = self.portfolio_loading;
+                } else {
+                    self.pinned_portfolio_quotes.clear();
+                    self.pinned_portfolio_error = None;
+                    self.pinned_portfolio_loading = false;
+                }
+
                 self.save_config();
 
                 self.active_tab = if self.config.pinned_portfolio_index.is_some() {
@@ -1342,6 +1383,13 @@ impl AppModel {
         if symbols.is_empty() {
             self.portfolio_quotes.clear();
             self.portfolio_loading = false;
+
+            if self.config.pinned_portfolio_index == Some(self.current_portfolio_index) {
+                self.pinned_portfolio_quotes.clear();
+                self.pinned_portfolio_loading = false;
+                self.pinned_portfolio_error = None;
+            }
+
             return Task::none();
         }
 
@@ -1362,6 +1410,7 @@ impl AppModel {
             .market_quotes
             .iter()
             .chain(&self.portfolio_quotes)
+            .chain(&self.pinned_portfolio_quotes)
             .filter(|q| !self.logo_handles.contains_key(&q.symbol))
             .map(|q| q.symbol.clone())
             .collect();
@@ -1482,6 +1531,26 @@ impl AppModel {
             error: self.portfolio_error.as_ref(),
             loading: self.portfolio_loading,
             pinned: self.config.pinned_portfolio_index.unwrap_or(0),
+        }
+    }
+
+    fn build_pinned_portfolio_view(&self) -> PortfolioView<'_> {
+        let pinned_index = self.config.pinned_portfolio_index.unwrap_or(0);
+
+        let pinned_portfolio = pinned_index
+            .checked_sub(1)
+            .and_then(|i| self.user_portfolios.get(i));
+
+        PortfolioView {
+            name: pinned_portfolio.map(|p| p.name.as_str()),
+            symbols: pinned_portfolio.map_or(&[], |p| p.symbols.as_slice()),
+            quotes: &self.pinned_portfolio_quotes,
+            index: pinned_index,
+            count: self.user_portfolios.len(),
+            rename_input: None,
+            error: self.pinned_portfolio_error.as_ref(),
+            loading: self.pinned_portfolio_loading,
+            pinned: pinned_index,
         }
     }
 }
