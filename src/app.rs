@@ -4,7 +4,7 @@ use crate::components::applet::{self};
 use crate::components::alertcard::notify_alert;
 use crate::components::header::{header, tools_header};
 use crate::components::infocard::infocard;
-use crate::components::newscard::news_card;
+use crate::components::newscard::{NewsTab, news_card};
 use crate::components::overviewcard::overviewcard;
 use crate::components::pinnedcard::pinnedcard;
 use crate::components::portfoliocard::{
@@ -69,6 +69,12 @@ pub struct AppModel {
     current_portfolio_index: usize,
     portfolio_current_index: usize,
 
+    news_tab: NewsTab,
+
+    portfolio_news: Vec<YahooNews>,
+    portfolio_news_loading: bool,
+    portfolio_news_error: Option<String>,
+
     rename_port_mode: bool,
     rename_port_input: String,
 
@@ -105,6 +111,7 @@ pub enum Message {
     NavigateTo(Option<PopupTab>),
     NavigateToTools(SelectedAsset),
     OpenExternalLink(String),
+    SetNewsTab(NewsTab),
     ToggleShowOnlyIcon(bool),
     ToggleShowLogos(bool),
     ToggleShowNews(bool),
@@ -221,6 +228,7 @@ impl cosmic::Application for AppModel {
             logo_handles: HashMap::new(),
             market_news: Vec::new(),
             news_per_symbol_input: config.count_news_by_simbol.to_string(),
+            news_tab: NewsTab::USMARKET,
             config,
             is_horizontal,
             current_index: 0,
@@ -228,6 +236,9 @@ impl cosmic::Application for AppModel {
             user_portfolios,
             current_portfolio_index: initial_portfolio_index,
             portfolio_current_index: 0,
+            portfolio_news: Vec::new(),
+            portfolio_news_loading: false,
+            portfolio_news_error: None,
             rename_port_mode: false,
             rename_port_input: String::new(),
             stock_search_input: String::new(),
@@ -248,7 +259,11 @@ impl cosmic::Application for AppModel {
             Task::none()
         } else {
             app.news_loading = app.config.show_news;
-            Task::batch([app.fetch_market(), app.fetch_current_portfolio()])
+            Task::batch([
+                app.fetch_market(),
+                app.fetch_current_portfolio(),
+                app.fetch_pinned_portfolio_news(),
+            ])
         };
 
         (app, task)
@@ -391,16 +406,32 @@ impl cosmic::Application for AppModel {
                     .height(Length::Fixed(body_height)),
             ),
 
-            PopupTab::News => Some(
-                widget::container(news_card(
-                    &self.market_news,
-                    self.config.show_news,
-                    self.error_message.as_ref(),
-                    self.news_loading,
-                    theme,
-                ))
-                .height(Length::Fixed(body_height)),
-            ),
+            PopupTab::News => {
+                let (news, error, loading) = match self.news_tab {
+                    NewsTab::USMARKET => (
+                        &self.market_news,
+                        self.news_error.as_ref(),
+                        self.news_loading,
+                    ),
+                    NewsTab::PORTIFOIO => (
+                        &self.portfolio_news,
+                        self.portfolio_news_error.as_ref(),
+                        self.portfolio_news_loading,
+                    ),
+                };
+
+                Some(
+                    widget::container(news_card(
+                        news,
+                        self.config.show_news,
+                        error,
+                        loading,
+                        self.news_tab,
+                        theme,
+                    ))
+                    .height(Length::Fixed(body_height)),
+                )
+            }
 
             PopupTab::Portfolio => {
                 let portfolio = self.build_portfolio_view();
@@ -575,7 +606,6 @@ impl cosmic::Application for AppModel {
                             self.portfolio_error = None;
                             self.portfolio_quotes = data;
 
-                            // Alertas pertencem aos portfolios
                             self.check_and_trigger_alerts();
                         } else {
                             self.quotes_loading = false;
@@ -670,27 +700,54 @@ impl cosmic::Application for AppModel {
                 }
             }
 
-            Message::NewsLoaded(key, result) => {
-                let is_current = self.is_key_current(&key);
+            Message::NewsLoaded(key, result) => match result {
+                Ok(news) => {
+                    tracing::info!(
+                        "NewsLoaded: key={key:?}, received={} news, pinned={:?}",
+                        news.len(),
+                        self.config.pinned_portfolio_index
+                    );
+                    self.cached_news.insert(key.clone(), news.clone());
 
-                match result {
-                    Ok(news) => {
-                        self.cached_news.insert(key, news.clone());
-                        if is_current {
+                    match &key {
+                        MarketCacheKey::Screen(_) if self.is_key_current(&key) => {
                             self.market_news = news;
                             self.news_error = None;
                             self.news_loading = false;
                         }
+
+                        MarketCacheKey::Portfolio(index)
+                            if self.config.pinned_portfolio_index == Some(*index) =>
+                        {
+                            self.portfolio_news = news;
+                            self.portfolio_news_error = None;
+                            self.portfolio_news_loading = false;
+                        }
+
+                        _ => {}
                     }
-                    Err(err) => {
-                        tracing::warn!("news fetch failed: {err}");
-                        if is_current {
+                }
+
+                Err(err) => {
+                    tracing::warn!("news fetch failed: {err}");
+
+                    match &key {
+                        MarketCacheKey::Screen(_) if self.is_key_current(&key) => {
                             self.news_error = Some(err);
                             self.news_loading = false;
                         }
+
+                        MarketCacheKey::Portfolio(index)
+                            if self.config.pinned_portfolio_index == Some(*index) =>
+                        {
+                            self.portfolio_news_error = Some(err);
+                            self.portfolio_news_loading = false;
+                        }
+
+                        _ => {}
                     }
                 }
-            }
+            },
 
             Message::OpenExternalLink(url) => {
                 let _ = std::process::Command::new("xdg-open").arg(url).spawn();
@@ -743,6 +800,10 @@ impl cosmic::Application for AppModel {
                 }
             }
 
+            Message::SetNewsTab(tab) => {
+                self.news_tab = tab;
+            }
+
             Message::NavigateTo(tab) => {
                 let tab = tab.unwrap_or(PopupTab::Overview);
                 self.active_tab = tab;
@@ -783,31 +844,47 @@ impl cosmic::Application for AppModel {
 
             Message::ToggleShowNews(new_value) => {
                 self.config.show_news = new_value;
-                let key = self.market_key();
                 self.save_config();
 
-                if new_value && !self.market_quotes.is_empty() {
-                    let symbols: Vec<String> = self
-                        .market_quotes
-                        .iter()
-                        .take(NEWS_SYMBOLS_LIMIT)
-                        .map(|q| q.symbol.clone())
-                        .collect();
+                if new_value {
+                    let mut tasks = Vec::new();
 
-                    self.news_loading = true;
+                    if !self.market_quotes.is_empty() {
+                        let symbols: Vec<String> = self
+                            .market_quotes
+                            .iter()
+                            .take(NEWS_SYMBOLS_LIMIT)
+                            .map(|q| q.symbol.clone())
+                            .collect();
 
-                    return Task::perform(
-                        fetch_news_for_symbols(symbols, self.config.count_news_by_simbol),
-                        move |result| {
-                            Action::App(Message::NewsLoaded(key, result.map_err(|e| e.to_string())))
-                        },
-                    );
+                        self.news_loading = true;
+
+                        let key = self.market_key();
+                        let count = self.config.count_news_by_simbol;
+
+                        tasks.push(Task::perform(
+                            fetch_news_for_symbols(symbols, count),
+                            move |result| {
+                                Action::App(Message::NewsLoaded(
+                                    key,
+                                    result.map_err(|e| e.to_string()),
+                                ))
+                            },
+                        ));
+                    }
+
+                    tasks.push(self.fetch_pinned_portfolio_news());
+
+                    return Task::batch(tasks);
                 }
 
-                if !new_value {
-                    self.market_news.clear();
-                    self.news_loading = false;
-                }
+                self.market_news.clear();
+                self.news_loading = false;
+                self.news_error = None;
+
+                self.portfolio_news.clear();
+                self.portfolio_news_loading = false;
+                self.portfolio_news_error = None;
             }
 
             Message::AddPortfolio => {
@@ -939,6 +1016,8 @@ impl cosmic::Application for AppModel {
                 } else {
                     PopupTab::Overview
                 };
+
+                return self.fetch_pinned_portfolio_news();
             }
 
             Message::StockSearchInput(val) => {
@@ -1186,6 +1265,51 @@ impl AppModel {
                 key,
                 result.map_err(|e| e.to_string()),
             ))
+        })
+    }
+
+    fn fetch_pinned_portfolio_news(&mut self) -> Task<cosmic::Action<Message>> {
+        let Some(index) = self.config.pinned_portfolio_index else {
+            self.portfolio_news.clear();
+            self.portfolio_news_loading = false;
+            self.portfolio_news_error = None;
+            return Task::none();
+        };
+
+        if !self.config.show_news {
+            return Task::none();
+        }
+
+        let Some(portfolio) = index
+            .checked_sub(1)
+            .and_then(|i| self.user_portfolios.get(i))
+        else {
+            return Task::none();
+        };
+
+        let symbols: Vec<String> = portfolio
+            .symbols
+            .iter()
+            .take(NEWS_SYMBOLS_LIMIT)
+            .cloned()
+            .collect();
+
+        if symbols.is_empty() {
+            self.portfolio_news.clear();
+            self.portfolio_news_loading = false;
+            self.portfolio_news_error = None;
+            return Task::none();
+        }
+
+        self.portfolio_news_loading = true;
+        self.portfolio_news_error = None;
+
+        let key = MarketCacheKey::Portfolio(index);
+        let count = self.config.count_news_by_simbol;
+        tracing::info!("Fetching pinned portfolio news: index={index}, symbols={symbols:?}");
+
+        Task::perform(fetch_news_for_symbols(symbols, count), move |result| {
+            Action::App(Message::NewsLoaded(key, result.map_err(|e| e.to_string())))
         })
     }
 

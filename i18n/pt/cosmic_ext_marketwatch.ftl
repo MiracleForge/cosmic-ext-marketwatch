@@ -36,7 +36,8 @@ news-collapse = Recolher ▲
 news-view-all = Ver tudo ▼
 news-tab-us = Mercado US
 news-tab-folio = Portfólio
-news-not-avaliable = Nenhuma notícia disponível no momento.
+news-empty-title = Nenhuma notícia disponível
+news-empty-description = Não há notícias disponíveis para esta seleção.
 news-disabled-title = Noticias estão desabilitadas
 news-disabled-description = Ative as noticias nas configurações para ver as ultimas do mercado
 

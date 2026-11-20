@@ -267,12 +267,12 @@ pub fn news_tab(current_tab: NewsTab) -> Element<'static, Message> {
         .height(Length::Shrink)
         .push(segmented_button(
             crate::fl!("news-tab-us"),
-            Message::SetTab(ScreensTab::MostActive),
+            Message::SetNewsTab(NewsTab::USMARKET),
             current_tab == NewsTab::USMARKET,
         ))
         .push(segmented_button(
             crate::fl!("news-tab-folio"),
-            Message::SetTab(ScreensTab::Gainers),
+            Message::SetNewsTab(NewsTab::PORTIFOIO),
             current_tab == NewsTab::PORTIFOIO,
         ));
 

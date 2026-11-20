@@ -370,11 +370,16 @@ pub async fn fetch_news_for_symbols(
 
     let results = futures::future::join_all(futures).await;
 
-    let news = results
-        .into_iter()
-        .filter_map(Result::ok)
-        .flatten()
-        .collect();
+    let mut news = Vec::new();
+
+    for result in results {
+        match result {
+            Ok(items) => news.extend(items),
+            Err(err) => {
+                tracing::error!("Failed to fetch portfolio news: {err}");
+            }
+        }
+    }
 
     Ok(news)
 }

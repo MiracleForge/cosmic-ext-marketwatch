@@ -26,12 +26,18 @@ pub fn news_card<'a>(
     show_news: bool,
     error_message: Option<&'a String>,
     news_loading: bool,
+    current_tab: NewsTab,
     theme: &Theme,
 ) -> Element<'a, Message> {
     let cards: Element<'a, Message> = if !show_news {
         friendly_message(
             crate::fl!("news-disabled-title").to_string(),
             crate::fl!("news-disabled-description").to_string(),
+        )
+    } else if news.is_empty() && !news_loading && error_message.is_none() {
+        friendly_message(
+            crate::fl!("news-empty-title").to_string(),
+            crate::fl!("news-empty-description").to_string(),
         )
     } else {
         render_card_state(news, error_message, news_loading, None, |items| {
@@ -46,7 +52,7 @@ pub fn news_card<'a>(
     widget::container(
         widget::column![
             textlabel(crate::fl!("news-last")),
-            news_tab(NewsTab::USMARKET),
+            news_tab(current_tab),
             widget::scrollable(cards).width(Length::Shrink),
         ]
         .spacing(SPACING_ROW)
