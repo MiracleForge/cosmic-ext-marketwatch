@@ -1,10 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-use crate::components::alertcard::{condition_to_index, index_to_condition};
 use crate::components::toolscard::{SelectedAsset, alert_inputs, build_add_alert_message};
-use crate::components::ui::{
-    alert_card, asset_frame, badge_class, friendly_message, textlabel, toggle_card,
-};
-use crate::constants::{PAD_CARD, SPACING_ROW, SPACING_TAB, TEXT_BODY};
+use crate::components::ui::{alert_card, asset_frame, friendly_message, textlabel, toggle_card};
+use crate::constants::{PAD_CARD, SPACING_ROW, SPACING_TAB};
 use crate::marketwatch::{AlertCondition, PriceAlert};
 
 use cosmic::Theme;
@@ -61,7 +58,6 @@ pub fn toolscard<'a>(theme: &Theme, tools: &ToolsView<'a>) -> Element<'a, Messag
             crate::fl!("alerts-empty").to_string(),
             crate::fl!("alerts-empty-hint").to_string(),
         )
-        .into()
     } else {
         tools
             .alerts

@@ -232,7 +232,7 @@ impl cosmic::Application for AppModel {
             logo_handles: HashMap::new(),
             market_news: Vec::new(),
             news_per_symbol_input: config.count_news_by_simbol.to_string(),
-            news_tab: NewsTab::USMARKET,
+            news_tab: NewsTab::Usmarket,
             config,
             is_horizontal,
             current_index: 0,
@@ -342,34 +342,17 @@ impl cosmic::Application for AppModel {
     }
 
     fn view_window(&self, _id: Id) -> Element<'_, Self::Message> {
-        let last_updated = self
-            .last_updated_key()
-            .and_then(|key| self.last_fetch_time.get(&key))
-            .map(|instant| {
-                let timestamp = std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_secs()
-                    .saturating_sub(instant.elapsed().as_secs());
-
-                format_publish_time(timestamp)
-            });
-
         let theme = self.core.system_theme();
-
-        let current_portfolio = self
-            .current_portfolio_index
-            .checked_sub(1)
-            .and_then(|i| self.user_portfolios.get(i));
+        let last_updated = self.last_updated_label();
 
         let header = if self.active_tab == PopupTab::Tools {
-            tools_header(last_updated, self.tools_selected_asset.clone())
+            tools_header(last_updated, self.tools_selected_asset.as_ref())
         } else {
             header(
                 last_updated,
                 self.active_tab,
                 self.user_portfolios.len(),
-                current_portfolio.map(|w| w.name.clone()),
+                self.current_portfolio().map(|w| w.name.clone()),
             )
         };
 
@@ -379,116 +362,14 @@ impl cosmic::Application for AppModel {
             .applet
             .suggested_bounds
             .map_or(500.0, |bounds| bounds.height);
+        let body_height = (max_height - 80.0).clamp(120.0, 520.0);
 
-        let body_height = (max_height - 80.0).min(520.0).max(120.0);
-        let pulse = 0.5 + 0.5 * self.skeleton_phase.sin();
+        let body = widget::container(self.tab_body(theme)).height(Length::Fixed(body_height));
 
-        let style = QuoteStyle {
-            show_logos: self.config.show_logos,
-            logo_handles: &self.logo_handles,
-            pulse,
-        };
-
-        let body = match self.active_tab {
-            PopupTab::Overview => Some(
-                widget::container(overviewcard(
-                    theme,
-                    &self.market_quotes,
-                    self.error_message.as_ref(),
-                    self.quotes_loading,
-                    self.config.show_logos,
-                    self.screens_tab,
-                    &self.logo_handles,
-                    pulse,
-                ))
-                .height(Length::Fixed(body_height)),
-            ),
-
-            PopupTab::Info => {
-                Some(widget::container(infocard(theme)).height(Length::Fixed(body_height)))
-            }
-
-            PopupTab::Settings => Some(
-                widget::container(settingscard(&self.config, theme))
-                    .height(Length::Fixed(body_height)),
-            ),
-
-            PopupTab::News => {
-                let (news, error, loading) = match self.news_tab {
-                    NewsTab::USMARKET => (
-                        &self.market_news,
-                        self.news_error.as_ref(),
-                        self.news_loading,
-                    ),
-                    NewsTab::PORTIFOIO => (
-                        &self.portfolio_news,
-                        self.portfolio_news_error.as_ref(),
-                        self.portfolio_news_loading,
-                    ),
-                };
-
-                Some(
-                    widget::container(news_card(
-                        news,
-                        self.config.show_news,
-                        error,
-                        loading,
-                        self.news_tab,
-                        theme,
-                    ))
-                    .height(Length::Fixed(body_height)),
-                )
-            }
-
-            PopupTab::Portfolio => {
-                let portfolio = self.build_portfolio_view();
-
-                let search = SearchView {
-                    value: &self.stock_search_input,
-                    results: &self.stock_search_results,
-                    loading: self.stock_search_loading,
-                    limit_reached: current_portfolio
-                        .is_some_and(|p| p.symbols.len() >= MAX_ASSETS_PER_PORTFOLIO),
-                };
-
-                Some(
-                    widget::container(portfoliocard(theme, &portfolio, &search, &style))
-                        .height(Length::Fixed(body_height)),
-                )
-            }
-
-            PopupTab::Tools => {
-                let alerts: &[PriceAlert] = current_portfolio.map_or(&[], |p| p.alerts.as_slice());
-
-                let tools = ToolsView {
-                    selected_asset: self.tools_selected_asset.as_ref(),
-                    portfolio_index: self.current_portfolio_index,
-                    alerts,
-                    selected_condition: &self.alert_selected_condition,
-                    input_value: &self.alert_input_value,
-                    new_alert_enabled: self.alert_enabled,
-                };
-
-                Some(widget::container(toolscard(theme, &tools)).height(Length::Fixed(body_height)))
-            }
-
-            PopupTab::Pinned => {
-                let portfolio = self.build_pinned_portfolio_view();
-
-                Some(
-                    widget::container(pinnedcard(theme, &portfolio, &style))
-                        .height(Length::Fixed(body_height)),
-                )
-            }
-
-            _ => None,
-        };
-
-        let content = widget::column![widget::container(header).height(Length::Shrink),]
+        let content = widget::column![widget::container(header).height(Length::Shrink), body]
             .padding(0)
             .width(Length::Fill)
-            .height(Length::Shrink)
-            .push_maybe(body);
+            .height(Length::Shrink);
 
         self.core
             .applet
@@ -733,11 +614,6 @@ impl cosmic::Application for AppModel {
 
             Message::NewsLoaded(key, result) => match result {
                 Ok(news) => {
-                    tracing::info!(
-                        "NewsLoaded: key={key:?}, received={} news, pinned={:?}",
-                        news.len(),
-                        self.config.pinned_portfolio_index
-                    );
                     self.cached_news.insert(key.clone(), news.clone());
 
                     match &key {
@@ -1365,7 +1241,6 @@ impl AppModel {
 
         let key = MarketCacheKey::Portfolio(index);
         let count = self.config.count_news_by_simbol;
-        tracing::info!("Fetching pinned portfolio news: index={index}, symbols={symbols:?}");
 
         Task::perform(fetch_news_for_symbols(symbols, count), move |result| {
             Action::App(Message::NewsLoaded(key, result.map_err(|e| e.to_string())))
@@ -1459,12 +1334,6 @@ impl AppModel {
         self.cached_news.remove(key);
     }
 
-    fn clear_all_market_cache(&mut self) {
-        self.last_fetch_time.clear();
-        self.cached_quotes.clear();
-        self.cached_news.clear();
-    }
-
     fn clear_market_data(&mut self) {
         self.market_quotes.clear();
         self.market_news.clear();
@@ -1551,6 +1420,89 @@ impl AppModel {
             error: self.pinned_portfolio_error.as_ref(),
             loading: self.pinned_portfolio_loading,
             pinned: pinned_index,
+        }
+    }
+
+    fn current_portfolio(&self) -> Option<&PortFolio> {
+        self.current_portfolio_index
+            .checked_sub(1)
+            .and_then(|i| self.user_portfolios.get(i))
+    }
+
+    fn last_updated_label(&self) -> Option<String> {
+        let instant = self.last_fetch_time.get(&self.last_updated_key()?)?;
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs()
+            .saturating_sub(instant.elapsed().as_secs());
+
+        Some(format_publish_time(timestamp))
+    }
+
+    fn tab_body<'a>(&'a self, theme: &'a Theme) -> Element<'a, Message> {
+        let current = self.current_portfolio();
+        let style = QuoteStyle {
+            show_logos: self.config.show_logos,
+            logo_handles: &self.logo_handles,
+            pulse: 0.5 + 0.5 * self.skeleton_phase.sin(),
+        };
+
+        match self.active_tab {
+            PopupTab::Overview => overviewcard(
+                theme,
+                &self.market_quotes,
+                self.error_message.as_ref(),
+                self.quotes_loading,
+                self.screens_tab,
+                &style,
+            ),
+            PopupTab::Info => infocard(theme),
+            PopupTab::Settings => settingscard(&self.config, theme),
+            PopupTab::News => {
+                let (news, error, loading) = match self.news_tab {
+                    NewsTab::Usmarket => (
+                        &self.market_news,
+                        self.news_error.as_ref(),
+                        self.news_loading,
+                    ),
+                    NewsTab::Portfolio => (
+                        &self.portfolio_news,
+                        self.portfolio_news_error.as_ref(),
+                        self.portfolio_news_loading,
+                    ),
+                };
+                news_card(
+                    news,
+                    self.config.show_news,
+                    error,
+                    loading,
+                    self.news_tab,
+                    theme,
+                )
+            }
+            PopupTab::Portfolio => {
+                let search = SearchView {
+                    value: &self.stock_search_input,
+                    results: &self.stock_search_results,
+                    loading: self.stock_search_loading,
+                    limit_reached: current
+                        .is_some_and(|p| p.symbols.len() >= MAX_ASSETS_PER_PORTFOLIO),
+                };
+                portfoliocard(theme, &self.build_portfolio_view(), &search, &style)
+            }
+            PopupTab::Tools => {
+                let tools = ToolsView {
+                    selected_asset: self.tools_selected_asset.as_ref(),
+                    portfolio_index: self.current_portfolio_index,
+                    alerts: current.map_or(&[], |p| p.alerts.as_slice()),
+                    selected_condition: &self.alert_selected_condition,
+                    input_value: &self.alert_input_value,
+                    new_alert_enabled: self.alert_enabled,
+                };
+                toolscard(theme, &tools)
+            }
+            PopupTab::Pinned => pinnedcard(theme, &self.build_pinned_portfolio_view(), &style),
         }
     }
 }

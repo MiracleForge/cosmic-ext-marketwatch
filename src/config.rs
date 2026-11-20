@@ -8,21 +8,10 @@ pub enum PopupTab {
     Overview,
     Portfolio,
     Settings,
-    Trending,
     News,
     Tools,
     Info,
     Pinned,
-}
-
-#[derive(Default, Clone, PartialEq)]
-pub enum PortfolioView {
-    #[default]
-    List,
-    AddPortfolio,
-    ConfigureAlert {
-        symbol: String,
-    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]

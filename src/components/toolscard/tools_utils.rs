@@ -16,7 +16,6 @@ pub struct SelectedAsset {
     pub name: String,
     pub symbol: String,
     pub price: f64,
-    pub variation: f64,
     pub currency: String,
     pub logo: Option<widget::image::Handle>,
     pub change: f64,

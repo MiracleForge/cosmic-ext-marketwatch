@@ -37,10 +37,10 @@ pub fn build_applet_content<'a>(
         Some(quote) => {
             let logo_handle = logo_handles.get(&quote.symbol);
 
-            if !is_horizontal {
-                build_vertical_quote(quote, theme)
-            } else {
+            if is_horizontal {
                 build_quote_display(quote, logo_handle, theme).into()
+            } else {
+                build_vertical_quote(quote, theme)
             }
         }
         None => build_loading_display().into(),

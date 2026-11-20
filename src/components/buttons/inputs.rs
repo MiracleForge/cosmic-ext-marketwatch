@@ -5,7 +5,7 @@ use cosmic::widget;
 use crate::app::Message;
 use crate::constants::PAD_ROW;
 
-pub fn stock_search_input<'a>(placeholder: String, search_input: &'a str) -> Element<'a, Message> {
+pub fn stock_search_input(placeholder: String, search_input: &str) -> Element<'_, Message> {
     widget::text_input(placeholder, search_input)
         .on_input(Message::StockSearchInput)
         .width(Length::Fill)

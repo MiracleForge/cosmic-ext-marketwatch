@@ -56,7 +56,7 @@ pub fn header(
 
 pub fn tools_header(
     last_updated: Option<String>,
-    selected_asset: Option<SelectedAsset>,
+    selected_asset: Option<&SelectedAsset>,
 ) -> Element<'static, Message> {
     let (asset_name, asset_symbol, logo_handle) = selected_asset
         .as_ref()

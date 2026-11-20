@@ -18,8 +18,8 @@ use crate::utils::render_card_state;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NewsTab {
-    USMARKET,
-    PORTIFOIO,
+    Usmarket,
+    Portfolio,
 }
 pub fn news_card<'a>(
     news: &'a [YahooNews],

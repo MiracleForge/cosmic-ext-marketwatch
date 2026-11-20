@@ -1,3 +1,4 @@
+use crate::components::portfoliocard::QuoteStyle;
 // SPDX-License-Identifier: GPL-3.0-only
 use crate::components::ui::{badge_class, overview_tab, quote_card};
 use crate::constants::{PAD_CARD, SPACING_ROW};
@@ -7,7 +8,6 @@ use cosmic::Theme;
 use cosmic::iced::{Alignment, Length};
 use cosmic::prelude::*;
 use cosmic::widget;
-use std::collections::HashMap;
 
 use crate::app::Message;
 
@@ -16,27 +16,33 @@ pub fn overviewcard<'a>(
     market_quotes: &'a [MarketQuote],
     error_message: Option<&'a String>,
     quotes_loading: bool,
-    show_logos: bool,
     current_tab: ScreensTab,
-    logo_handles: &'a HashMap<String, widget::image::Handle>,
-    pulse: f32,
+    style: &QuoteStyle<'a>,
 ) -> Element<'a, Message> {
     let body = render_card_state(
         market_quotes,
         error_message,
         quotes_loading,
         Some(SkeletonCfg {
-            show_logo: show_logos,
-            pulse,
+            show_logo: style.show_logos,
+            pulse: style.pulse,
             theme,
         }),
         |quotes| {
-            let mut list = widget::column![].spacing(1).width(Length::Fill);
-            for quote in quotes {
-                let logo_handle = logo_handles.get(&quote.symbol);
-                list = list.push(quote_card(quote, show_logos, logo_handle, theme));
-            }
-            list.into()
+            quotes
+                .iter()
+                .fold(
+                    widget::column![].spacing(1).width(Length::Fill),
+                    |list, quote| {
+                        list.push(quote_card(
+                            quote,
+                            style.show_logos,
+                            style.logo_handles.get(&quote.symbol),
+                            theme,
+                        ))
+                    },
+                )
+                .into()
         },
     );
 
@@ -81,7 +87,6 @@ pub fn quote_card_skeleton<'a>(show_logo: bool, pulse: f32, theme: &Theme) -> El
         content = content.push(skeleton_bar(42.0, 42.0, pulse));
     }
 
-    // nome + símbolo
     content = content.push(
         widget::column![
             skeleton_bar(120.0, 14.0, pulse),
@@ -91,7 +96,6 @@ pub fn quote_card_skeleton<'a>(show_logo: bool, pulse: f32, theme: &Theme) -> El
         .spacing(6),
     );
 
-    // preço + variação
     content = content.push(
         widget::column![
             skeleton_bar(64.0, 14.0, pulse),

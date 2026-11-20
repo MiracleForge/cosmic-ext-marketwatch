@@ -12,7 +12,7 @@ pub fn title_dynamic(
         PopupTab::News => "News".to_string(),
         PopupTab::Settings => crate::fl!("settings-title").to_string(),
         PopupTab::Pinned => pinned_port_tittle?,
-        PopupTab::Tools | PopupTab::Trending | PopupTab::Info => return None,
+        PopupTab::Tools | PopupTab::Info => return None,
     };
 
     Some(widget::text::title4(title).into())

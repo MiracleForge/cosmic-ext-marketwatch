@@ -6,17 +6,17 @@ use cosmic::{
 
 use crate::{
     app::Message,
-    constants::{PAD_TAB, SPACING_ROW, TEXT_BODY},
+    constants::{PAD_TAB, SPACING_ROW},
 };
 
 use crate::config::RefreshInterval;
 pub fn icon_button(flag: Option<bool>, icon: &str, message: Message) -> Element<'static, Message> {
     let button = widget::button::icon(widget::icon::from_name(icon)).padding(PAD_TAB);
 
-    if !flag.unwrap_or(false) {
-        button.on_press(message).into()
-    } else {
+    if flag.unwrap_or(false) {
         button.into()
+    } else {
+        button.on_press(message).into()
     }
 }
 
@@ -34,12 +34,12 @@ pub fn back_button(message: Message) -> Element<'static, Message> {
     .into()
 }
 
-pub fn refresh_button<'a>(
-    label: &'a str,
+pub fn refresh_button(
+    label: &str,
     value: RefreshInterval,
     current: RefreshInterval,
     message: fn(RefreshInterval) -> Message,
-) -> Element<'a, Message> {
+) -> Element<'_, Message> {
     let selected = value == current;
 
     let content = widget::container(widget::text(label))

@@ -16,7 +16,7 @@ use crate::constants::{
     MAX_ASSETS_PER_PORTFOLIO, PAD_CARD, PAD_ROW, SPACING_ROW, SPACING_TAB, TEXT_BODY, TEXT_SMALL,
 };
 
-use crate::config::{PopupTab, RefreshInterval};
+use crate::config::RefreshInterval;
 use crate::marketwatch::{
     MarketQuote, PriceAlert, QuoteFormat, ScreensTab, YahooNews, format_publish_time,
 };
@@ -32,7 +32,7 @@ pub fn badge_class(theme: &Theme) -> cosmic::theme::Container<'static> {
         background: badge_bg,
         text_color: badge_text,
         border: Border {
-            radius: radius.into(),
+            radius,
             ..Default::default()
         },
         ..Default::default()
@@ -223,7 +223,7 @@ pub fn news_frame<'a>(news: &'a YahooNews, theme: &Theme) -> Element<'a, Message
         .spacing(4)
         .width(Length::Fill),
         widget::button::icon(widget::icon::from_name("link-symbolic"))
-            .on_press(Message::OpenExternalLink(news.link.to_string()))
+            .on_press(Message::OpenExternalLink(news.link.clone()))
             .padding(PAD_ROW),
     ]
     .align_y(Alignment::Center)
@@ -267,13 +267,13 @@ pub fn news_tab(current_tab: NewsTab) -> Element<'static, Message> {
         .height(Length::Shrink)
         .push(segmented_button(
             crate::fl!("news-tab-us"),
-            Message::SetNewsTab(NewsTab::USMARKET),
-            current_tab == NewsTab::USMARKET,
+            Message::SetNewsTab(NewsTab::Usmarket),
+            current_tab == NewsTab::Usmarket,
         ))
         .push(segmented_button(
             crate::fl!("news-tab-folio"),
-            Message::SetNewsTab(NewsTab::PORTIFOIO),
-            current_tab == NewsTab::PORTIFOIO,
+            Message::SetNewsTab(NewsTab::Portfolio),
+            current_tab == NewsTab::Portfolio,
         ));
 
     widget::container(content).padding([8, 0]).into()
@@ -449,7 +449,6 @@ pub fn port_quote_card<'a>(
                 name: quote.name.clone(),
                 symbol: quote.symbol.clone(),
                 price: quote.price,
-                variation: quote.change_percent,
                 currency: quote.currency.clone(),
                 logo: logo_handle.cloned(),
                 change: quote.change,
@@ -490,35 +489,6 @@ pub fn asset_frame<'a>(
     .width(Length::Fill)
     .padding(PAD_ROW)
     .align_y(Alignment::Center);
-
-    widget::container(content)
-        .padding(PAD_CARD)
-        .width(Length::Fill)
-        .class(badge_class(theme))
-        .into()
-}
-
-pub fn input_select_card<'a>(
-    title: String,
-    placeholder: String,
-    value: &'a str,
-    on_input: impl Fn(String) -> Message + 'a,
-    action: Option<Element<'a, Message>>,
-    theme: &Theme,
-) -> Element<'a, Message> {
-    let input = widget::text_input(placeholder, value)
-        .on_input(on_input)
-        .width(Length::Fill);
-
-    let content = widget::row![
-        widget::text::heading(title).size(TEXT_BODY),
-        widget::Space::new().width(Length::Fill),
-        input,
-        action,
-    ]
-    .spacing(SPACING_ROW)
-    .align_y(Alignment::Center)
-    .width(Length::Fill);
 
     widget::container(content)
         .padding(PAD_CARD)

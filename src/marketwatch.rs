@@ -107,13 +107,11 @@ pub enum MarketCacheKey {
 //
 
 pub trait QuoteFormat {
-    // O que cada tipo precisa fornecer
     fn price(&self) -> f64;
     fn change(&self) -> f64;
     fn change_percent(&self) -> f64;
     fn currency(&self) -> &str;
 
-    // Tudo abaixo vem de graça para quem implementar
     fn formatted_price(&self) -> String {
         self.format_currency(self.price())
     }
@@ -281,9 +279,6 @@ struct ChartMeta {
     symbol: String,
     currency: Option<String>,
 
-    #[serde(rename = "shortName")]
-    short_name: Option<String>,
-
     #[serde(rename = "longName")]
     long_name: Option<String>,
 
@@ -439,7 +434,7 @@ pub async fn fetch_by_symbols(symbols: Vec<String>) -> Result<Vec<MarketQuote>, 
 
                 MarketQuote {
                     symbol: meta.symbol.clone(),
-                    name: name,
+                    name,
                     price,
                     change,
                     change_percent,
