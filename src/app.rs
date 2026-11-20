@@ -302,6 +302,7 @@ impl cosmic::Application for AppModel {
             &self.config,
             quotes,
             current_index,
+            &self.logo_handles,
             self.is_horizontal,
             self.error_message.as_ref(),
             &self.core,

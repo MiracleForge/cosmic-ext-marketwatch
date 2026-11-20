@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 // SPDX-License-Identifier: GPL-3.0-only
 use crate::app::Message;
 use crate::config::Config;
@@ -12,14 +14,15 @@ const ICON: &[u8] = include_bytes!(
     "../../../resources/icons/hicolor/scalable/apps/com.github.MiracleForge.cosmic-ext-marketwatch-panel.svg"
 );
 
-pub fn build_applet_content(
+pub fn build_applet_content<'a>(
     config: &Config,
-    market_quotes: &[MarketQuote],
+    market_quotes: &'a [MarketQuote],
     current_index: usize,
+    logo_handles: &'a HashMap<String, widget::image::Handle>,
     is_horizontal: bool,
     error_message: Option<&String>,
     core: &cosmic::Core,
-) -> Element<'static, Message> {
+) -> Element<'a, Message> {
     let size = core.applet.suggested_size(true).0;
     if error_message.is_some() {
         return build_error_display().into();
@@ -29,9 +32,17 @@ pub fn build_applet_content(
     }
 
     let theme = core.system_theme();
+
     match market_quotes.get(current_index) {
-        Some(quote) if !is_horizontal => build_vertical_quote(quote, theme),
-        Some(quote) => build_quote_display(quote, theme).into(),
+        Some(quote) => {
+            let logo_handle = logo_handles.get(&quote.symbol);
+
+            if !is_horizontal {
+                build_vertical_quote(quote, theme)
+            } else {
+                build_quote_display(quote, logo_handle, theme).into()
+            }
+        }
         None => build_loading_display().into(),
     }
 }
@@ -50,20 +61,28 @@ fn build_icon_only(icon_size: u16) -> widget::Row<'static, Message, cosmic::Them
     base_row().push(app_icon(icon_size))
 }
 
-fn build_quote_display(
-    quote: &MarketQuote,
+fn build_quote_display<'a>(
+    quote: &'a MarketQuote,
+    logo_handle: Option<&'a widget::image::Handle>,
     theme: &Theme,
-) -> widget::Row<'static, Message, cosmic::Theme> {
+) -> widget::Row<'a, Message, cosmic::Theme> {
     let color = quote.variation_color(theme);
 
-    // Thying to fix layout shift but I don't know how , whern I have like btc-usd  $80,634.41 for
-    // exemple. For now I will leave like that
     let price = quote.formatted_price();
     let variation = quote.formatted_variation();
 
-    base_row()
-        .spacing(8)
-        .width(Length::Shrink)
+    let mut row = base_row().spacing(8);
+
+    if let Some(handle) = logo_handle {
+        row = row.push(
+            widget::image(handle.clone())
+                .width(Length::Fixed(24.0))
+                .height(Length::Fixed(24.0))
+                .content_fit(cosmic::iced::ContentFit::Contain),
+        );
+    }
+
+    row.width(Length::Shrink)
         .height(Length::Shrink)
         .push(widget::text(quote.symbol.clone()).font(Font::MONOSPACE))
         .push(
