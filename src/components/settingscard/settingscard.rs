@@ -81,38 +81,42 @@ pub fn settingscard<'a>(config: &'a Config, theme: &Theme) -> Element<'a, Messag
     );
 
     widget::container(
-        widget::column![
+        widget::scrollable(
             widget::column![
-                textlabel(crate::fl!("settings-panel")),
-                widget::column![toggle_show_icon, toggle_panel_logo, toggle_alert_enable]
-                    .spacing(1)
-                    .width(Length::Fill),
+                widget::column![
+                    textlabel(crate::fl!("settings-panel")),
+                    widget::column![toggle_show_icon, toggle_panel_logo, toggle_alert_enable]
+                        .spacing(1)
+                        .width(Length::Fill),
+                ]
+                .spacing(SPACING_ROW)
+                .width(Length::Fill)
+                .align_x(Alignment::Start),
+                widget::column![
+                    textlabel(crate::fl!("settings-display")),
+                    widget::column![toggle_show_logo, toggle_show_news, input_news]
+                        .spacing(1)
+                        .width(Length::Fill),
+                ]
+                .spacing(SPACING_ROW)
+                .width(Length::Fill)
+                .align_x(Alignment::Start),
+                widget::column![
+                    textlabel(crate::fl!("settings-refresh")),
+                    widget::column![panel_rotation_t, refresh]
+                        .spacing(1)
+                        .width(Length::Fill),
+                ]
+                .spacing(SPACING_ROW)
+                .width(Length::Fill)
+                .align_x(Alignment::Start),
             ]
             .spacing(SPACING_ROW)
-            .width(Length::Fill)
-            .align_x(Alignment::Start),
-            widget::column![
-                textlabel(crate::fl!("settings-display")),
-                widget::column![toggle_show_logo, toggle_show_news, input_news]
-                    .spacing(1)
-                    .width(Length::Fill),
-            ]
-            .spacing(SPACING_ROW)
-            .width(Length::Fill)
-            .align_x(Alignment::Start),
-            widget::column![
-                textlabel(crate::fl!("settings-refresh")),
-                widget::column![panel_rotation_t, refresh]
-                    .spacing(1)
-                    .width(Length::Fill),
-            ]
-            .spacing(SPACING_ROW)
-            .width(Length::Fill)
-            .align_x(Alignment::Start),
-        ]
-        .spacing(SPACING_ROW)
+            .width(Length::Fill),
+        )
         .width(Length::Fill),
     )
     .padding(PAD_CARD)
+    .width(Length::Fill)
     .into()
 }
