@@ -60,6 +60,21 @@
   </categories>
 
 <releases>
+<release version="2.0.0" date="2026-11-20">
+  <description>
+    <p>Major update with a completely redesigned interface, new tools and reworked screens.</p>
+    <ul>
+      <li>Completely redesigned interface with new Overview, Portfolio, News, Tools, Pinned, Settings and Info tabs</li>
+      <li>Separated Tools tab to pick an asset and manage its alerts</li>
+      <li>Pinned tab to keep a portfolio always at hand</li>
+      <li>Multiple portfolios: create, rename, delete, pin and switch between them</li>
+      <li>News split into US market news and portfolio news</li>
+      <li>Option to show or hide asset logos in the panel and in the popup</li>
+      <li>Skeleton loading animation while quotes are loading</li>
+    </ul>
+  </description>
+</release>
+
   <release version="1.3.2" date="2026-11-11">
     <description>
       <p>Minor update with localization, dependency updates and bug fixes.</p>
