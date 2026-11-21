@@ -45,38 +45,42 @@ pub fn infocard<'a>(theme: &Theme) -> Element<'a, Message> {
     );
 
     widget::container(
-        widget::column![
-            widget::column![app_icon, title, version_badge]
+        widget::scrollable(
+            widget::column![
+                widget::column![app_icon, title, version_badge]
+                    .spacing(SPACING_ROW)
+                    .width(Length::Fill)
+                    .align_x(Alignment::Center),
+                //
+                widget::column![
+                    textlabel(crate::fl!("info-links")),
+                    widget::column![repository_card, suport_card]
+                        .spacing(1)
+                        .width(Length::Fill),
+                ]
                 .spacing(SPACING_ROW)
                 .width(Length::Fill)
-                .align_x(Alignment::Center),
-            //
-            widget::column![
-                textlabel(crate::fl!("info-links")),
-                widget::column![repository_card, suport_card]
-                    .spacing(1)
-                    .width(Length::Fill),
+                .align_x(Alignment::Start),
+                //
+                widget::column![textlabel(crate::fl!("info-dev")), kofi_card]
+                    .spacing(SPACING_ROW)
+                    .width(Length::Fill)
+                    .align_x(Alignment::Start),
+                //
+                widget::column![textlabel(crate::fl!("info-license-label")), license_card]
+                    .spacing(SPACING_ROW)
+                    .width(Length::Fill)
+                    .align_x(Alignment::Start),
+                //
+                widget::container(widget::text::body(crate::fl!("info-app-desc")).size(TEXT_BODY))
+                    .padding([4, 0]),
             ]
             .spacing(SPACING_ROW)
-            .width(Length::Fill)
-            .align_x(Alignment::Start),
-            //
-            widget::column![textlabel(crate::fl!("info-dev")), kofi_card,]
-                .spacing(SPACING_ROW)
-                .width(Length::Fill)
-                .align_x(Alignment::Start),
-            //
-            widget::column![textlabel(crate::fl!("info-license-label")), license_card,]
-                .spacing(SPACING_ROW)
-                .width(Length::Fill)
-                .align_x(Alignment::Start),
-            //
-            widget::container(widget::text::body(crate::fl!("info-app-desc")).size(TEXT_BODY))
-                .padding([4, 0]),
-        ]
-        .spacing(SPACING_ROW)
+            .width(Length::Fill),
+        )
         .width(Length::Fill),
     )
     .padding(PAD_CARD)
+    .width(Length::Fill)
     .into()
 }

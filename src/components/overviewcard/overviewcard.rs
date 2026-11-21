@@ -47,9 +47,12 @@ pub fn overviewcard<'a>(
     );
 
     widget::container(
-        widget::column![overview_tab(current_tab), body]
-            .spacing(1)
-            .width(Length::Fill),
+        widget::scrollable(
+            widget::column![overview_tab(current_tab), body]
+                .spacing(1)
+                .width(Length::Fill),
+        )
+        .width(Length::Fill),
     )
     .padding(PAD_CARD)
     .width(Length::Fill)
