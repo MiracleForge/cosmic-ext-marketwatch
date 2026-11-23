@@ -4,14 +4,11 @@ use cosmic::{
     widget,
 };
 
-use crate::{
-    app::Message,
-    constants::{PAD_TAB, SPACING_ROW},
-};
+use crate::{app::Message, constants::SPACING_ROW};
 
 use crate::config::RefreshInterval;
 pub fn icon_button(flag: Option<bool>, icon: &str, message: Message) -> Element<'static, Message> {
-    let button = widget::button::icon(widget::icon::from_name(icon)).padding(PAD_TAB);
+    let button = widget::button::icon(widget::icon::from_name(icon).size(16));
 
     if flag.unwrap_or(false) {
         button.into()

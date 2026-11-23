@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use cosmic::iced::{Border, Length};
 use cosmic::theme::Text;
 use cosmic::widget::button::Catalog;
+use cosmic::widget::settings;
 use cosmic::{Element, iced::Alignment, widget};
 
 use cosmic::Theme;
@@ -137,11 +138,7 @@ pub fn quote_card<'a>(
     theme: &Theme,
 ) -> Element<'a, Message> {
     let color = quote.variation_color(theme);
-
-    let mut content = widget::row![]
-        .spacing(SPACING_ROW)
-        .align_y(Alignment::Center)
-        .width(Length::Fill);
+    let mut items: Vec<Element<'a, Message>> = Vec::new();
 
     if show_logo {
         let logo: Element<'a, Message> = match logo_handle {
@@ -150,26 +147,25 @@ pub fn quote_card<'a>(
                 .height(Length::Fixed(42.0))
                 .content_fit(cosmic::iced::ContentFit::Cover)
                 .into(),
-
             None => widget::Space::new()
                 .width(Length::Fixed(42.0))
                 .height(Length::Fixed(42.0))
                 .into(),
         };
-
-        content = content.push(logo);
+        items.push(logo);
     }
 
-    content = content.push(
+    items.push(
         widget::column![
             widget::text::heading(&quote.name).size(TEXT_BODY),
             widget::text::caption_heading(&quote.symbol).size(TEXT_BODY),
         ]
         .width(Length::Fill)
-        .spacing(2),
+        .spacing(2)
+        .into(),
     );
 
-    content = content.push(
+    items.push(
         widget::column![
             widget::text::caption_heading(quote.formatted_price())
                 .size(14)
@@ -179,14 +175,11 @@ pub fn quote_card<'a>(
                 .class(Text::Color(color)),
         ]
         .align_x(Alignment::End)
-        .spacing(2),
+        .spacing(2)
+        .into(),
     );
 
-    widget::container(content)
-        .padding(PAD_CARD)
-        .width(Length::Fill)
-        .class(badge_class(theme))
-        .into()
+    settings::item_row(items).align_y(Alignment::Center).into()
 }
 
 pub fn textlabel(label: impl Into<String>) -> Element<'static, Message> {

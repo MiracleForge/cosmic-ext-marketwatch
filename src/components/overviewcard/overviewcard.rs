@@ -5,9 +5,11 @@ use crate::constants::{PAD_CARD, SPACING_ROW};
 use crate::marketwatch::{MarketQuote, ScreensTab};
 use crate::utils::{SkeletonCfg, render_card_state};
 use cosmic::Theme;
+
 use cosmic::iced::{Alignment, Length};
 use cosmic::prelude::*;
 use cosmic::widget;
+use cosmic::widget::{Column, Row, container, settings, spin_button, text};
 
 use crate::app::Message;
 
@@ -31,17 +33,14 @@ pub fn overviewcard<'a>(
         |quotes| {
             quotes
                 .iter()
-                .fold(
-                    widget::column![].spacing(1).width(Length::Fill),
-                    |list, quote| {
-                        list.push(quote_card(
-                            quote,
-                            style.show_logos,
-                            style.logo_handles.get(&quote.symbol),
-                            theme,
-                        ))
-                    },
-                )
+                .fold(settings::section(), |section, quote| {
+                    section.add(quote_card(
+                        quote,
+                        style.show_logos,
+                        style.logo_handles.get(&quote.symbol),
+                        theme,
+                    ))
+                })
                 .into()
         },
     );
@@ -54,7 +53,6 @@ pub fn overviewcard<'a>(
         )
         .width(Length::Fill),
     )
-    .padding(PAD_CARD)
     .width(Length::Fill)
     .into()
 }
