@@ -15,6 +15,7 @@ use crate::components::settingscard::settingscard;
 use crate::components::toolscard::{NewAlert, SelectedAsset, ToolsView, toolscard};
 use crate::config::{Config, PopupTab, RefreshInterval};
 use crate::constants::{MAX_ASSETS_PER_PORTFOLIO, MAX_PORTFOLIOS, NEWS_SYMBOLS_LIMIT};
+use crate::fl;
 use crate::marketwatch::{
     AlertCondition, MarketCacheKey, MarketQuote, PriceAlert, ScreensTab, YahooNews,
     fetch_by_screeners, fetch_by_symbols, fetch_logo_handles, fetch_logos, fetch_news_for_symbols,
@@ -22,9 +23,10 @@ use crate::marketwatch::{
 };
 use cosmic::applet::cosmic_panel_config::PanelAnchor;
 use cosmic::cosmic_config::CosmicConfigEntry;
-use cosmic::iced::Subscription;
 use cosmic::iced::{Length, Limits, window::Id};
+use cosmic::iced::{Padding, Subscription};
 use cosmic::prelude::*;
+use cosmic::widget::segmented_button;
 use cosmic::{Action, widget};
 use iced_winit::commands::popup::{destroy_popup, get_popup};
 
@@ -43,6 +45,7 @@ pub struct AppModel {
     config: Config,
     core: cosmic::Core,
     active_tab: PopupTab,
+    pub tabs_model: segmented_button::SingleSelectModel,
     screens_tab: ScreensTab,
     is_horizontal: bool,
 
@@ -101,7 +104,6 @@ pub struct AppModel {
 pub enum Message {
     Tick,
     SkeletonTick,
-    SetTab(ScreensTab),
 
     RefreshMarket,
     RefreshPortfolio,
@@ -115,6 +117,8 @@ pub enum Message {
     NavigateTo(Option<PopupTab>),
     NavigateToTools(SelectedAsset),
     OpenExternalLink(String),
+
+    SelectTab(segmented_button::Entity),
     SetNewsTab(NewsTab),
     ToggleShowOnlyIcon(bool),
     ToggleShowLogoPanel(bool),
@@ -224,6 +228,20 @@ impl cosmic::Application for AppModel {
             news_loading: false,
             popup: None,
             active_tab: initial_tab,
+            tabs_model: segmented_button::Model::builder()
+                .insert(|b| {
+                    {
+                        b.text(fl!("screeners-tab-active"))
+                            .data(ScreensTab::MostActive)
+                    }
+                    .activate()
+                })
+                .insert(|b| {
+                    b.text(fl!("screeners-tab-gainers"))
+                        .data(ScreensTab::Gainers)
+                })
+                .insert(|b| b.text(fl!("screeners-tab-losers")).data(ScreensTab::Losers))
+                .build(),
             screens_tab: ScreensTab::MostActive,
             applet_id: widget::Id::unique(),
             market_quotes: Vec::new(),
@@ -346,6 +364,13 @@ impl cosmic::Application for AppModel {
         let theme = self.core.system_theme();
         let last_updated = self.last_updated_label();
 
+        let spacing = cosmic::theme::spacing();
+        let padding = if self.core.is_condensed() {
+            spacing.space_s
+        } else {
+            spacing.space_m
+        };
+
         let header = if self.active_tab == PopupTab::Tools {
             tools_header(last_updated, self.tools_selected_asset.as_ref())
         } else {
@@ -357,31 +382,25 @@ impl cosmic::Application for AppModel {
             )
         };
 
-        // Maximum supported applet scale is 200%.
-        let max_height = self
-            .core
-            .applet
-            .suggested_bounds
-            .map_or(500.0, |bounds| bounds.height);
-        let body_height = (max_height - 80.0).clamp(120.0, 520.0);
+        // Como o back do minimon: o header fica fora do scroll, sempre visível.
+        let body = widget::scrollable(
+            widget::container(self.tab_body(theme)).padding(Padding::from(padding).top(0)),
+        );
 
-        let body = widget::container(self.tab_body(theme)).height(Length::Fixed(body_height));
+        let content = widget::column::with_capacity(2)
+            .push(widget::container(header).padding(Padding::from(padding).bottom(spacing.space_s)))
+            .push(body);
 
-        let content = widget::column![widget::container(header).height(Length::Shrink), body]
-            .padding(0)
-            .width(Length::Fill)
-            .height(Length::Shrink);
+        let limits = Limits::NONE
+            .max_width(380.0)
+            .min_width(360.0)
+            .min_height(200.0)
+            .max_height(600.0);
 
         self.core
             .applet
             .popup_container(content)
-            .limits(
-                Limits::NONE
-                    .min_width(350.0)
-                    .max_width(350.0)
-                    .min_height(200.0)
-                    .max_height(f32::INFINITY),
-            )
+            .limits(limits)
             .into()
     }
 
@@ -450,27 +469,6 @@ impl cosmic::Application for AppModel {
 
             Message::SkeletonTick => {
                 self.skeleton_phase = (self.skeleton_phase + 0.15) % std::f32::consts::TAU;
-            }
-
-            Message::SetTab(tab) => {
-                self.screens_tab = tab;
-
-                let key = self.market_key();
-                let refresh_secs = self.config.refresh_interval.as_seconds();
-
-                let cache_valid = self
-                    .last_fetch_time
-                    .get(&key)
-                    .is_some_and(|t| t.elapsed().as_secs() < refresh_secs);
-
-                if cache_valid {
-                    self.restore_cached_market(&key);
-                    self.quotes_loading = false;
-                    return Task::none();
-                }
-
-                self.market_quotes.clear();
-                return self.fetch_market();
             }
 
             Message::MarketLoaded(key, result) => {
@@ -716,6 +714,32 @@ impl cosmic::Application for AppModel {
 
             Message::SetNewsTab(tab) => {
                 self.news_tab = tab;
+            }
+
+            Message::SelectTab(id) => {
+                self.tabs_model.activate(id);
+
+                let Some(tab) = self.tabs_model.data::<ScreensTab>(id).copied() else {
+                    return Task::none();
+                };
+                self.screens_tab = tab;
+
+                let key = self.market_key();
+                let refresh_secs = self.config.refresh_interval.as_seconds();
+
+                let cache_valid = self
+                    .last_fetch_time
+                    .get(&key)
+                    .is_some_and(|t| t.elapsed().as_secs() < refresh_secs);
+
+                if cache_valid {
+                    self.restore_cached_market(&key);
+                    self.quotes_loading = false;
+                    return Task::none();
+                }
+
+                self.market_quotes.clear();
+                return self.fetch_market();
             }
 
             Message::NavigateTo(tab) => {
@@ -1461,7 +1485,7 @@ impl AppModel {
                 &self.market_quotes,
                 self.error_message.as_ref(),
                 self.quotes_loading,
-                self.screens_tab,
+                &self.tabs_model,
                 &style,
             ),
             PopupTab::Info => infocard(theme),

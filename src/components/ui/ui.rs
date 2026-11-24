@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use cosmic::iced::{Border, Length};
 use cosmic::theme::Text;
 use cosmic::widget::button::Catalog;
-use cosmic::widget::settings;
+use cosmic::widget::{segmented_button, settings};
 use cosmic::{Element, iced::Alignment, widget};
 
 use cosmic::Theme;
@@ -229,26 +229,13 @@ pub fn news_frame<'a>(news: &'a YahooNews, theme: &Theme) -> Element<'a, Message
         .into()
 }
 
-pub fn overview_tab(current: ScreensTab) -> Element<'static, Message> {
-    let content = widget::row![]
+pub fn overview_tab(model: &segmented_button::SingleSelectModel) -> Element<'_, Message> {
+    let content = widget::tab_bar::horizontal(model)
         .spacing(0)
         .width(Length::Fill)
         .height(Length::Shrink)
-        .push(segmented_button(
-            crate::fl!("screeners-tab-active"),
-            Message::SetTab(ScreensTab::MostActive),
-            current == ScreensTab::MostActive,
-        ))
-        .push(segmented_button(
-            crate::fl!("screeners-tab-gainers"),
-            Message::SetTab(ScreensTab::Gainers),
-            current == ScreensTab::Gainers,
-        ))
-        .push(segmented_button(
-            crate::fl!("screeners-tab-losers"),
-            Message::SetTab(ScreensTab::Losers),
-            current == ScreensTab::Losers,
-        ));
+        .button_alignment(Alignment::Center)
+        .on_activate(Message::SelectTab);
 
     widget::container(content).padding([8, 0]).into()
 }

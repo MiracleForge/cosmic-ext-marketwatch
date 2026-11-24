@@ -8,7 +8,7 @@ use cosmic::Theme;
 
 use cosmic::iced::{Alignment, Length};
 use cosmic::prelude::*;
-use cosmic::widget;
+use cosmic::widget::{self, segmented_button};
 use cosmic::widget::{Column, Row, container, settings, spin_button, text};
 
 use crate::app::Message;
@@ -18,7 +18,7 @@ pub fn overviewcard<'a>(
     market_quotes: &'a [MarketQuote],
     error_message: Option<&'a String>,
     quotes_loading: bool,
-    current_tab: ScreensTab,
+    tabs_model: &'a segmented_button::SingleSelectModel,
     style: &QuoteStyle<'a>,
 ) -> Element<'a, Message> {
     let body = render_card_state(
@@ -47,7 +47,7 @@ pub fn overviewcard<'a>(
 
     widget::container(
         widget::scrollable(
-            widget::column![overview_tab(current_tab), body]
+            widget::column![overview_tab(tabs_model), body]
                 .spacing(1)
                 .width(Length::Fill),
         )
