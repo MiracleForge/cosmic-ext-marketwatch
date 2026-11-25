@@ -21,6 +21,30 @@ use crate::constants::{
 use crate::config::RefreshInterval;
 use crate::marketwatch::{MarketQuote, PriceAlert, QuoteFormat, YahooNews, format_publish_time};
 
+pub fn header_frame(
+    nav: Element<'static, Message>,
+    leading: Element<'static, Message>,
+    actions: Vec<Element<'static, Message>>,
+) -> Element<'static, Message> {
+    let spacing = cosmic::theme::spacing();
+
+    let mut row = widget::row::with_capacity(actions.len() + 1)
+        .push(leading)
+        .spacing(spacing.space_xs)
+        .align_y(Alignment::Center)
+        .width(Length::Fill);
+
+    for action in actions {
+        row = row.push(action);
+    }
+
+    widget::column::with_capacity(2)
+        .push(nav)
+        .push(row)
+        .spacing(spacing.space_xs)
+        .width(Length::Fill)
+        .into()
+}
 pub fn badge_class(theme: &Theme) -> cosmic::theme::Container<'static> {
     let btn = theme.active(false, false, &cosmic::theme::Button::Standard);
 
