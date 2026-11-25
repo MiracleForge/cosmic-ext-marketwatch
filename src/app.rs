@@ -47,6 +47,7 @@ pub struct AppModel {
     core: cosmic::Core,
     active_tab: PopupTab,
     pub tabs_model: segmented_button::SingleSelectModel,
+    news_tabs_model: segmented_button::SingleSelectModel,
     screens_tab: ScreensTab,
 
     skeleton_phase: f32,
@@ -123,7 +124,7 @@ pub enum Message {
     OpenExternalLink(String),
 
     SelectTab(segmented_button::Entity),
-    SetNewsTab(NewsTab),
+    SelectNewsTab(widget::segmented_button::Entity),
     ToggleShowOnlyIcon(bool),
     ToggleShowLogoPanel(bool),
     ToggleShowLogos(bool),
@@ -244,6 +245,14 @@ impl cosmic::Application for AppModel {
                         .data(ScreensTab::Gainers)
                 })
                 .insert(|b| b.text(fl!("screeners-tab-losers")).data(ScreensTab::Losers))
+                .build(),
+            news_tabs_model: segmented_button::Model::builder()
+                .insert(|b| {
+                    b.text(fl!("news-tab-us"))
+                        .data(NewsTab::Usmarket)
+                        .activate()
+                })
+                .insert(|b| b.text(fl!("news-tab-folio")).data(NewsTab::Portfolio))
                 .build(),
             screens_tab: ScreensTab::MostActive,
             applet_id: widget::Id::unique(),
@@ -737,8 +746,12 @@ impl cosmic::Application for AppModel {
                 }
             }
 
-            Message::SetNewsTab(tab) => {
-                self.news_tab = tab;
+            Message::SelectNewsTab(id) => {
+                self.news_tabs_model.activate(id);
+
+                if let Some(tab) = self.news_tabs_model.data::<NewsTab>(id).copied() {
+                    self.news_tab = tab;
+                }
             }
 
             Message::SelectTab(id) => {
@@ -1527,7 +1540,13 @@ impl AppModel {
                         self.portfolio_news_loading,
                     ),
                 };
-                news_card(news, self.config.show_news, error, loading, self.news_tab)
+                news_card(
+                    news,
+                    self.config.show_news,
+                    error,
+                    loading,
+                    &self.news_tabs_model,
+                )
             }
             PopupTab::Portfolio => {
                 let search = SearchView {

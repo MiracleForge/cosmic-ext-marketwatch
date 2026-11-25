@@ -11,8 +11,7 @@ use cosmic::Theme;
 
 use crate::app::Message;
 use crate::components::alertcard::alert_condition_label;
-use crate::components::buttons::{refresh_button, segmented_button};
-use crate::components::newscard::NewsTab;
+use crate::components::buttons::refresh_button;
 use crate::components::toolscard::SelectedAsset;
 use crate::constants::{
     LOGO_SIZE, MAX_ASSETS_PER_PORTFOLIO, PAD_CARD, PAD_ROW, SPACING_ROW, SPACING_TAB, TEXT_BODY,
@@ -20,7 +19,7 @@ use crate::constants::{
 };
 
 use crate::config::RefreshInterval;
-use crate::marketwatch::{MarketQuote, PriceAlert, QuoteFormat, YahooNews, format_publish_time};
+use crate::marketwatch::{MarketQuote, PriceAlert, QuoteFormat};
 
 pub fn header_frame(
     nav: Element<'static, Message>,
@@ -218,6 +217,8 @@ pub fn textlabel(label: impl Into<String>) -> Element<'static, Message> {
 }
 
 pub fn overview_tab(model: &segmented_button::SingleSelectModel) -> Element<'_, Message> {
+    let spacing = cosmic::theme::spacing();
+
     let content = widget::tab_bar::horizontal(model)
         .spacing(0)
         .width(Length::Fill)
@@ -225,26 +226,24 @@ pub fn overview_tab(model: &segmented_button::SingleSelectModel) -> Element<'_, 
         .button_alignment(Alignment::Center)
         .on_activate(Message::SelectTab);
 
-    widget::container(content).padding([8, 0]).into()
+    widget::container(content)
+        .padding([spacing.space_s, 0])
+        .into()
 }
 
-pub fn news_tab(current_tab: NewsTab) -> Element<'static, Message> {
-    let content = widget::row![]
+pub fn news_tab(model: &segmented_button::SingleSelectModel) -> Element<'_, Message> {
+    let spacing = cosmic::theme::spacing();
+
+    let content = widget::tab_bar::horizontal(model)
         .spacing(0)
         .width(Length::Fill)
         .height(Length::Shrink)
-        .push(segmented_button(
-            crate::fl!("news-tab-us"),
-            Message::SetNewsTab(NewsTab::Usmarket),
-            current_tab == NewsTab::Usmarket,
-        ))
-        .push(segmented_button(
-            crate::fl!("news-tab-folio"),
-            Message::SetNewsTab(NewsTab::Portfolio),
-            current_tab == NewsTab::Portfolio,
-        ));
+        .button_alignment(Alignment::Center)
+        .on_activate(Message::SelectNewsTab);
 
-    widget::container(content).padding([8, 0]).into()
+    widget::container(content)
+        .padding([spacing.space_s, 0])
+        .into()
 }
 
 pub fn friendly_message(err_msg: String, err_des: String) -> Element<'static, Message> {

@@ -2,7 +2,7 @@
 use cosmic::iced::{Alignment, Length};
 use cosmic::prelude::*;
 use cosmic::theme::Text;
-use cosmic::widget::{self, settings};
+use cosmic::widget::{self, segmented_button, settings};
 
 use crate::app::Message;
 use crate::components::ui::news_tab;
@@ -23,7 +23,7 @@ pub fn news_card<'a>(
     show_news: bool,
     error_message: Option<&'a String>,
     news_loading: bool,
-    current_tab: NewsTab,
+    news_tabs_model: &'a segmented_button::SingleSelectModel,
 ) -> Element<'a, Message> {
     let cards: Element<'a, Message> = if !show_news {
         friendly_message(
@@ -47,13 +47,9 @@ pub fn news_card<'a>(
     };
 
     widget::container(
-        widget::column![
-            textlabel(crate::fl!("news-last")),
-            news_tab(current_tab),
-            cards,
-        ]
-        .width(Length::Fill)
-        .align_x(Alignment::Start),
+        widget::column![news_tab(news_tabs_model), cards,]
+            .width(Length::Fill)
+            .align_x(Alignment::Start),
     )
     .into()
 }

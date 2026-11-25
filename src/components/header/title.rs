@@ -25,7 +25,11 @@ pub fn overview_subtitle(
 ) -> Element<'static, crate::app::Message> {
     if !matches!(
         active_tab,
-        PopupTab::Overview | PopupTab::Portfolio | PopupTab::Tools | PopupTab::Pinned
+        PopupTab::Overview
+            | PopupTab::Portfolio
+            | PopupTab::Tools
+            | PopupTab::Pinned
+            | PopupTab::News
     ) {
         return widget::Space::new().into();
     }
