@@ -21,7 +21,7 @@ pub fn navigation(
     };
 
     if let Some(message) = back {
-        return back_button(message);
+        return back_button("Back", message);
     }
 
     widget::row![
@@ -53,7 +53,6 @@ pub fn navigation(
                 Message::NavigateTo(Some(PopupTab::Settings)),
             ),
         ]
-        .spacing(SPACING_ROW),
     ]
     .width(cosmic::iced::Length::Fill)
     .into()

@@ -17,18 +17,15 @@ pub fn icon_button(flag: Option<bool>, icon: &str, message: Message) -> Element<
     }
 }
 
-pub fn back_button(message: Message) -> Element<'static, Message> {
-    widget::button::custom(
-        widget::row![
-            widget::icon::from_name("go-previous-symbolic"),
-            widget::text::body("Back"),
-        ]
-        .spacing(SPACING_ROW)
-        .align_y(Alignment::Center),
-    )
-    .on_press(message)
-    .class(cosmic::theme::Button::Text)
-    .into()
+pub fn back_button<'a>(parent: &'a str, on_press: Message) -> Element<'a, Message> {
+    widget::button::icon(widget::icon::from_name("go-previous-symbolic"))
+        .extra_small()
+        .padding(0)
+        .label(parent)
+        .spacing(4)
+        .class(widget::button::ButtonClass::Link)
+        .on_press(on_press)
+        .into()
 }
 
 pub fn refresh_button(

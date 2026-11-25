@@ -5,7 +5,7 @@ use crate::components::header::{navigation, overview_subtitle, title_dynamic};
 use crate::components::toolscard::SelectedAsset;
 use crate::components::ui::header_frame;
 use crate::config::PopupTab::{self};
-use crate::constants::{MAX_PORTFOLIOS, TEXT_BODY};
+use crate::constants::{LOGO_SIZE, MAX_PORTFOLIOS, TEXT_BODY};
 use cosmic::iced::{Alignment, Length};
 use cosmic::prelude::*;
 use cosmic::widget;
@@ -66,14 +66,14 @@ pub fn tools_header(
 
     let logo: Element<'static, Message> = match logo_handle {
         Some(handle) => widget::image(handle)
-            .width(Length::Fixed(42.0))
-            .height(Length::Fixed(42.0))
+            .width(Length::Fixed(LOGO_SIZE))
+            .height(Length::Fixed(LOGO_SIZE))
             .content_fit(cosmic::iced::ContentFit::Cover)
             .into(),
 
         None => widget::Space::new()
-            .width(Length::Fixed(42.0))
-            .height(Length::Fixed(42.0))
+            .width(Length::Fixed(LOGO_SIZE))
+            .height(Length::Fixed(LOGO_SIZE))
             .into(),
     };
 
