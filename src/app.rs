@@ -31,6 +31,7 @@ use cosmic::{Action, widget};
 use iced_winit::commands::popup::{destroy_popup, get_popup};
 
 use std::collections::HashMap;
+use std::sync::LazyLock;
 use std::time::{Duration, Instant};
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -99,6 +100,10 @@ pub struct AppModel {
     alert_selected_condition: AlertCondition,
     alert_input_value: String,
 }
+
+use cosmic::widget::Id as WId;
+
+static AUTOSIZE_MAIN_ID: LazyLock<WId> = std::sync::LazyLock::new(|| WId::new("autosize-main"));
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -330,6 +335,21 @@ impl cosmic::Application for AppModel {
     }
 
     fn view(&self) -> Element<'_, Self::Message> {
+        let horizontal = matches!(
+            self.core.applet.anchor,
+            PanelAnchor::Top | PanelAnchor::Bottom
+        );
+
+        let mut limits = Limits::NONE.min_width(1.).min_height(1.);
+        if let Some(b) = self.core.applet.suggested_bounds {
+            if b.width > 0.0 {
+                limits = limits.max_width(b.width);
+            }
+            if b.height > 0.0 {
+                limits = limits.max_height(b.height);
+            }
+        }
+
         let pinned_index = self
             .config
             .pinned_portfolio_index
@@ -346,18 +366,25 @@ impl cosmic::Application for AppModel {
             quotes,
             current_index,
             &self.logo_handles,
-            self.is_horizontal,
+            horizontal,
             self.error_message.as_ref(),
             &self.core,
         );
 
-        widget::autosize::autosize(
-            widget::button::custom(content)
-                .class(cosmic::theme::Button::AppletIcon)
-                .on_press(Message::TogglePopup),
-            widget::Id::unique(),
-        )
-        .into()
+        let padding = self.core.applet.suggested_padding(true);
+
+        let button = widget::button::custom(content)
+            .padding(if horizontal {
+                [0, padding.1]
+            } else {
+                [padding.0, 0]
+            })
+            .class(cosmic::theme::Button::AppletIcon)
+            .on_press(Message::TogglePopup);
+
+        widget::autosize::autosize(widget::container(button), AUTOSIZE_MAIN_ID.clone())
+            .limits(limits)
+            .into()
     }
 
     fn view_window(&self, _id: Id) -> Element<'_, Self::Message> {
@@ -387,7 +414,9 @@ impl cosmic::Application for AppModel {
         );
 
         let content = widget::column::with_capacity(2)
-            .push(widget::container(header).padding(Padding::from(padding).bottom(spacing.space_s)))
+            .push(
+                widget::container(header).padding(Padding::from(padding).bottom(spacing.space_xs)),
+            )
             .push(body);
 
         let limits = Limits::NONE

@@ -15,6 +15,7 @@ port-warning = Clique no botão de adicionar para criar seu primeiro portfólio.
 
 display-loading = Carregando...
 display-error = Erro
+back-button = Voltar
 
 assets-add = ADICIONAR ATIVO
 assets-limit = Limite de ativos atingido (máx. { $max }).

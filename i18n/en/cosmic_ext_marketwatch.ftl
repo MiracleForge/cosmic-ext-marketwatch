@@ -15,6 +15,7 @@ port-warning = Click the add button to create your first portfolio.
 
 display-loading = Loading...
 display-error = Error 
+back-button = Back
 
 assets-add = ADD ASSET
 assets-limit = Asset limit reached ({ $max } max).

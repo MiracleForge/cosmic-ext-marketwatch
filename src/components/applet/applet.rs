@@ -41,7 +41,10 @@ pub fn build_applet_content<'a>(
                 .flatten();
 
             if is_horizontal {
-                build_quote_display(quote, logo_handle, theme).into()
+                let (icon_w, icon_h) = core.applet.suggested_size(true);
+                let icon_size = icon_w.min(icon_h) as f32;
+
+                build_quote_display(quote, logo_handle, theme, icon_size).into()
             } else {
                 build_vertical_quote(quote, theme)
             }
@@ -68,6 +71,7 @@ fn build_quote_display<'a>(
     quote: &'a MarketQuote,
     logo_handle: Option<&'a widget::image::Handle>,
     theme: &Theme,
+    icon_size: f32,
 ) -> widget::Row<'a, Message, cosmic::Theme> {
     let color = quote.variation_color(theme);
 
@@ -79,8 +83,8 @@ fn build_quote_display<'a>(
     if let Some(handle) = logo_handle {
         row = row.push(
             widget::image(handle.clone())
-                .width(Length::Fixed(16.0))
-                .height(Length::Fixed(16.0))
+                .width(Length::Fixed(icon_size))
+                .height(Length::Fixed(icon_size))
                 .content_fit(cosmic::iced::ContentFit::Contain),
         );
     }

@@ -27,7 +27,7 @@ pub fn navigation(
     };
 
     if let Some(message) = back {
-        return back_button("Back", message);
+        return back_button(crate::fl!("back-button"), message);
     }
 
     let spacing = cosmic::theme::spacing();

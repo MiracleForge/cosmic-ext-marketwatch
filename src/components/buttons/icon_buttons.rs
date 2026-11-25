@@ -13,11 +13,11 @@ pub fn icon_button(flag: Option<bool>, icon: &str, message: Message) -> Element<
     }
 }
 
-pub fn back_button(parent: &str, on_press: Message) -> Element<'_, Message> {
+pub fn back_button(label: String, on_press: Message) -> Element<'static, Message> {
     widget::button::icon(widget::icon::from_name("go-previous-symbolic"))
         .extra_small()
         .padding(0)
-        .label(parent)
+        .label(label)
         .spacing(4)
         .class(widget::button::ButtonClass::Link)
         .on_press(on_press)
