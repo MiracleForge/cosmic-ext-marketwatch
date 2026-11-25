@@ -1,10 +1,8 @@
-use crate::components::portfoliocard::QuoteStyle;
 // SPDX-License-Identifier: GPL-3.0-only
-use crate::components::ui::{badge_class, overview_tab, quote_card};
-use crate::constants::{PAD_CARD, SPACING_ROW};
+use crate::components::portfoliocard::QuoteStyle;
+use crate::components::ui::{overview_tab, quote_card};
 use crate::marketwatch::MarketQuote;
 use crate::utils::{SkeletonCfg, render_card_state};
-use cosmic::Theme;
 
 use cosmic::iced::{Alignment, Length};
 use cosmic::prelude::*;
@@ -20,7 +18,6 @@ pub fn overviewcard<'a>(
     tabs_model: &'a segmented_button::SingleSelectModel,
     style: &QuoteStyle<'a>,
 ) -> Element<'a, Message> {
-    let spacing = cosmic::theme::spacing();
     let body = render_card_state(
         market_quotes,
         error_message,
@@ -75,43 +72,39 @@ fn skeleton_bar<'a>(width: f32, height: f32, pulse: f32) -> Element<'a, Message>
 }
 
 pub fn quote_card_skeleton<'a>(show_logo: bool, pulse: f32) -> Element<'a, Message> {
-    let mut content = widget::row![]
-        .spacing(SPACING_ROW)
-        .align_y(Alignment::Center)
-        .width(Length::Fill);
+    let mut items: Vec<Element<'a, Message>> = Vec::new();
 
     if show_logo {
-        content = content.push(skeleton_bar(42.0, 42.0, pulse));
+        items.push(skeleton_bar(42.0, 42.0, pulse));
     }
 
-    content = content.push(
+    items.push(
         widget::column![
             skeleton_bar(120.0, 14.0, pulse),
             skeleton_bar(60.0, 12.0, pulse),
         ]
+        .spacing(6)
         .width(Length::Fill)
-        .spacing(6),
+        .into(),
     );
 
-    content = content.push(
+    items.push(
         widget::column![
             skeleton_bar(64.0, 14.0, pulse),
             skeleton_bar(48.0, 12.0, pulse),
         ]
+        .spacing(6)
         .align_x(Alignment::End)
-        .spacing(6),
+        .into(),
     );
 
-    widget::container(content)
-        .padding(PAD_CARD)
-        .width(Length::Fill)
-        .into()
+    settings::item_row(items).align_y(Alignment::Center).into()
 }
 
 pub fn quotes_skeleton<'a>(show_logo: bool, pulse: f32) -> Element<'a, Message> {
-    let mut list = widget::column![].spacing(1).width(Length::Fill);
-    for _ in 0..6 {
-        list = list.push(quote_card_skeleton(show_logo, pulse));
-    }
-    list.into()
+    (0..6)
+        .fold(settings::section(), |section, _| {
+            section.add(quote_card_skeleton(show_logo, pulse))
+        })
+        .into()
 }

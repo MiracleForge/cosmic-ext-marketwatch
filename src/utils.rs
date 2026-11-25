@@ -1,4 +1,4 @@
-use cosmic::{Element, Theme, iced::Length, widget};
+use cosmic::{Element, iced::Length, widget};
 
 use crate::{
     app::Message,

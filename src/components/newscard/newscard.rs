@@ -6,7 +6,6 @@ use cosmic::widget::{self, segmented_button, settings};
 
 use crate::app::Message;
 use crate::components::ui::news_tab;
-use crate::components::ui::textlabel;
 use crate::components::ui::{friendly_message, svg_accent};
 use crate::constants::{TEXT_BODY, TEXT_SMALL};
 use crate::marketwatch::{YahooNews, format_publish_time};
