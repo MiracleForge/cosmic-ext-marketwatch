@@ -1527,14 +1527,7 @@ impl AppModel {
                         self.portfolio_news_loading,
                     ),
                 };
-                news_card(
-                    news,
-                    self.config.show_news,
-                    error,
-                    loading,
-                    self.news_tab,
-                    theme,
-                )
+                news_card(news, self.config.show_news, error, loading, self.news_tab)
             }
             PopupTab::Portfolio => {
                 let search = SearchView {

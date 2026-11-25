@@ -64,7 +64,7 @@ pub fn badge_class(theme: &Theme) -> cosmic::theme::Container<'static> {
     })
 }
 
-fn svg_accent() -> cosmic::theme::Svg {
+pub fn svg_accent() -> cosmic::theme::Svg {
     cosmic::theme::Svg::Custom(Rc::new(|theme: &cosmic::Theme| widget::svg::Style {
         color: Some(theme.cosmic().accent_text_color().into()),
     }))
@@ -214,43 +214,6 @@ pub fn textlabel(label: impl Into<String>) -> Element<'static, Message> {
             text_color: Some(cosmic::iced::Color::from(theme.cosmic().accent_color())),
             ..Default::default()
         })
-        .into()
-}
-
-pub fn news_frame<'a>(news: &'a YahooNews, theme: &Theme) -> Element<'a, Message> {
-    let publisher = news.publisher.as_deref().unwrap_or("Unknown source");
-
-    let time_str = news
-        .publish_time
-        .map(format_publish_time)
-        .unwrap_or_default();
-
-    let meta_text = if time_str.is_empty() {
-        publisher.to_string()
-    } else {
-        format!("{publisher} · {time_str}")
-    };
-
-    let content = widget::row![
-        widget::column![
-            widget::text::heading(&news.title).size(TEXT_BODY),
-            widget::row![widget::text(meta_text).size(TEXT_SMALL).class(Text::Accent),]
-                .spacing(8)
-                .align_y(Alignment::Center),
-        ]
-        .spacing(4)
-        .width(Length::Fill),
-        widget::button::icon(widget::icon::from_name("link-symbolic"))
-            .on_press(Message::OpenExternalLink(news.link.clone()))
-            .padding(PAD_ROW),
-    ]
-    .align_y(Alignment::Center)
-    .width(Length::Fill);
-
-    widget::container(content)
-        .padding(PAD_CARD)
-        .width(Length::Fill)
-        .class(badge_class(theme))
         .into()
 }
 
