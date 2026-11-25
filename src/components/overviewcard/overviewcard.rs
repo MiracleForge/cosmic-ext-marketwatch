@@ -2,14 +2,14 @@ use crate::components::portfoliocard::QuoteStyle;
 // SPDX-License-Identifier: GPL-3.0-only
 use crate::components::ui::{badge_class, overview_tab, quote_card};
 use crate::constants::{PAD_CARD, SPACING_ROW};
-use crate::marketwatch::{MarketQuote, ScreensTab};
+use crate::marketwatch::MarketQuote;
 use crate::utils::{SkeletonCfg, render_card_state};
 use cosmic::Theme;
 
 use cosmic::iced::{Alignment, Length};
 use cosmic::prelude::*;
+use cosmic::widget::settings;
 use cosmic::widget::{self, segmented_button};
-use cosmic::widget::{Column, Row, container, settings, spin_button, text};
 
 use crate::app::Message;
 
@@ -46,14 +46,12 @@ pub fn overviewcard<'a>(
     );
 
     widget::container(
-        widget::scrollable(
-            widget::column![overview_tab(tabs_model), body]
-                .spacing(1)
-                .width(Length::Fill),
-        )
+        widget::column![
+            overview_tab(tabs_model),
+            widget::scrollable(body).height(Length::Fill)
+        ]
         .width(Length::Fill),
     )
-    .width(Length::Fill)
     .into()
 }
 

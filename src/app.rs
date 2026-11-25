@@ -23,7 +23,7 @@ use crate::marketwatch::{
 };
 use cosmic::applet::cosmic_panel_config::PanelAnchor;
 use cosmic::cosmic_config::CosmicConfigEntry;
-use cosmic::iced::{Length, Limits, window::Id};
+use cosmic::iced::{Limits, window::Id};
 use cosmic::iced::{Padding, Subscription};
 use cosmic::prelude::*;
 use cosmic::widget::segmented_button;
@@ -382,8 +382,7 @@ impl cosmic::Application for AppModel {
             )
         };
 
-        // Como o back do minimon: o header fica fora do scroll, sempre visível.
-        let body = widget::scrollable(
+        let body = widget::container(
             widget::container(self.tab_body(theme)).padding(Padding::from(padding).top(0)),
         );
 

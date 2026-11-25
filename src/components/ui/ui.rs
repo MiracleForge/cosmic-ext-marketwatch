@@ -14,13 +14,12 @@ use crate::components::buttons::{refresh_button, segmented_button};
 use crate::components::newscard::NewsTab;
 use crate::components::toolscard::SelectedAsset;
 use crate::constants::{
-    MAX_ASSETS_PER_PORTFOLIO, PAD_CARD, PAD_ROW, SPACING_ROW, SPACING_TAB, TEXT_BODY, TEXT_SMALL,
+    LOGO_SIZE, MAX_ASSETS_PER_PORTFOLIO, PAD_CARD, PAD_ROW, SPACING_ROW, SPACING_TAB, TEXT_BODY,
+    TEXT_SMALL,
 };
 
 use crate::config::RefreshInterval;
-use crate::marketwatch::{
-    MarketQuote, PriceAlert, QuoteFormat, ScreensTab, YahooNews, format_publish_time,
-};
+use crate::marketwatch::{MarketQuote, PriceAlert, QuoteFormat, YahooNews, format_publish_time};
 
 pub fn badge_class(theme: &Theme) -> cosmic::theme::Container<'static> {
     let btn = theme.active(false, false, &cosmic::theme::Button::Standard);
@@ -143,13 +142,13 @@ pub fn quote_card<'a>(
     if show_logo {
         let logo: Element<'a, Message> = match logo_handle {
             Some(handle) => widget::image(handle.clone())
-                .width(Length::Fixed(42.0))
-                .height(Length::Fixed(42.0))
+                .width(Length::Fixed(LOGO_SIZE))
+                .height(Length::Fixed(LOGO_SIZE))
                 .content_fit(cosmic::iced::ContentFit::Cover)
                 .into(),
             None => widget::Space::new()
-                .width(Length::Fixed(42.0))
-                .height(Length::Fixed(42.0))
+                .width(Length::Fixed(LOGO_SIZE))
+                .height(Length::Fixed(LOGO_SIZE))
                 .into(),
         };
         items.push(logo);
@@ -161,7 +160,6 @@ pub fn quote_card<'a>(
             widget::text::caption_heading(&quote.symbol).size(TEXT_BODY),
         ]
         .width(Length::Fill)
-        .spacing(2)
         .into(),
     );
 
@@ -175,7 +173,6 @@ pub fn quote_card<'a>(
                 .class(Text::Color(color)),
         ]
         .align_x(Alignment::End)
-        .spacing(2)
         .into(),
     );
 
