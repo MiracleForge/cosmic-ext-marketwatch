@@ -1506,7 +1506,6 @@ impl AppModel {
 
         match self.active_tab {
             PopupTab::Overview => overviewcard(
-                theme,
                 &self.market_quotes,
                 self.error_message.as_ref(),
                 self.quotes_loading,
@@ -1558,7 +1557,7 @@ impl AppModel {
                 };
                 toolscard(theme, &tools)
             }
-            PopupTab::Pinned => pinnedcard(theme, &self.build_pinned_portfolio_view(), &style),
+            PopupTab::Pinned => pinnedcard(&self.build_pinned_portfolio_view(), &style),
         }
     }
 }

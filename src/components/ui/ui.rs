@@ -63,19 +63,22 @@ pub fn badge_class(theme: &Theme) -> cosmic::theme::Container<'static> {
         ..Default::default()
     })
 }
+
+fn svg_accent() -> cosmic::theme::Svg {
+    cosmic::theme::Svg::Custom(Rc::new(|theme: &cosmic::Theme| widget::svg::Style {
+        color: Some(theme.cosmic().accent_text_color().into()),
+    }))
+}
 pub fn external_link_card<'a>(
     text: impl Into<String>,
     url: &'a str,
 ) -> widget::list::ListButton<'a, Message> {
-    let svg_accent = Rc::new(|theme: &cosmic::Theme| widget::svg::Style {
-        color: Some(theme.cosmic().accent_text_color().into()),
-    });
     widget::row::with_capacity(2)
         .push(widget::text::body(text.into()).width(Length::Fill))
         .push(
             widget::icon::from_name("link-symbolic")
                 .icon()
-                .class(cosmic::theme::Svg::Custom(svg_accent.clone())),
+                .class(svg_accent()),
         )
         .align_y(Alignment::Center)
         .apply(widget::list::button)
@@ -159,9 +162,9 @@ pub fn quote_card<'a>(
     quote: &'a MarketQuote,
     show_logo: bool,
     logo_handle: Option<&'a widget::image::Handle>,
-    theme: &Theme,
 ) -> Element<'a, Message> {
-    let color = quote.variation_color(theme);
+    let theme = cosmic::theme::active();
+    let color = quote.variation_color(&theme);
     let mut items: Vec<Element<'a, Message>> = Vec::new();
 
     if show_logo {

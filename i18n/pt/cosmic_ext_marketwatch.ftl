@@ -9,7 +9,7 @@ overview-title = Mercado dos EUA
 
 wallet-name = Nome da carteira
 wallet-updated-at = Atualizado { $time }
-port-base = Meus portfólios
+port-base = Portfólios
 port-not-found = Você ainda não tem nenhum portfólio
 port-warning = Clique no botão de adicionar para criar seu primeiro portfólio.
 

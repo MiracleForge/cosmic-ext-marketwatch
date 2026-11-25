@@ -6,13 +6,11 @@ use crate::components::ui::quote_card;
 use crate::constants::PAD_CARD;
 use crate::utils::{SkeletonCfg, render_card_state};
 
-use cosmic::Theme;
 use cosmic::iced::Length;
 use cosmic::prelude::*;
 use cosmic::widget;
 
 pub fn pinnedcard<'a>(
-    theme: &Theme,
     portfolio: &PortfolioView<'a>,
     style: &QuoteStyle<'a>,
 ) -> Element<'a, Message> {
@@ -23,7 +21,6 @@ pub fn pinnedcard<'a>(
         Some(SkeletonCfg {
             show_logo: style.show_logos,
             pulse: style.pulse,
-            theme,
         }),
         |quotes| {
             quotes
@@ -34,7 +31,7 @@ pub fn pinnedcard<'a>(
                     |list, quote| {
                         let logo = style.logo_handles.get(&quote.symbol);
 
-                        list.push(quote_card(quote, style.show_logos, logo, theme))
+                        list.push(quote_card(quote, style.show_logos, logo))
                     },
                 )
                 .into()

@@ -14,13 +14,13 @@ use cosmic::widget::{self, segmented_button};
 use crate::app::Message;
 
 pub fn overviewcard<'a>(
-    theme: &Theme,
     market_quotes: &'a [MarketQuote],
     error_message: Option<&'a String>,
     quotes_loading: bool,
     tabs_model: &'a segmented_button::SingleSelectModel,
     style: &QuoteStyle<'a>,
 ) -> Element<'a, Message> {
+    let spacing = cosmic::theme::spacing();
     let body = render_card_state(
         market_quotes,
         error_message,
@@ -28,7 +28,6 @@ pub fn overviewcard<'a>(
         Some(SkeletonCfg {
             show_logo: style.show_logos,
             pulse: style.pulse,
-            theme,
         }),
         |quotes| {
             quotes
@@ -38,7 +37,6 @@ pub fn overviewcard<'a>(
                         quote,
                         style.show_logos,
                         style.logo_handles.get(&quote.symbol),
-                        theme,
                     ))
                 })
                 .into()
@@ -76,7 +74,7 @@ fn skeleton_bar<'a>(width: f32, height: f32, pulse: f32) -> Element<'a, Message>
         .into()
 }
 
-pub fn quote_card_skeleton<'a>(show_logo: bool, pulse: f32, theme: &Theme) -> Element<'a, Message> {
+pub fn quote_card_skeleton<'a>(show_logo: bool, pulse: f32) -> Element<'a, Message> {
     let mut content = widget::row![]
         .spacing(SPACING_ROW)
         .align_y(Alignment::Center)
@@ -107,14 +105,13 @@ pub fn quote_card_skeleton<'a>(show_logo: bool, pulse: f32, theme: &Theme) -> El
     widget::container(content)
         .padding(PAD_CARD)
         .width(Length::Fill)
-        .class(badge_class(theme))
         .into()
 }
 
-pub fn quotes_skeleton<'a>(show_logo: bool, pulse: f32, theme: &Theme) -> Element<'a, Message> {
+pub fn quotes_skeleton<'a>(show_logo: bool, pulse: f32) -> Element<'a, Message> {
     let mut list = widget::column![].spacing(1).width(Length::Fill);
     for _ in 0..6 {
-        list = list.push(quote_card_skeleton(show_logo, pulse, theme));
+        list = list.push(quote_card_skeleton(show_logo, pulse));
     }
     list.into()
 }

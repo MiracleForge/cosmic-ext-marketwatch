@@ -29,17 +29,16 @@ fn derive_state<'a, T>(
     }
 }
 
-pub struct SkeletonCfg<'t> {
+pub struct SkeletonCfg {
     pub show_logo: bool,
     pub pulse: f32,
-    pub theme: &'t Theme,
 }
 
 pub fn render_card_state<'a, T, F>(
     items: &'a [T],
     error: Option<&'a String>,
     loading: bool,
-    skeleton: Option<SkeletonCfg<'_>>,
+    skeleton: Option<SkeletonCfg>,
     render_ready: F,
 ) -> Element<'a, Message>
 where
@@ -47,7 +46,7 @@ where
 {
     match derive_state(items, error, loading) {
         CardState::Loading => match skeleton {
-            Some(cfg) => quotes_skeleton(cfg.show_logo, cfg.pulse, cfg.theme),
+            Some(cfg) => quotes_skeleton(cfg.show_logo, cfg.pulse),
             None => widget::container(widget::text::body(crate::fl!("quotes-loading")))
                 .width(Length::Fill)
                 .padding([16, 16])

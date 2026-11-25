@@ -158,7 +158,6 @@ pub fn portfolio_body<'a>(
             Some(SkeletonCfg {
                 show_logo: style.show_logos,
                 pulse: style.pulse,
-                theme,
             }),
             |quotes| {
                 widget::column::with_children(
