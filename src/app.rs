@@ -48,7 +48,6 @@ pub struct AppModel {
     active_tab: PopupTab,
     pub tabs_model: segmented_button::SingleSelectModel,
     screens_tab: ScreensTab,
-    is_horizontal: bool,
 
     skeleton_phase: f32,
 
@@ -194,7 +193,6 @@ impl cosmic::Application for AppModel {
             .as_ref()
             .and_then(|h| Config::get_entry(h).ok())
             .unwrap_or_default();
-        let is_horizontal = matches!(core.applet.anchor, PanelAnchor::Top | PanelAnchor::Bottom);
 
         let user_portfolios = load_portfolio();
 
@@ -258,7 +256,6 @@ impl cosmic::Application for AppModel {
             news_per_symbol_input: config.count_news_by_simbol.to_string(),
             news_tab: NewsTab::Usmarket,
             config,
-            is_horizontal,
             current_index: 0,
             error_message: None,
             user_portfolios,
@@ -409,9 +406,9 @@ impl cosmic::Application for AppModel {
             )
         };
 
-        let body = widget::container(
-            widget::container(self.tab_body(theme)).padding(Padding::from(padding).top(0)),
-        );
+        let body = widget::container(self.tab_body(theme))
+            .padding(Padding::from(padding).top(0))
+            .apply(widget::scrollable);
 
         let content = widget::column::with_capacity(2)
             .push(
@@ -1516,7 +1513,7 @@ impl AppModel {
                 &self.tabs_model,
                 &style,
             ),
-            PopupTab::Info => infocard(theme),
+            PopupTab::Info => infocard(),
             PopupTab::Settings => settingscard(&self.config, theme),
             PopupTab::News => {
                 let (news, error, loading) = match self.news_tab {

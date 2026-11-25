@@ -1,10 +1,11 @@
-use std::collections::HashMap;
-
+use cosmic::Apply;
 use cosmic::iced::{Border, Length};
 use cosmic::theme::Text;
 use cosmic::widget::button::Catalog;
 use cosmic::widget::{segmented_button, settings};
 use cosmic::{Element, iced::Alignment, widget};
+use std::collections::HashMap;
+use std::rc::Rc;
 
 use cosmic::Theme;
 
@@ -62,23 +63,23 @@ pub fn badge_class(theme: &Theme) -> cosmic::theme::Container<'static> {
         ..Default::default()
     })
 }
-pub fn external_link_card<'a>(text: String, url: &str, theme: &Theme) -> Element<'a, Message> {
-    let content = widget::row![
-        widget::text::heading(text)
-            .size(TEXT_BODY)
-            .width(Length::Fill),
-        widget::button::icon(widget::icon::from_name("link-symbolic"))
-            .on_press(Message::OpenExternalLink(url.to_string()))
-            .padding(PAD_ROW),
-    ]
-    .align_y(Alignment::Center)
-    .width(Length::Fill);
-
-    widget::container(content)
-        .padding(PAD_CARD)
-        .width(Length::Fill)
-        .class(badge_class(theme))
-        .into()
+pub fn external_link_card<'a>(
+    text: impl Into<String>,
+    url: &'a str,
+) -> widget::list::ListButton<'a, Message> {
+    let svg_accent = Rc::new(|theme: &cosmic::Theme| widget::svg::Style {
+        color: Some(theme.cosmic().accent_text_color().into()),
+    });
+    widget::row::with_capacity(2)
+        .push(widget::text::body(text.into()).width(Length::Fill))
+        .push(
+            widget::icon::from_name("link-symbolic")
+                .icon()
+                .class(cosmic::theme::Svg::Custom(svg_accent.clone())),
+        )
+        .align_y(Alignment::Center)
+        .apply(widget::list::button)
+        .on_press(Message::OpenExternalLink(url.to_string()))
 }
 
 pub fn toggle_card<'a>(
