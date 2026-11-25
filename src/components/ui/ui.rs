@@ -28,15 +28,15 @@ pub fn header_frame(
 ) -> Element<'static, Message> {
     let spacing = cosmic::theme::spacing();
 
-    let mut row = widget::row::with_capacity(actions.len() + 1)
-        .push(leading)
-        .spacing(spacing.space_xs)
-        .align_y(Alignment::Center)
-        .width(Length::Fill);
-
-    for action in actions {
-        row = row.push(action);
-    }
+    let row = actions.into_iter().fold(
+        widget::row::with_capacity(4)
+            .push(leading)
+            .push(widget::space::horizontal())
+            .align_y(Alignment::Center)
+            .spacing(spacing.space_s)
+            .width(Length::Fill),
+        |row, action| row.push(action),
+    );
 
     widget::column::with_capacity(2)
         .push(nav)

@@ -1,5 +1,6 @@
 use crate::config::PopupTab;
 use cosmic::{Element, widget};
+use iced_winit::core::text::Wrapping;
 use std::collections::HashMap;
 
 pub fn title_dynamic(
@@ -15,7 +16,7 @@ pub fn title_dynamic(
         PopupTab::Tools | PopupTab::Info => return None,
     };
 
-    Some(widget::text::title4(title).into())
+    Some(widget::text::title3(title).wrapping(Wrapping::Word).into())
 }
 
 pub fn overview_subtitle(
