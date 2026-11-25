@@ -1,10 +1,6 @@
-use cosmic::{
-    Element,
-    iced::{Alignment, Length},
-    widget,
-};
+use cosmic::{Element, iced::Length, widget};
 
-use crate::{app::Message, constants::SPACING_ROW};
+use crate::app::Message;
 
 use crate::config::RefreshInterval;
 pub fn icon_button(flag: Option<bool>, icon: &str, message: Message) -> Element<'static, Message> {
@@ -17,7 +13,7 @@ pub fn icon_button(flag: Option<bool>, icon: &str, message: Message) -> Element<
     }
 }
 
-pub fn back_button<'a>(parent: &'a str, on_press: Message) -> Element<'a, Message> {
+pub fn back_button(parent: &str, on_press: Message) -> Element<'_, Message> {
     widget::button::icon(widget::icon::from_name("go-previous-symbolic"))
         .extra_small()
         .padding(0)

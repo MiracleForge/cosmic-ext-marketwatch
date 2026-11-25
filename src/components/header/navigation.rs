@@ -1,11 +1,17 @@
-use cosmic::{Element, widget};
-
-use crate::{
-    app::Message,
-    components::buttons::{back_button, icon_button},
-    config::PopupTab,
-    constants::SPACING_ROW,
+use cosmic::{
+    Element,
+    iced::{Alignment, Length},
+    widget,
 };
+
+use crate::{app::Message, components::buttons::back_button, config::PopupTab};
+
+fn nav_icon(name: &'static str, message: Message, selected: bool) -> Element<'static, Message> {
+    widget::button::icon(widget::icon::from_name(name))
+        .on_press(message)
+        .selected(selected)
+        .into()
+}
 
 pub fn navigation(
     active_tab: PopupTab,
@@ -24,36 +30,40 @@ pub fn navigation(
         return back_button("Back", message);
     }
 
-    widget::row![
-        icon_button(
-            None,
+    let spacing = cosmic::theme::spacing();
+
+    let tabs = widget::row::with_capacity(4)
+        .push(nav_icon(
+            "go-home-symbolic",
+            Message::NavigateTo(Some(PopupTab::Overview)),
+            active_tab == PopupTab::Overview,
+        ))
+        .push(nav_icon(
+            "payment-card-symbolic",
+            Message::NavigateTo(Some(PopupTab::Portfolio)),
+            active_tab == PopupTab::Pinned,
+        ))
+        .push(nav_icon(
+            "x-office-document-symbolic",
+            Message::NavigateTo(Some(PopupTab::News)),
+            false,
+        ))
+        .push(nav_icon(
+            "emblem-system-symbolic",
+            Message::NavigateTo(Some(PopupTab::Settings)),
+            false,
+        ))
+        .spacing(spacing.space_xxs);
+
+    widget::row::with_capacity(3)
+        .push(nav_icon(
             "dialog-information-symbolic",
             Message::NavigateTo(Some(PopupTab::Info)),
-        ),
-        widget::Space::new().width(cosmic::iced::Length::Fill),
-        widget::row![
-            icon_button(
-                None,
-                "go-home-symbolic",
-                Message::NavigateTo(Some(PopupTab::Overview))
-            ),
-            icon_button(
-                None,
-                "payment-card-symbolic",
-                Message::NavigateTo(Some(PopupTab::Portfolio)),
-            ),
-            icon_button(
-                None,
-                "x-office-document-symbolic",
-                Message::NavigateTo(Some(PopupTab::News)),
-            ),
-            icon_button(
-                None,
-                "emblem-system-symbolic",
-                Message::NavigateTo(Some(PopupTab::Settings)),
-            ),
-        ]
-    ]
-    .width(cosmic::iced::Length::Fill)
-    .into()
+            false,
+        ))
+        .push(widget::Space::new().width(Length::Fill))
+        .push(tabs)
+        .align_y(Alignment::Center)
+        .width(Length::Fill)
+        .into()
 }
