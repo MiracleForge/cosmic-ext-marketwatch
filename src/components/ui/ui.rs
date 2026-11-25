@@ -11,15 +11,15 @@ use cosmic::Theme;
 
 use crate::app::Message;
 use crate::components::alertcard::alert_condition_label;
-use crate::components::buttons::refresh_button;
+use crate::components::newscard::NewsTab;
 use crate::components::toolscard::SelectedAsset;
 use crate::constants::{
     LOGO_SIZE, MAX_ASSETS_PER_PORTFOLIO, PAD_CARD, PAD_ROW, SPACING_ROW, SPACING_TAB, TEXT_BODY,
     TEXT_SMALL,
 };
 
-use crate::config::RefreshInterval;
-use crate::marketwatch::{MarketQuote, PriceAlert, QuoteFormat};
+use crate::fl;
+use crate::marketwatch::{MarketQuote, PriceAlert, QuoteFormat, ScreensTab};
 
 pub fn header_frame(
     nav: Element<'static, Message>,
@@ -35,7 +35,7 @@ pub fn header_frame(
             .align_y(Alignment::Center)
             .spacing(spacing.space_s)
             .width(Length::Fill),
-        |row, action| row.push(action),
+        cosmic::widget::Row::push,
     );
 
     widget::column::with_capacity(2)
@@ -68,10 +68,10 @@ pub fn svg_accent() -> cosmic::theme::Svg {
         color: Some(theme.cosmic().accent_text_color().into()),
     }))
 }
-pub fn external_link_card<'a>(
+pub fn external_link_card(
     text: impl Into<String>,
-    url: &'a str,
-) -> widget::list::ListButton<'a, Message> {
+    url: &str,
+) -> widget::list::ListButton<'_, Message> {
     widget::row::with_capacity(2)
         .push(widget::text::body(text.into()).width(Length::Fill))
         .push(
@@ -98,57 +98,6 @@ pub fn toggle_card<'a>(
     ]
     .align_y(Alignment::Center)
     .width(Length::Fill);
-
-    widget::container(content)
-        .padding(PAD_CARD)
-        .width(Length::Fill)
-        .class(badge_class(theme))
-        .into()
-}
-
-pub fn input_card<'a>(
-    text: String,
-    placeholder: &'a str,
-    input: String,
-    message: fn(String) -> Message,
-    theme: &Theme,
-) -> Element<'a, Message> {
-    let content = widget::row![
-        widget::text::heading(text)
-            .size(TEXT_BODY)
-            .width(Length::Fill),
-        widget::text_input(placeholder, input)
-            .on_input(message)
-            .width(cosmic::iced::Length::Fixed(60.0)),
-    ]
-    .align_y(Alignment::Center)
-    .width(Length::Fill);
-
-    widget::container(content)
-        .padding(PAD_CARD)
-        .width(Length::Fill)
-        .class(badge_class(theme))
-        .into()
-}
-pub fn segmented_card<'a>(
-    text: String,
-    options: &[(&'a str, RefreshInterval)],
-    selected: RefreshInterval,
-    message: fn(RefreshInterval) -> Message,
-    theme: &Theme,
-) -> Element<'a, Message> {
-    let mut row = widget::row![].spacing(4).width(Length::Fill);
-
-    for (label, value) in options {
-        row = row.push(
-            widget::container(refresh_button(label, *value, selected, message))
-                .width(Length::FillPortion(1)),
-        );
-    }
-
-    let content = widget::column![widget::text::heading(text).size(TEXT_BODY), row,]
-        .spacing(SPACING_ROW)
-        .width(Length::Fill);
 
     widget::container(content)
         .padding(PAD_CARD)
@@ -524,4 +473,30 @@ pub fn pin_button<'a>(pinned: usize, current_index: usize, theme: &Theme) -> Ele
         .padding(8)
         .on_press(Message::TogglePinPortfolio)
         .into()
+}
+
+pub fn build_tabs_model() -> segmented_button::SingleSelectModel {
+    segmented_button::Model::builder()
+        .insert(|b| {
+            b.text(fl!("screeners-tab-active"))
+                .data(ScreensTab::MostActive)
+                .activate()
+        })
+        .insert(|b| {
+            b.text(fl!("screeners-tab-gainers"))
+                .data(ScreensTab::Gainers)
+        })
+        .insert(|b| b.text(fl!("screeners-tab-losers")).data(ScreensTab::Losers))
+        .build()
+}
+
+pub fn build_news_tabs_model() -> segmented_button::SingleSelectModel {
+    segmented_button::Model::builder()
+        .insert(|b| {
+            b.text(fl!("news-tab-us"))
+                .data(NewsTab::Usmarket)
+                .activate()
+        })
+        .insert(|b| b.text(fl!("news-tab-folio")).data(NewsTab::Portfolio))
+        .build()
 }

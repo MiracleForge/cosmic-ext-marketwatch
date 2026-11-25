@@ -13,9 +13,9 @@ use crate::components::portfoliocard::{
 };
 use crate::components::settingscard::settingscard;
 use crate::components::toolscard::{NewAlert, SelectedAsset, ToolsView, toolscard};
+use crate::components::ui::{build_news_tabs_model, build_tabs_model};
 use crate::config::{Config, PopupTab, RefreshInterval};
 use crate::constants::{MAX_ASSETS_PER_PORTFOLIO, MAX_PORTFOLIOS, NEWS_SYMBOLS_LIMIT};
-use crate::fl;
 use crate::marketwatch::{
     AlertCondition, MarketCacheKey, MarketQuote, PriceAlert, ScreensTab, YahooNews,
     fetch_by_screeners, fetch_by_symbols, fetch_logo_handles, fetch_logos, fetch_news_for_symbols,
@@ -232,28 +232,8 @@ impl cosmic::Application for AppModel {
             news_loading: false,
             popup: None,
             active_tab: initial_tab,
-            tabs_model: segmented_button::Model::builder()
-                .insert(|b| {
-                    {
-                        b.text(fl!("screeners-tab-active"))
-                            .data(ScreensTab::MostActive)
-                    }
-                    .activate()
-                })
-                .insert(|b| {
-                    b.text(fl!("screeners-tab-gainers"))
-                        .data(ScreensTab::Gainers)
-                })
-                .insert(|b| b.text(fl!("screeners-tab-losers")).data(ScreensTab::Losers))
-                .build(),
-            news_tabs_model: segmented_button::Model::builder()
-                .insert(|b| {
-                    b.text(fl!("news-tab-us"))
-                        .data(NewsTab::Usmarket)
-                        .activate()
-                })
-                .insert(|b| b.text(fl!("news-tab-folio")).data(NewsTab::Portfolio))
-                .build(),
+            tabs_model: build_tabs_model(),
+            news_tabs_model: build_news_tabs_model(),
             screens_tab: ScreensTab::MostActive,
             applet_id: widget::Id::unique(),
             market_quotes: Vec::new(),
@@ -1526,7 +1506,7 @@ impl AppModel {
                 &style,
             ),
             PopupTab::Info => infocard(),
-            PopupTab::Settings => settingscard(&self.config, theme),
+            PopupTab::Settings => settingscard(&self.config),
             PopupTab::News => {
                 let (news, error, loading) = match self.news_tab {
                     NewsTab::Usmarket => (

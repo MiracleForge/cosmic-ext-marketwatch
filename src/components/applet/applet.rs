@@ -42,7 +42,7 @@ pub fn build_applet_content<'a>(
 
             if is_horizontal {
                 let (icon_w, icon_h) = core.applet.suggested_size(true);
-                let icon_size = icon_w.min(icon_h) as f32;
+                let icon_size = f32::from(icon_w.min(icon_h));
 
                 build_quote_display(quote, logo_handle, theme, icon_size).into()
             } else {

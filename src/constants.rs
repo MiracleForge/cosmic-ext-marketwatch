@@ -18,3 +18,5 @@ pub const LOGO_SIZE: f32 = 42.0;
 // Portfolios
 pub const MAX_PORTFOLIOS: usize = 10;
 pub const MAX_ASSETS_PER_PORTFOLIO: usize = 10;
+
+pub const REFRESH_OPTIONS: [&str; 5] = ["5 min", "10 min", "15 min", "30 min", "1h"];

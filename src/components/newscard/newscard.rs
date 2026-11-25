@@ -39,8 +39,7 @@ pub fn news_card<'a>(
             let section = items
                 .iter()
                 .map(news_frame)
-                .fold(settings::section(), |section, item| section.add(item));
-
+                .fold(settings::section(), settings::Section::add);
             section.into()
         })
     };
@@ -53,7 +52,7 @@ pub fn news_card<'a>(
     .into()
 }
 
-fn news_frame<'a>(news: &'a YahooNews) -> widget::list::ListButton<'a, Message> {
+fn news_frame(news: &YahooNews) -> widget::list::ListButton<'_, Message> {
     let publisher = news.publisher.as_deref().unwrap_or("Unknown source");
 
     let time_str = news
