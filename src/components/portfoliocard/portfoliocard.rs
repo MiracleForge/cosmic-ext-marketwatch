@@ -2,15 +2,15 @@
 use crate::components::buttons::stock_search_input;
 use crate::components::portfoliocard::{portfolio_bar, portfolio_body};
 use crate::marketwatch::MarketQuote;
-use cosmic::Theme;
-use cosmic::prelude::*;
-use cosmic::widget::{self};
+use cosmic::{
+    Element,
+    iced::Length,
+    widget::{self},
+};
 
 use crate::app::Message;
 
 use crate::components::ui::render_search_card;
-use crate::constants::PAD_CARD;
-use cosmic::iced::Length;
 use std::collections::HashMap;
 pub struct PortfolioView<'a> {
     pub name: Option<&'a str>,
@@ -38,7 +38,6 @@ pub struct QuoteStyle<'a> {
 }
 
 pub fn portfoliocard<'a>(
-    theme: &Theme,
     portfolio: &PortfolioView<'a>,
     search: &SearchView<'a>,
     style: &QuoteStyle<'a>,
@@ -48,29 +47,20 @@ pub fn portfoliocard<'a>(
     let search_input: Element<'a, Message> = if has_selected {
         stock_search_input(crate::fl!("assets-search-by").to_string(), search.value)
     } else {
-        widget::text_input(crate::fl!("assets-search-by"), "").into() // input disabled
+        widget::text_input(crate::fl!("assets-search-by"), "").into()
     };
 
-    widget::container(
-        widget::scrollable(
-            widget::column![
-                search_input,
-                portfolio_bar(theme, portfolio),
-                render_search_card(
-                    search.value,
-                    search.results,
-                    search.loading,
-                    search.limit_reached,
-                    theme,
-                ),
-                portfolio_body(theme, portfolio, style),
-            ]
-            .spacing(1)
-            .width(Length::Fill),
-        )
-        .width(Length::Fill),
-    )
-    .padding(PAD_CARD)
+    widget::column![
+        search_input,
+        portfolio_bar(portfolio),
+        render_search_card(
+            search.value,
+            search.results,
+            search.loading,
+            search.limit_reached,
+        ),
+        portfolio_body(portfolio, style),
+    ]
     .width(Length::Fill)
     .into()
 }

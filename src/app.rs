@@ -1536,7 +1536,7 @@ impl AppModel {
                     limit_reached: current
                         .is_some_and(|p| p.symbols.len() >= MAX_ASSETS_PER_PORTFOLIO),
                 };
-                portfoliocard(theme, &self.build_portfolio_view(), &search, &style)
+                portfoliocard(&self.build_portfolio_view(), &search, &style)
             }
             PopupTab::Tools => {
                 let tools = ToolsView {

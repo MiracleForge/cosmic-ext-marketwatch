@@ -1,12 +1,9 @@
 use cosmic::{
     Element, Theme,
     iced::{Alignment, Length},
-    widget::{self, Space},
+    widget::{self, Space, settings},
 };
 // SPDX-License-Identifier: GPL-3.0-only
-use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
-
 use crate::{
     app::Message,
     components::{
@@ -17,6 +14,8 @@ use crate::{
     marketwatch::PriceAlert,
     utils::{SkeletonCfg, render_card_state},
 };
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PortFolio {
@@ -84,7 +83,7 @@ pub fn save_portfolios(portfolio: &[PortFolio]) {
     }
 }
 
-pub fn portfolio_bar<'a>(theme: &Theme, portfolio: &PortfolioView<'a>) -> Element<'a, Message> {
+pub fn portfolio_bar<'a>(portfolio: &PortfolioView<'a>) -> Element<'a, Message> {
     let has_selected = portfolio.count > 0 && portfolio.index > 0;
 
     let rename_button = has_selected.then(|| {
@@ -112,7 +111,7 @@ pub fn portfolio_bar<'a>(theme: &Theme, portfolio: &PortfolioView<'a>) -> Elemen
         name_space,
         rename_button,
         Space::new().width(Length::Fill),
-        has_selected.then(|| pin_button(portfolio.pinned, portfolio.index, theme)),
+        has_selected.then(|| pin_button(portfolio.pinned, portfolio.index)),
         has_selected.then(|| icon_button(
             None,
             "edit-delete-symbolic",
@@ -136,7 +135,6 @@ pub fn portfolio_bar<'a>(theme: &Theme, portfolio: &PortfolioView<'a>) -> Elemen
 }
 
 pub fn portfolio_body<'a>(
-    theme: &Theme,
     portfolio: &PortfolioView<'a>,
     style: &QuoteStyle<'a>,
 ) -> Element<'a, Message> {
@@ -165,12 +163,7 @@ pub fn portfolio_body<'a>(
                         .iter()
                         .filter(|q| portfolio.symbols.contains(&q.symbol))
                         .map(|q| {
-                            port_quote_card(
-                                q,
-                                style.show_logos,
-                                style.logo_handles.get(&q.symbol),
-                                theme,
-                            )
+                            port_quote_card(q, style.show_logos, style.logo_handles.get(&q.symbol))
                         }),
                 )
                 .spacing(1)

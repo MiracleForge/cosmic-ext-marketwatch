@@ -222,7 +222,6 @@ pub fn render_search_card<'a>(
     search_results: &'a [String],
     search_loading: bool,
     asset_limit_reached: bool,
-    theme: &Theme,
 ) -> Element<'a, Message> {
     let mut col = widget::column![].spacing(SPACING_TAB);
 
@@ -248,11 +247,10 @@ pub fn render_search_card<'a>(
     }
 
     if !search_results.is_empty() {
-        let results_col = widget::column![].spacing(1).width(Length::Fill).extend(
-            search_results
-                .iter()
-                .map(|label| search_result_card(label, theme)),
-        );
+        let results_col = widget::column![]
+            .spacing(1)
+            .width(Length::Fill)
+            .extend(search_results.iter().map(|label| search_result_card(label)));
 
         return col.push(results_col).into();
     }
@@ -268,7 +266,7 @@ pub fn render_search_card<'a>(
     col.into()
 }
 
-pub fn search_result_card<'a>(label: &'a str, theme: &Theme) -> Element<'a, Message> {
+pub fn search_result_card<'a>(label: &'a str) -> Element<'a, Message> {
     let (symbol, name) = label.split_once(" — ").unwrap_or((label, ""));
 
     let (title, subtitle) = if name.is_empty() {
@@ -297,8 +295,7 @@ pub fn search_result_card<'a>(label: &'a str, theme: &Theme) -> Element<'a, Mess
 
     let card = widget::container(content)
         .padding(PAD_CARD)
-        .width(Length::Fill)
-        .class(badge_class(theme));
+        .width(Length::Fill);
 
     widget::mouse_area(card)
         .on_press(Message::AddStockToPortfolio(label.to_string()))
@@ -309,14 +306,11 @@ pub fn port_quote_card<'a>(
     quote: &'a MarketQuote,
     show_logo: bool,
     logo_handle: Option<&'a widget::image::Handle>,
-    theme: &Theme,
 ) -> Element<'a, Message> {
-    let color = quote.variation_color(theme);
+    let theme = cosmic::theme::active();
+    let color = quote.variation_color(&theme);
 
-    let mut content = widget::row![]
-        .spacing(SPACING_ROW)
-        .align_y(Alignment::Center)
-        .width(Length::Fill);
+    let mut items: Vec<Element<'a, Message>> = Vec::new();
 
     if show_logo {
         let logo: Element<'a, Message> = match logo_handle {
@@ -325,41 +319,38 @@ pub fn port_quote_card<'a>(
                 .height(Length::Fixed(42.0))
                 .content_fit(cosmic::iced::ContentFit::Cover)
                 .into(),
-
             None => widget::Space::new()
                 .width(Length::Fixed(42.0))
                 .height(Length::Fixed(42.0))
                 .into(),
         };
 
-        content = content.push(logo);
+        items.push(logo);
     }
 
-    content = content.push(
+    items.push(
         widget::column![
             widget::text::heading(&quote.name).size(TEXT_BODY),
             widget::text::caption_heading(&quote.symbol).size(TEXT_BODY),
         ]
         .width(Length::Fill)
-        .spacing(2),
+        .into(),
     );
 
-    content = content
-        .push(
-            widget::column![
-                widget::text::caption_heading(quote.formatted_price())
-                    .size(14)
-                    .class(Text::Color(color)),
-                widget::text::caption_heading(quote.formatted_variation())
-                    .size(TEXT_BODY)
-                    .class(Text::Color(color)),
-            ]
-            .align_x(Alignment::End)
-            .spacing(2),
-        )
-        .width(Length::Fill);
+    items.push(
+        widget::column![
+            widget::text::caption_heading(quote.formatted_price())
+                .size(14)
+                .class(Text::Color(color)),
+            widget::text::caption_heading(quote.formatted_variation())
+                .size(TEXT_BODY)
+                .class(Text::Color(color)),
+        ]
+        .align_x(Alignment::End)
+        .into(),
+    );
 
-    content = content.push(
+    items.push(
         widget::button::icon(widget::icon::from_name("emblem-system-symbolic"))
             .on_press(Message::NavigateToTools(SelectedAsset {
                 name: quote.name.clone(),
@@ -370,14 +361,10 @@ pub fn port_quote_card<'a>(
                 change: quote.change,
                 change_percent: quote.change_percent,
             }))
-            .padding(PAD_ROW),
+            .into(),
     );
 
-    widget::container(content)
-        .padding(PAD_CARD)
-        .width(Length::Fill)
-        .class(badge_class(theme))
-        .into()
+    settings::item_row(items).align_y(Alignment::Center).into()
 }
 
 pub fn asset_frame<'a>(
@@ -457,15 +444,11 @@ pub fn alert_card<'a>(
         .into()
 }
 
-pub fn pin_button<'a>(pinned: usize, current_index: usize, theme: &Theme) -> Element<'a, Message> {
-    let color: cosmic::iced::Color = theme.cosmic().success_text_color().into();
-
+pub fn pin_button<'a>(pinned: usize, current_index: usize) -> Element<'a, Message> {
     let mut icon = widget::icon::from_name("pin-symbolic").size(16).icon();
 
     if pinned == current_index {
-        icon = icon.class(cosmic::theme::Svg::custom(move |_| {
-            cosmic::widget::svg::Style { color: Some(color) }
-        }));
+        icon = icon.class(svg_accent());
     }
 
     widget::button::custom(icon)
