@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 use crate::components::toolscard::{SelectedAsset, alert_inputs, build_add_alert_message};
-use crate::components::ui::{alert_card, asset_frame, friendly_message, textlabel, toggle_card};
-use crate::constants::{PAD_CARD, SPACING_ROW, SPACING_TAB};
+use crate::components::ui::{alert_card, asset_frame, friendly_message};
 use crate::marketwatch::{AlertCondition, PriceAlert};
 
-use cosmic::Theme;
-use cosmic::iced::{Alignment, Length};
+use cosmic::cosmic_theme::Spacing;
+use cosmic::iced::Length;
 use cosmic::prelude::*;
-use cosmic::widget;
+use cosmic::widget::{self, settings};
 
 use crate::app::Message;
 
@@ -20,15 +19,10 @@ pub struct ToolsView<'a> {
     pub new_alert_enabled: bool,
 }
 
-pub fn toolscard<'a>(theme: &Theme, tools: &ToolsView<'a>) -> Element<'a, Message> {
-    let enable_input = toggle_card(
-        crate::fl!("alerts-select-asset").to_string(),
-        tools.new_alert_enabled,
-        Message::AlertSetEnabled,
-        theme,
-    );
-
+pub fn toolscard<'a>(tools: &ToolsView<'a>) -> Element<'a, Message> {
     let selected_symbol = tools.selected_asset.map(|asset| asset.symbol.as_str());
+
+    let spacing = cosmic::theme::spacing();
 
     let add_button = widget::row![
         widget::Space::new().width(Length::Fill),
@@ -41,17 +35,21 @@ pub fn toolscard<'a>(theme: &Theme, tools: &ToolsView<'a>) -> Element<'a, Messag
             )
         ),
     ]
-    .width(Length::Fill);
-
-    let alert_col = widget::column![
-        textlabel(crate::fl!("alerts")),
-        widget::column![enable_input, alert_inputs(tools, theme), add_button]
-            .spacing(1)
-            .width(Length::Fill),
-    ]
-    .spacing(SPACING_ROW)
     .width(Length::Fill)
-    .align_x(Alignment::Start);
+    .padding(cosmic::iced::Padding {
+        top: spacing.space_s as f32,
+        ..Default::default()
+    });
+
+    let alert_settings = settings::section()
+        .title(crate::fl!("alerts"))
+        .add(
+            settings::item::builder(crate::fl!("alerts-select-asset"))
+                .toggler(tools.new_alert_enabled, Message::AlertSetEnabled),
+        )
+        .add(alert_inputs(tools));
+
+    let alert_settings = widget::column![alert_settings, add_button,].width(Length::Fill);
 
     let alerts_body: Element<'a, Message> = if tools.alerts.is_empty() {
         friendly_message(
@@ -62,33 +60,22 @@ pub fn toolscard<'a>(theme: &Theme, tools: &ToolsView<'a>) -> Element<'a, Messag
         tools
             .alerts
             .iter()
-            .fold(
-                widget::column![].spacing(1).width(Length::Fill),
-                |col, alert| col.push(alert_card(alert, tools.portfolio_index, theme)),
-            )
+            .fold(settings::section(), |section, alert| {
+                section.add(alert_card(alert, tools.portfolio_index))
+            })
             .into()
     };
 
-    let user_alerts = widget::column![
-        textlabel(crate::fl!("alerts-self")),
-        widget::scrollable(alerts_body)
-            .width(Length::Fill)
-            .height(Length::Fill),
-    ]
-    .spacing(SPACING_TAB)
-    .width(Length::Fill)
-    .height(Length::Fill);
+    let user_alerts = settings::section()
+        .title(crate::fl!("alerts-self"))
+        .add(alerts_body);
 
-    widget::container(
-        widget::column![
-            asset_frame(tools.selected_asset, theme),
-            alert_col,
-            user_alerts
-        ]
-        .spacing(1)
-        .width(Length::Fill),
-    )
-    .padding(PAD_CARD)
-    .width(Length::Fill)
-    .into()
+    let content = widget::column![
+        asset_frame(tools.selected_asset),
+        alert_settings,
+        user_alerts,
+    ]
+    .width(Length::Fill);
+
+    content.into()
 }

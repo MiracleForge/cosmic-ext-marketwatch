@@ -315,13 +315,13 @@ pub fn port_quote_card<'a>(
     if show_logo {
         let logo: Element<'a, Message> = match logo_handle {
             Some(handle) => widget::image(handle.clone())
-                .width(Length::Fixed(42.0))
-                .height(Length::Fixed(42.0))
+                .width(Length::Fixed(LOGO_SIZE))
+                .height(Length::Fixed(LOGO_SIZE))
                 .content_fit(cosmic::iced::ContentFit::Cover)
                 .into(),
             None => widget::Space::new()
-                .width(Length::Fixed(42.0))
-                .height(Length::Fixed(42.0))
+                .width(Length::Fixed(LOGO_SIZE))
+                .height(Length::Fixed(LOGO_SIZE))
                 .into(),
         };
 
@@ -367,44 +367,32 @@ pub fn port_quote_card<'a>(
     settings::item_row(items).align_y(Alignment::Center).into()
 }
 
-pub fn asset_frame<'a>(
-    selected_asset: Option<&'a SelectedAsset>,
-    theme: &Theme,
-) -> Element<'a, Message> {
+pub fn asset_frame<'a>(selected_asset: Option<&'a SelectedAsset>) -> Element<'a, Message> {
     let Some(asset) = selected_asset else {
         return widget::Space::new().into();
     };
 
-    let color = asset.variation_color(theme);
-    let content = widget::row![
-        widget::text::caption_heading("Price:"),
-        widget::Space::new().width(Length::Fixed(4.0)),
+    let theme = cosmic::theme::active();
+    let color = asset.variation_color(&theme);
+
+    settings::item_row(vec![
+        widget::text::caption_heading("Price:").into(),
         widget::text::caption_heading(asset.formatted_price())
             .size(14)
-            .class(Text::Color(color)),
-        widget::Space::new().width(Length::Fill),
-        widget::Space::new().width(Length::Fixed(4.0)),
-        widget::text::caption_heading("Variation: "),
+            .class(cosmic::theme::Text::Color(color))
+            .into(),
+        widget::Space::new().width(Length::Fill).into(),
+        widget::text::caption_heading("Variation:").into(),
         widget::text::caption_heading(asset.formatted_variation())
             .size(TEXT_BODY)
-            .class(Text::Color(color))
-    ]
-    .width(Length::Fill)
-    .padding(PAD_ROW)
-    .align_y(Alignment::Center);
-
-    widget::container(content)
-        .padding(PAD_CARD)
-        .width(Length::Fill)
-        .class(badge_class(theme))
-        .into()
+            .class(cosmic::theme::Text::Color(color))
+            .into(),
+    ])
+    .align_y(cosmic::iced::Alignment::Center)
+    .into()
 }
 
-pub fn alert_card<'a>(
-    alert: &'a PriceAlert,
-    portfolio_index: usize,
-    theme: &Theme,
-) -> Element<'a, Message> {
+pub fn alert_card<'a>(alert: &'a PriceAlert, portfolio_index: usize) -> Element<'a, Message> {
     let label = alert_condition_label(&alert.condition);
 
     let toggle_icon = if alert.enabled {
@@ -413,35 +401,25 @@ pub fn alert_card<'a>(
         "media-playback-start-symbolic"
     };
 
-    let content = widget::row![
-        widget::text::heading(&alert.symbol)
-            .size(TEXT_BODY)
-            .width(Length::FillPortion(1)),
-        widget::text(label)
-            .size(TEXT_BODY)
-            .width(Length::FillPortion(3)),
+    settings::item_row(vec![
+        widget::text::heading(&alert.symbol).size(TEXT_BODY).into(),
+        widget::text(label).size(TEXT_BODY).into(),
+        widget::Space::new().width(Length::Fill).into(),
         widget::button::icon(widget::icon::from_name(toggle_icon))
             .on_press(Message::ToggleAlert {
                 portfolio_index,
                 alert_id: alert.id,
             })
-            .padding(PAD_ROW),
+            .into(),
         widget::button::icon(widget::icon::from_name("edit-delete-symbolic"))
             .on_press(Message::RemoveAlert {
                 portfolio_index,
                 alert_id: alert.id,
             })
-            .padding(PAD_ROW),
-    ]
-    .spacing(SPACING_ROW)
-    .align_y(Alignment::Center)
-    .width(Length::Fill);
-
-    widget::container(content)
-        .padding(PAD_CARD)
-        .width(Length::Fill)
-        .class(badge_class(theme))
-        .into()
+            .into(),
+    ])
+    .align_y(cosmic::iced::Alignment::Center)
+    .into()
 }
 
 pub fn pin_button<'a>(pinned: usize, current_index: usize) -> Element<'a, Message> {

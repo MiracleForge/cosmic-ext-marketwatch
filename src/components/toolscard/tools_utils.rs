@@ -1,14 +1,12 @@
+use cosmic::Element;
 use cosmic::iced::{Alignment, Length};
-use cosmic::{Element, Theme};
 
-use cosmic::widget;
-
+use cosmic::widget::{self, settings};
 // SP// SPDX-License-Identifier: GPL-3.0-only
 use crate::app::Message;
 use crate::components::alertcard::{condition_to_index, index_to_condition};
 use crate::components::toolscard::ToolsView;
-use crate::components::ui::badge_class;
-use crate::constants::{PAD_CARD, TEXT_BODY};
+use crate::constants::TEXT_BODY;
 use crate::marketwatch::{AlertCondition, PriceAlert};
 
 #[derive(Debug, Clone)]
@@ -78,9 +76,8 @@ pub fn build_add_alert_message(
     })
 }
 
-pub fn alert_inputs<'a>(tools: &ToolsView<'a>, theme: &Theme) -> Element<'a, Message> {
-    let input_value = tools.input_value;
-    let input_for_closure = input_value.to_string();
+pub fn alert_inputs<'a>(tools: &ToolsView<'a>) -> Element<'a, Message> {
+    let input_for_closure = tools.input_value.to_string();
 
     let condition_options = vec![
         crate::fl!("alerts-condition-price-above"),
@@ -98,48 +95,35 @@ pub fn alert_inputs<'a>(tools: &ToolsView<'a>, theme: &Theme) -> Element<'a, Mes
     )
     .width(Length::FillPortion(2));
 
-    let condition_card = widget::container(
-        widget::row![
-            widget::text::heading(crate::fl!("alerts-condition"))
-                .size(TEXT_BODY)
-                .width(Length::FillPortion(1)),
-            widget::Space::new().width(Length::Fill),
-            condition_dropdown,
-        ]
-        .align_y(Alignment::Center)
-        .width(Length::Fill),
-    )
-    .padding(PAD_CARD)
-    .width(Length::Fill)
-    .class(badge_class(theme));
+    let condition_row = settings::item_row(vec![
+        widget::text::heading(crate::fl!("alerts-condition"))
+            .size(TEXT_BODY)
+            .into(),
+        widget::Space::new().width(Length::Fill).into(),
+        condition_dropdown.into(),
+    ])
+    .align_y(Alignment::Center);
 
     let needs_value = !matches!(
         tools.selected_condition,
         AlertCondition::TurnPositive | AlertCondition::TurnNegative
     );
 
-    let value_card = needs_value.then(|| {
-        widget::container(
-            widget::row![
-                widget::text::heading("Value")
-                    .size(TEXT_BODY)
-                    .width(Length::FillPortion(1)),
-                widget::Space::new().width(Length::Fill),
-                widget::text_input("Ex. 14.50", input_value)
-                    .on_input(Message::AlertSetValue)
-                    .width(Length::FillPortion(2)),
-            ]
-            .align_y(Alignment::Center)
-            .width(Length::Fill),
-        )
-        .padding(PAD_CARD)
-        .width(Length::Fill)
-        .class(badge_class(theme))
-    });
+    let mut inputs = widget::column![condition_row].width(Length::Fill);
 
-    widget::column![condition_card]
-        .push_maybe(value_card)
-        .spacing(1)
-        .width(Length::Fill)
-        .into()
+    if needs_value {
+        let value_row = settings::item_row(vec![
+            widget::text::heading("Value").size(TEXT_BODY).into(),
+            widget::Space::new().width(Length::Fill).into(),
+            widget::text_input("Ex. 14.50", tools.input_value)
+                .on_input(Message::AlertSetValue)
+                .width(Length::FillPortion(2))
+                .into(),
+        ])
+        .align_y(Alignment::Center);
+
+        inputs = inputs.push(value_row);
+    }
+
+    inputs.into()
 }

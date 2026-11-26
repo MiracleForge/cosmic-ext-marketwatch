@@ -79,17 +79,14 @@ pub fn tools_header(
 
     let leading: Element<'static, Message> = widget::row![
         logo,
-        widget::container(
-            widget::column![
-                widget::text::heading(asset_name)
-                    .size(TEXT_BODY)
-                    .wrapping(cosmic::iced::widget::text::Wrapping::None),
-                overview_subtitle(PopupTab::Tools, last_updated),
-            ]
-            .spacing(2)
-        )
-        .width(Length::Fill)
-        .clip(true),
+        widget::column![
+            widget::text::heading(asset_name)
+                .size(TEXT_BODY)
+                .wrapping(cosmic::iced::widget::text::Wrapping::None),
+            overview_subtitle(PopupTab::Tools, last_updated),
+        ]
+        .spacing(2)
+        .width(Length::Fill),
     ]
     .spacing(cosmic::theme::spacing().space_xs)
     .align_y(Alignment::Center)

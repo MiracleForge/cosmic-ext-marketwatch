@@ -1,13 +1,13 @@
 use cosmic::{
-    Element, Theme,
+    Element,
     iced::{Alignment, Length},
-    widget::{self, Space, settings},
+    widget::{self, settings},
 };
 // SPDX-License-Identifier: GPL-3.0-only
 use crate::{
     app::Message,
     components::{
-        buttons::icon_button,
+        header::nav_icon,
         portfoliocard::{PortfolioView, QuoteStyle},
         ui::{friendly_message, pin_button, port_quote_card},
     },
@@ -85,17 +85,7 @@ pub fn save_portfolios(portfolio: &[PortFolio]) {
 
 pub fn portfolio_bar<'a>(portfolio: &PortfolioView<'a>) -> Element<'a, Message> {
     let has_selected = portfolio.count > 0 && portfolio.index > 0;
-
-    let rename_button = has_selected.then(|| {
-        let (icon, msg) = match portfolio.rename_input {
-            Some(_) => ("emblem-ok-symbolic", Message::ConfirmRenamePortfolio),
-            None => (
-                "accessories-text-editor-symbolic",
-                Message::ToggleRenameMode,
-            ),
-        };
-        icon_button(None, icon, msg)
-    });
+    let spacing = cosmic::theme::spacing();
 
     let name_space: Option<Element<'_, Message>> =
         has_selected.then(|| match portfolio.rename_input {
@@ -107,31 +97,51 @@ pub fn portfolio_bar<'a>(portfolio: &PortfolioView<'a>) -> Element<'a, Message> 
             None => widget::text::heading(portfolio.name.unwrap_or("Portfolio")).into(),
         });
 
-    widget::row![
-        name_space,
-        rename_button,
-        Space::new().width(Length::Fill),
-        has_selected.then(|| pin_button(portfolio.pinned, portfolio.index)),
-        has_selected.then(|| icon_button(
-            None,
-            "edit-delete-symbolic",
-            Message::DeleteCurrentPortfolio
-        )),
-        icon_button(
-            Some(!has_selected || portfolio.index <= 1),
-            "go-previous-symbolic",
-            Message::PreviusPortfolio,
-        ),
-        widget::text::heading(format!("{}/{}", portfolio.index, portfolio.count)),
-        icon_button(
-            Some(!has_selected || portfolio.index >= portfolio.count),
-            "go-next-symbolic",
-            Message::NextPortfolio,
-        ),
-    ]
-    .width(Length::Fill)
-    .align_y(Alignment::Center)
-    .into()
+    let rename_button = has_selected.then(|| {
+        let (icon, message) = match portfolio.rename_input {
+            Some(_) => ("emblem-ok-symbolic", Message::ConfirmRenamePortfolio),
+            None => (
+                "accessories-text-editor-symbolic",
+                Message::ToggleRenameMode,
+            ),
+        };
+
+        nav_icon(icon, message, false)
+    });
+
+    let previous_button = widget::button::icon(widget::icon::from_name("go-previous-symbolic"))
+        .on_press_maybe(
+            (!(!has_selected || portfolio.index <= 1)).then_some(Message::PreviusPortfolio),
+        );
+
+    let next_button = widget::button::icon(widget::icon::from_name("go-next-symbolic"))
+        .on_press_maybe(
+            (!(!has_selected || portfolio.index >= portfolio.count))
+                .then_some(Message::NextPortfolio),
+        );
+
+    widget::row::with_capacity(8)
+        .push_maybe(name_space)
+        .push_maybe(rename_button)
+        .push(widget::Space::new().width(Length::Fill))
+        .push_maybe(has_selected.then(|| pin_button(portfolio.pinned, portfolio.index)))
+        .push_maybe(has_selected.then(|| {
+            nav_icon(
+                "edit-delete-symbolic",
+                Message::DeleteCurrentPortfolio,
+                false,
+            )
+        }))
+        .push(previous_button)
+        .push(widget::text::heading(format!(
+            "{}/{}",
+            portfolio.index, portfolio.count
+        )))
+        .push(next_button)
+        .spacing(spacing.space_xxs)
+        .align_y(Alignment::Center)
+        .width(Length::Fill)
+        .into()
 }
 
 pub fn portfolio_body<'a>(
@@ -158,17 +168,17 @@ pub fn portfolio_body<'a>(
                 pulse: style.pulse,
             }),
             |quotes| {
-                widget::column::with_children(
-                    quotes
-                        .iter()
-                        .filter(|q| portfolio.symbols.contains(&q.symbol))
-                        .map(|q| {
-                            port_quote_card(q, style.show_logos, style.logo_handles.get(&q.symbol))
-                        }),
-                )
-                .spacing(1)
-                .width(Length::Fill)
-                .into()
+                quotes
+                    .iter()
+                    .filter(|q| portfolio.symbols.contains(&q.symbol))
+                    .fold(settings::section(), |section, quote| {
+                        section.add(port_quote_card(
+                            quote,
+                            style.show_logos,
+                            style.logo_handles.get(&quote.symbol),
+                        ))
+                    })
+                    .into()
             },
         ),
     }

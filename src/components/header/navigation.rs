@@ -6,7 +6,7 @@ use cosmic::{
 
 use crate::{app::Message, components::buttons::back_button, config::PopupTab};
 
-fn nav_icon(name: &'static str, message: Message, selected: bool) -> Element<'static, Message> {
+pub fn nav_icon(name: &'static str, message: Message, selected: bool) -> Element<'static, Message> {
     widget::button::icon(widget::icon::from_name(name))
         .on_press(message)
         .selected(selected)

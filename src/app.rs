@@ -374,7 +374,6 @@ impl cosmic::Application for AppModel {
     }
 
     fn view_window(&self, _id: Id) -> Element<'_, Self::Message> {
-        let theme = self.core.system_theme();
         let last_updated = self.last_updated_label();
 
         let spacing = cosmic::theme::spacing();
@@ -395,7 +394,7 @@ impl cosmic::Application for AppModel {
             )
         };
 
-        let body = widget::container(self.tab_body(theme))
+        let body = widget::container(self.tab_body())
             .padding(Padding::from(padding).top(0))
             .apply(widget::scrollable);
 
@@ -1489,7 +1488,7 @@ impl AppModel {
         Some(format_publish_time(timestamp))
     }
 
-    fn tab_body<'a>(&'a self, theme: &'a Theme) -> Element<'a, Message> {
+    fn tab_body<'a>(&'a self) -> Element<'a, Message> {
         let current = self.current_portfolio();
         let style = QuoteStyle {
             show_logos: self.config.show_logos,
@@ -1547,7 +1546,7 @@ impl AppModel {
                     input_value: &self.alert_input_value,
                     new_alert_enabled: self.alert_enabled,
                 };
-                toolscard(theme, &tools)
+                toolscard(&tools)
             }
             PopupTab::Pinned => pinnedcard(&self.build_pinned_portfolio_view(), &style),
         }

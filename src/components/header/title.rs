@@ -1,5 +1,5 @@
 use crate::config::PopupTab;
-use cosmic::{Element, widget};
+use cosmic::{Element, iced::Length, widget};
 use iced_winit::core::text::Wrapping;
 use std::collections::HashMap;
 
@@ -38,10 +38,15 @@ pub fn overview_subtitle(
         .map(|t| crate::fl!("wallet-updated-at", HashMap::from([("time", t)])))
         .unwrap_or_default();
 
-    widget::container(widget::text::caption_heading(text).size(10))
-        .style(|theme| widget::container::Style {
-            text_color: Some(cosmic::iced::Color::from(theme.cosmic().accent_color())),
-            ..Default::default()
-        })
-        .into()
+    widget::container(
+        widget::text::caption_heading(text)
+            .size(10)
+            .wrapping(cosmic::iced::widget::text::Wrapping::None),
+    )
+    .width(Length::Fill)
+    .style(|theme| widget::container::Style {
+        text_color: Some(cosmic::iced::Color::from(theme.cosmic().accent_color())),
+        ..Default::default()
+    })
+    .into()
 }
