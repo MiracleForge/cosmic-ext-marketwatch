@@ -3,8 +3,8 @@
 use crate::app::Message;
 use crate::components::portfoliocard::{PortfolioView, QuoteStyle};
 use crate::components::ui::quote_card;
-use crate::constants::PAD_CARD;
 use crate::utils::{SkeletonCfg, render_card_state};
+use cosmic::widget::settings;
 
 use cosmic::iced::Length;
 use cosmic::prelude::*;
@@ -26,23 +26,17 @@ pub fn pinnedcard<'a>(
             quotes
                 .iter()
                 .filter(|q| portfolio.symbols.contains(&q.symbol))
-                .fold(
-                    widget::column![].spacing(1).width(Length::Fill),
-                    |list, quote| {
-                        let logo = style.logo_handles.get(&quote.symbol);
+                .fold(settings::section(), |list, quote| {
+                    let logo = style.logo_handles.get(&quote.symbol);
 
-                        list.push(quote_card(quote, style.show_logos, logo))
-                    },
-                )
+                    list.add(quote_card(quote, style.show_logos, logo))
+                })
                 .into()
         },
     );
 
     widget::container(
-        widget::scrollable(widget::column![body].spacing(1).width(Length::Fill))
-            .width(Length::Fill),
+        widget::column![widget::scrollable(body).height(Length::Fill)].width(Length::Fill),
     )
-    .padding(PAD_CARD)
-    .width(Length::Fill)
     .into()
 }
