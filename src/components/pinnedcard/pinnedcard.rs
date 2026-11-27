@@ -6,7 +6,7 @@ use crate::components::ui::quote_card;
 use crate::utils::{SkeletonCfg, render_card_state};
 use cosmic::widget::settings;
 
-use cosmic::iced::{Alignment, Length};
+use cosmic::iced::Length;
 use cosmic::prelude::*;
 use cosmic::widget;
 

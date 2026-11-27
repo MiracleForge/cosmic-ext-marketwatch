@@ -363,15 +363,15 @@ impl cosmic::Application for AppModel {
 
                     let mut row = widget::row![].align_y(Alignment::Center).spacing(8);
 
-                    if self.config.show_panel_logos {
-                        if let Some(handle) = self.logo_handles.get(&quote.symbol) {
-                            row = row.push(
-                                widget::image(handle.clone())
-                                    .width(Length::Fixed(icon_size))
-                                    .height(Length::Fixed(icon_size))
-                                    .content_fit(cosmic::iced::ContentFit::Contain),
-                            );
-                        }
+                    if self.config.show_panel_logos
+                        && let Some(handle) = self.logo_handles.get(&quote.symbol)
+                    {
+                        row = row.push(
+                            widget::image(handle.clone())
+                                .width(Length::Fixed(icon_size))
+                                .height(Length::Fixed(icon_size))
+                                .content_fit(cosmic::iced::ContentFit::Contain),
+                        );
                     }
 
                     row.push(widget::text(quote.symbol.clone()).font(Font::MONOSPACE))
