@@ -3,7 +3,6 @@ use crate::components::toolscard::{SelectedAsset, alert_inputs, build_add_alert_
 use crate::components::ui::{alert_card, asset_frame, friendly_message};
 use crate::marketwatch::{AlertCondition, PriceAlert};
 
-use cosmic::cosmic_theme::Spacing;
 use cosmic::iced::Length;
 use cosmic::prelude::*;
 use cosmic::widget::{self, settings};
@@ -37,7 +36,7 @@ pub fn toolscard<'a>(tools: &ToolsView<'a>) -> Element<'a, Message> {
     ]
     .width(Length::Fill)
     .padding(cosmic::iced::Padding {
-        top: spacing.space_s as f32,
+        top: f32::from(spacing.space_s),
         ..Default::default()
     });
 

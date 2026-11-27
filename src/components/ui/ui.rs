@@ -1,21 +1,17 @@
 use cosmic::Apply;
-use cosmic::iced::{Border, Length};
+use cosmic::iced::Length;
 use cosmic::theme::Text;
-use cosmic::widget::button::Catalog;
 use cosmic::widget::{segmented_button, settings};
 use cosmic::{Element, iced::Alignment, widget};
 use std::collections::HashMap;
 use std::rc::Rc;
-
-use cosmic::Theme;
 
 use crate::app::Message;
 use crate::components::alertcard::alert_condition_label;
 use crate::components::newscard::NewsTab;
 use crate::components::toolscard::SelectedAsset;
 use crate::constants::{
-    LOGO_SIZE, MAX_ASSETS_PER_PORTFOLIO, PAD_CARD, PAD_ROW, SPACING_ROW, SPACING_TAB, TEXT_BODY,
-    TEXT_SMALL,
+    LOGO_SIZE, MAX_ASSETS_PER_PORTFOLIO, PAD_CARD, SPACING_ROW, SPACING_TAB, TEXT_BODY, TEXT_SMALL,
 };
 
 use crate::fl;
@@ -45,24 +41,6 @@ pub fn header_frame(
         .width(Length::Fill)
         .into()
 }
-pub fn badge_class(theme: &Theme) -> cosmic::theme::Container<'static> {
-    let btn = theme.active(false, false, &cosmic::theme::Button::Standard);
-
-    let badge_bg = btn.background;
-    let badge_text = btn.text_color;
-    let radius = btn.border_radius;
-
-    cosmic::theme::Container::custom(move |_| widget::container::Style {
-        background: badge_bg,
-        text_color: badge_text,
-        border: Border {
-            radius,
-            ..Default::default()
-        },
-        ..Default::default()
-    })
-}
-
 pub fn svg_accent() -> cosmic::theme::Svg {
     cosmic::theme::Svg::Custom(Rc::new(|theme: &cosmic::Theme| widget::svg::Style {
         color: Some(theme.cosmic().accent_text_color().into()),
@@ -82,28 +60,6 @@ pub fn external_link_card(
         .align_y(Alignment::Center)
         .apply(widget::list::button)
         .on_press(Message::OpenExternalLink(url.to_string()))
-}
-
-pub fn toggle_card<'a>(
-    text: String,
-    value: bool,
-    message: fn(bool) -> Message,
-    theme: &Theme,
-) -> Element<'a, Message> {
-    let content = widget::row![
-        widget::text::heading(text)
-            .size(TEXT_BODY)
-            .width(Length::Fill),
-        widget::toggler(value).on_toggle(message),
-    ]
-    .align_y(Alignment::Center)
-    .width(Length::Fill);
-
-    widget::container(content)
-        .padding(PAD_CARD)
-        .width(Length::Fill)
-        .class(badge_class(theme))
-        .into()
 }
 
 pub fn quote_card<'a>(
@@ -155,15 +111,15 @@ pub fn quote_card<'a>(
     settings::item_row(items).align_y(Alignment::Center).into()
 }
 
-pub fn textlabel(label: impl Into<String>) -> Element<'static, Message> {
-    let label: String = label.into();
-    widget::container(widget::text::caption_heading(label).size(TEXT_SMALL + 1))
-        .style(|theme| widget::container::Style {
-            text_color: Some(cosmic::iced::Color::from(theme.cosmic().accent_color())),
-            ..Default::default()
-        })
-        .into()
-}
+// pub fn textlabel(label: impl Into<String>) -> Element<'static, Message> {
+//     let label: String = label.into();
+//     widget::container(widget::text::caption_heading(label).size(TEXT_SMALL + 1))
+//         .style(|theme| widget::container::Style {
+//             text_color: Some(cosmic::iced::Color::from(theme.cosmic().accent_color())),
+//             ..Default::default()
+//         })
+//         .into()
+// }
 
 pub fn overview_tab(model: &segmented_button::SingleSelectModel) -> Element<'_, Message> {
     let spacing = cosmic::theme::spacing();
@@ -266,7 +222,7 @@ pub fn render_search_card<'a>(
     col.into()
 }
 
-pub fn search_result_card<'a>(label: &'a str) -> Element<'a, Message> {
+pub fn search_result_card(label: &str) -> Element<'_, Message> {
     let (symbol, name) = label.split_once(" — ").unwrap_or((label, ""));
 
     let (title, subtitle) = if name.is_empty() {
@@ -306,11 +262,13 @@ pub fn port_quote_card<'a>(
     quote: &'a MarketQuote,
     show_logo: bool,
     logo_handle: Option<&'a widget::image::Handle>,
-) -> Element<'a, Message> {
+) -> widget::list::ListButton<'a, Message> {
     let theme = cosmic::theme::active();
     let color = quote.variation_color(&theme);
 
-    let mut items: Vec<Element<'a, Message>> = Vec::new();
+    let mut content = widget::row::with_capacity(4)
+        .align_y(Alignment::Center)
+        .spacing(cosmic::theme::spacing().space_xxs);
 
     if show_logo {
         let logo: Element<'a, Message> = match logo_handle {
@@ -325,49 +283,50 @@ pub fn port_quote_card<'a>(
                 .into(),
         };
 
-        items.push(logo);
+        content = content.push(logo);
     }
 
-    items.push(
-        widget::column![
-            widget::text::heading(&quote.name).size(TEXT_BODY),
-            widget::text::caption_heading(&quote.symbol).size(TEXT_BODY),
-        ]
-        .width(Length::Fill)
-        .into(),
-    );
+    content = content
+        .push(
+            widget::column![
+                widget::text::heading(&quote.name).size(10),
+                widget::text::caption_heading(&quote.symbol).size(8),
+            ]
+            .width(Length::Fill),
+        )
+        .push(
+            widget::column![
+                widget::text::caption_heading(quote.formatted_price())
+                    .size(14)
+                    .class(Text::Color(color)),
+                widget::text::caption_heading(quote.formatted_variation())
+                    .size(TEXT_BODY)
+                    .class(Text::Color(color)),
+            ]
+            .width(Length::Shrink)
+            .align_x(Alignment::End),
+        )
+        .push(
+            widget::icon::from_name("emblem-system-symbolic")
+                .size(16)
+                .icon(),
+        );
 
-    items.push(
-        widget::column![
-            widget::text::caption_heading(quote.formatted_price())
-                .size(14)
-                .class(Text::Color(color)),
-            widget::text::caption_heading(quote.formatted_variation())
-                .size(TEXT_BODY)
-                .class(Text::Color(color)),
-        ]
-        .align_x(Alignment::End)
-        .into(),
-    );
-
-    items.push(
-        widget::button::icon(widget::icon::from_name("emblem-system-symbolic"))
-            .on_press(Message::NavigateToTools(SelectedAsset {
-                name: quote.name.clone(),
-                symbol: quote.symbol.clone(),
-                price: quote.price,
-                currency: quote.currency.clone(),
-                logo: logo_handle.cloned(),
-                change: quote.change,
-                change_percent: quote.change_percent,
-            }))
-            .into(),
-    );
-
-    settings::item_row(items).align_y(Alignment::Center).into()
+    settings::item_row(vec![content.into()])
+        .align_y(Alignment::Center)
+        .apply(widget::list::button)
+        .on_press(Message::NavigateToTools(SelectedAsset {
+            name: quote.name.clone(),
+            symbol: quote.symbol.clone(),
+            price: quote.price,
+            currency: quote.currency.clone(),
+            logo: logo_handle.cloned(),
+            change: quote.change,
+            change_percent: quote.change_percent,
+        }))
 }
 
-pub fn asset_frame<'a>(selected_asset: Option<&'a SelectedAsset>) -> Element<'a, Message> {
+pub fn asset_frame(selected_asset: Option<&SelectedAsset>) -> Element<'_, Message> {
     let Some(asset) = selected_asset else {
         return widget::Space::new().into();
     };
@@ -392,7 +351,7 @@ pub fn asset_frame<'a>(selected_asset: Option<&'a SelectedAsset>) -> Element<'a,
     .into()
 }
 
-pub fn alert_card<'a>(alert: &'a PriceAlert, portfolio_index: usize) -> Element<'a, Message> {
+pub fn alert_card(alert: &PriceAlert, portfolio_index: usize) -> Element<'_, Message> {
     let label = alert_condition_label(&alert.condition);
 
     let toggle_icon = if alert.enabled {

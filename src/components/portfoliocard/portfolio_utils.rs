@@ -7,7 +7,7 @@ use cosmic::{
 use crate::{
     app::Message,
     components::{
-        header::nav_icon,
+        header::{nav_icon, nav_icon_maybe},
         portfoliocard::{PortfolioView, QuoteStyle},
         ui::{friendly_message, pin_button, port_quote_card},
     },
@@ -109,16 +109,17 @@ pub fn portfolio_bar<'a>(portfolio: &PortfolioView<'a>) -> Element<'a, Message> 
         nav_icon(icon, message, false)
     });
 
-    let previous_button = widget::button::icon(widget::icon::from_name("go-previous-symbolic"))
-        .on_press_maybe(
-            (!(!has_selected || portfolio.index <= 1)).then_some(Message::PreviusPortfolio),
-        );
+    let previous_button = nav_icon_maybe(
+        "go-previous-symbolic",
+        (has_selected && portfolio.index > 1).then_some(Message::PreviusPortfolio),
+        false,
+    );
 
-    let next_button = widget::button::icon(widget::icon::from_name("go-next-symbolic"))
-        .on_press_maybe(
-            (!(!has_selected || portfolio.index >= portfolio.count))
-                .then_some(Message::NextPortfolio),
-        );
+    let next_button = nav_icon_maybe(
+        "go-next-symbolic",
+        (has_selected && portfolio.index < portfolio.count).then_some(Message::NextPortfolio),
+        false,
+    );
 
     widget::row::with_capacity(8)
         .push_maybe(name_space)

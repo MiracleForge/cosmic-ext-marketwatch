@@ -50,17 +50,21 @@ pub fn portfoliocard<'a>(
         widget::text_input(crate::fl!("assets-search-by"), "").into()
     };
 
-    widget::column![
-        search_input,
-        portfolio_bar(portfolio),
-        render_search_card(
-            search.value,
-            search.results,
-            search.loading,
-            search.limit_reached,
-        ),
-        portfolio_body(portfolio, style),
-    ]
-    .width(Length::Fill)
+    let body = portfolio_body(portfolio, style);
+
+    widget::container(
+        widget::column![
+            search_input,
+            portfolio_bar(portfolio),
+            render_search_card(
+                search.value,
+                search.results,
+                search.loading,
+                search.limit_reached,
+            ),
+            widget::scrollable(body).height(Length::Fill),
+        ]
+        .width(Length::Fill),
+    )
     .into()
 }

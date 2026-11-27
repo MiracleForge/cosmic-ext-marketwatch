@@ -6,7 +6,7 @@ use crate::components::ui::quote_card;
 use crate::utils::{SkeletonCfg, render_card_state};
 use cosmic::widget::settings;
 
-use cosmic::iced::Length;
+use cosmic::iced::{Alignment, Length};
 use cosmic::prelude::*;
 use cosmic::widget;
 
@@ -35,8 +35,5 @@ pub fn pinnedcard<'a>(
         },
     );
 
-    widget::container(
-        widget::column![widget::scrollable(body).height(Length::Fill)].width(Length::Fill),
-    )
-    .into()
+    widget::container(widget::column![body].width(Length::Fill)).into()
 }

@@ -6,9 +6,23 @@ use cosmic::{
 
 use crate::{app::Message, components::buttons::back_button, config::PopupTab};
 
+// nav.rs (onde está o nav_icon)
 pub fn nav_icon(name: &'static str, message: Message, selected: bool) -> Element<'static, Message> {
     widget::button::icon(widget::icon::from_name(name))
         .on_press(message)
+        .selected(selected)
+        .into()
+}
+
+pub fn nav_icon_maybe(
+    name: &'static str,
+    message: Option<Message>,
+    selected: bool,
+) -> Element<'static, Message> {
+    widget::button::icon(widget::icon::from_name(name))
+        .padding(2)
+        .icon_size(16)
+        .on_press_maybe(message)
         .selected(selected)
         .into()
 }
@@ -53,7 +67,7 @@ pub fn navigation(
             Message::NavigateTo(Some(PopupTab::Settings)),
             false,
         ))
-        .spacing(spacing.space_xxs);
+        .spacing(spacing.space_none);
 
     widget::row::with_capacity(3)
         .push(nav_icon(
@@ -63,6 +77,7 @@ pub fn navigation(
         ))
         .push(widget::Space::new().width(Length::Fill))
         .push(tabs)
+        .spacing(spacing.space_xxs)
         .align_y(Alignment::Center)
         .width(Length::Fill)
         .into()

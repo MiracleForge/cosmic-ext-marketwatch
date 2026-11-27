@@ -1503,7 +1503,7 @@ impl AppModel {
         Some(format_publish_time(timestamp))
     }
 
-    fn tab_body<'a>(&'a self) -> Element<'a, Message> {
+    fn tab_body(&self) -> Element<'_, Message> {
         let current = self.current_portfolio();
         let style = QuoteStyle {
             show_logos: self.config.show_logos,
