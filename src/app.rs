@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-use crate::components::applet::{self, ICON};
+use crate::components::applet::ICON;
 
 use crate::components::alertcard::notify_alert;
 use crate::components::header::{header, tools_header};
@@ -322,6 +322,11 @@ impl cosmic::Application for AppModel {
     }
 
     fn view(&self) -> Element<'_, Self::Message> {
+        let horizontal = matches!(
+            self.core.applet.anchor,
+            PanelAnchor::Top | PanelAnchor::Bottom
+        );
+
         let pinned_index = self
             .config
             .pinned_portfolio_index
@@ -333,6 +338,7 @@ impl cosmic::Application for AppModel {
             (&self.market_quotes, self.current_index)
         };
 
+        let spacing = cosmic::theme::spacing();
         let theme = self.core.system_theme();
 
         let content: Element<'_, Self::Message> = if self.error_message.is_some() {
@@ -341,9 +347,9 @@ impl cosmic::Application for AppModel {
                 widget::text(crate::fl!("display-error")),
             ]
             .align_y(Alignment::Center)
-            .spacing(8)
+            .spacing(spacing.space_s)
             .into()
-        } else if self.config.show_only_icon {
+        } else if self.config.show_only_icon || !horizontal {
             widget::icon(widget::icon::from_svg_bytes(ICON).symbolic(true))
                 .size(self.core.applet.suggested_size(true).0)
                 .into()

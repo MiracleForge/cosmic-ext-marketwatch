@@ -2,7 +2,6 @@
 // Layout constants — change here to affect the entire UI
 // =====================================================================
 //
-
 pub const PAD_CARD: [u16; 2] = [12, 14]; // inner padding for cards
 pub const PAD_ROW: [u16; 2] = [4, 8]; // padding for icon buttons in rows
 
