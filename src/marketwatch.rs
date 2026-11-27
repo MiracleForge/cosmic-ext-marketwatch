@@ -117,41 +117,38 @@ pub trait QuoteFormat {
     }
 
     fn format_currency(&self, value: f64) -> String {
-        let abs_value = value.abs();
-        let is_negative = value.is_sign_negative();
-
         let (symbol, decimals, decimal_sep, thousand_sep, symbol_before) = match self.currency() {
-            "USD" => ("$ ", 2, ".", ",", true),
-            "BRL" => ("R$ ", 2, ",", ".", true),
-            "EUR" => ("€ ", 2, ",", ".", false),
-            "GBP" => ("£ ", 2, ".", ",", true),
-            "JPY" => ("¥ ", 0, ".", ",", true),
-            "CHF" => ("CHF ", 2, ".", "'", false),
-            "CAD" => ("C$ ", 2, ".", ",", true),
-            "AUD" => ("A$ ", 2, ".", ",", true),
-            "CNY" => ("¥ ", 2, ".", ",", true),
-            "INR" => ("₹ ", 2, ".", ",", true),
+            "USD" => ("$", 2, ".", ",", true),
+            "BRL" => ("R$", 2, ",", ".", true),
+            "EUR" => ("€", 2, ",", ".", false),
+            "GBP" => ("£", 2, ".", ",", true),
+            "JPY" => ("¥", 0, ".", ",", true),
+            "CHF" => ("CHF", 2, ".", "'", false),
+            "CAD" => ("C$", 2, ".", ",", true),
+            "AUD" => ("A$", 2, ".", ",", true),
+            "CNY" => ("¥", 2, ".", ",", true),
+            "INR" => ("₹", 2, ".", ",", true),
             other => (other, 2, ".", ",", true),
         };
 
-        let formatted = format_number(abs_value, decimals, decimal_sep, thousand_sep);
+        let formatted = format_number(value.abs(), decimals, decimal_sep, thousand_sep);
 
-        let result = if symbol_before {
+        let amount = if symbol_before {
             format!("{symbol}{formatted}")
         } else {
-            format!("{formatted} {symbol}")
+            format!("{formatted}{symbol}")
         };
 
-        if is_negative {
-            format!("-{result}")
+        if value.is_sign_negative() {
+            format!("-{amount}")
         } else {
-            result
+            amount
         }
     }
 
     fn formatted_variation(&self) -> String {
         format!(
-            "{} {:.2}%",
+            "{}{:.2}%",
             self.variation_icon(),
             self.change_percent().abs()
         )
