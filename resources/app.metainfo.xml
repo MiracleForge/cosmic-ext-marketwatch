@@ -60,6 +60,17 @@
   </categories>
 
 <releases>
+<release version="2.0.1" date="2026-11-27">
+  <description>
+    <p>Improved visual consistency with native COSMIC widgets and fixed panel rendering issues.</p>
+    <ul>
+      <li>Replaced hardcoded UI components with native COSMIC widgets</li>
+      <li>Improved panel layout to adapt to horizontal and vertical orientations</li>
+      <li>Fixed panel rendering issues when running as the only applet in the panel</li>
+    </ul>
+  </description>
+</release>
+
 <release version="2.0.0" date="2026-11-20">
   <description>
     <p>Major update with a completely redesigned interface, new tools and reworked screens.</p>

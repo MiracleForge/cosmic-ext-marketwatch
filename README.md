@@ -4,9 +4,9 @@ Real-time stock market ticker extention for the COSMIC desktop
 
 ## Screenshots
 
-| Panel | Wallet | Settings |
-|-------|--------|----------|
-| ![Panel](screenshots/cosmic-ext-marketwatch-applet.png) | ![Wallet](screenshots/cosmic-ext-marketwatch-wallet.png) | ![Settings](screenshots/cosmic-ext-marketwatch-settings.png) |
+| Panel | Wallet | Settings | Alerts |
+|-------|--------|----------|--------|
+| ![Panel](screenshots/cosmic-ext-marketwatch-applet.png) | ![Wallet](screenshots/cosmic-ext-marketwatch-wallet.png) | ![Settings](screenshots/cosmic-ext-marketwatch-settings.png) | ![Alerts](screenshots/cosmic-ext-marketwatch-alert-tab.png) |
 
 ## Features
 
