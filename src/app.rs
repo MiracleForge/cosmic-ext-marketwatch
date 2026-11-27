@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-use crate::components::applet::{self};
+use crate::components::applet::{self, ICON};
 
 use crate::components::alertcard::notify_alert;
 use crate::components::header::{header, tools_header};
@@ -17,16 +17,17 @@ use crate::components::ui::{build_news_tabs_model, build_tabs_model};
 use crate::config::{Config, PopupTab, RefreshInterval};
 use crate::constants::{MAX_ASSETS_PER_PORTFOLIO, MAX_PORTFOLIOS, NEWS_SYMBOLS_LIMIT};
 use crate::marketwatch::{
-    AlertCondition, MarketCacheKey, MarketQuote, PriceAlert, ScreensTab, YahooNews,
+    AlertCondition, MarketCacheKey, MarketQuote, PriceAlert, QuoteFormat, ScreensTab, YahooNews,
     fetch_by_screeners, fetch_by_symbols, fetch_logo_handles, fetch_logos, fetch_news_for_symbols,
     format_publish_time, search_symbols,
 };
 use cosmic::applet::cosmic_panel_config::PanelAnchor;
 use cosmic::cosmic_config::CosmicConfigEntry;
+use cosmic::iced::{Alignment, Font, Length, Padding, Subscription};
 use cosmic::iced::{Limits, window::Id};
-use cosmic::iced::{Padding, Subscription};
 use cosmic::prelude::*;
-use cosmic::widget::segmented_button;
+use cosmic::theme::Text;
+use cosmic::widget::{autosize, container, segmented_button};
 use cosmic::{Action, widget};
 use iced_winit::commands::popup::{destroy_popup, get_popup};
 
@@ -321,21 +322,6 @@ impl cosmic::Application for AppModel {
     }
 
     fn view(&self) -> Element<'_, Self::Message> {
-        let horizontal = matches!(
-            self.core.applet.anchor,
-            PanelAnchor::Top | PanelAnchor::Bottom
-        );
-
-        let mut limits = Limits::NONE.min_width(1.).min_height(1.);
-        if let Some(b) = self.core.applet.suggested_bounds {
-            if b.width > 0.0 {
-                limits = limits.max_width(b.width);
-            }
-            if b.height > 0.0 {
-                limits = limits.max_height(b.height);
-            }
-        }
-
         let pinned_index = self
             .config
             .pinned_portfolio_index
@@ -347,30 +333,63 @@ impl cosmic::Application for AppModel {
             (&self.market_quotes, self.current_index)
         };
 
-        let content = applet::build_applet_content(
-            &self.config,
-            quotes,
-            current_index,
-            &self.logo_handles,
-            horizontal,
-            self.error_message.as_ref(),
-            &self.core,
-        );
+        let theme = self.core.system_theme();
 
-        let padding = self.core.applet.suggested_padding(true);
+        let content: Element<'_, Self::Message> = if self.error_message.is_some() {
+            widget::row![
+                widget::icon::from_name("dialog-error-symbolic").symbolic(true),
+                widget::text(crate::fl!("display-error")),
+            ]
+            .align_y(Alignment::Center)
+            .spacing(8)
+            .into()
+        } else if self.config.show_only_icon {
+            widget::icon(widget::icon::from_svg_bytes(ICON).symbolic(true))
+                .size(self.core.applet.suggested_size(true).0)
+                .into()
+        } else {
+            match quotes.get(current_index) {
+                Some(quote) => {
+                    let color = quote.variation_color(theme);
+
+                    let (icon_w, icon_h) = self.core.applet.suggested_size(true);
+                    let icon_size = f32::from(icon_w.min(icon_h));
+
+                    let mut row = widget::row![].align_y(Alignment::Center).spacing(8);
+
+                    if self.config.show_panel_logos {
+                        if let Some(handle) = self.logo_handles.get(&quote.symbol) {
+                            row = row.push(
+                                widget::image(handle.clone())
+                                    .width(Length::Fixed(icon_size))
+                                    .height(Length::Fixed(icon_size))
+                                    .content_fit(cosmic::iced::ContentFit::Contain),
+                            );
+                        }
+                    }
+
+                    row.push(widget::text(quote.symbol.clone()).font(Font::MONOSPACE))
+                        .push(
+                            widget::text(quote.formatted_price())
+                                .class(Text::Color(color))
+                                .font(Font::MONOSPACE),
+                        )
+                        .push(
+                            widget::text(quote.formatted_variation())
+                                .class(Text::Color(color))
+                                .font(Font::MONOSPACE),
+                        )
+                        .into()
+                }
+                None => widget::text(crate::fl!("display-loading")).into(),
+            }
+        };
 
         let button = widget::button::custom(content)
-            .padding(if horizontal {
-                [0, padding.1]
-            } else {
-                [padding.0, 0]
-            })
             .class(cosmic::theme::Button::AppletIcon)
             .on_press(Message::TogglePopup);
 
-        widget::autosize::autosize(widget::container(button), AUTOSIZE_MAIN_ID.clone())
-            .limits(limits)
-            .into()
+        autosize::autosize(container(button), AUTOSIZE_MAIN_ID.clone()).into()
     }
 
     fn view_window(&self, _id: Id) -> Element<'_, Self::Message> {
