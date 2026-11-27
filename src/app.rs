@@ -970,17 +970,31 @@ impl cosmic::Application for AppModel {
                     Some(current_index)
                 };
 
-                if self.config.pinned_portfolio_index.is_some() {
-                    self.pinned_portfolio_quotes = self.portfolio_quotes.clone();
-                    self.pinned_portfolio_error = self.portfolio_error.clone();
-                    self.pinned_portfolio_loading = self.portfolio_loading;
+                self.save_config();
+
+                let mut tasks = Vec::new();
+
+                if let Some(pinned) = self.config.pinned_portfolio_index {
+                    let key = MarketCacheKey::Portfolio(pinned);
+
+                    self.pinned_portfolio_error = None;
+
+                    if let Some(cached) = self.cached_quotes.get(&key) {
+                        self.pinned_portfolio_quotes = cached.clone();
+                        self.pinned_portfolio_loading = false;
+                    } else if !self.portfolio_quotes.is_empty() {
+                        self.pinned_portfolio_quotes = self.portfolio_quotes.clone();
+                        self.pinned_portfolio_loading = false;
+                    } else {
+                        self.pinned_portfolio_quotes.clear();
+                        self.pinned_portfolio_loading = true;
+                        tasks.push(self.fetch_current_portfolio());
+                    }
                 } else {
                     self.pinned_portfolio_quotes.clear();
                     self.pinned_portfolio_error = None;
                     self.pinned_portfolio_loading = false;
                 }
-
-                self.save_config();
 
                 self.active_tab = if self.config.pinned_portfolio_index.is_some() {
                     PopupTab::Pinned
@@ -988,7 +1002,8 @@ impl cosmic::Application for AppModel {
                     PopupTab::Overview
                 };
 
-                return self.fetch_pinned_portfolio_news();
+                tasks.push(self.fetch_pinned_portfolio_news());
+                return Task::batch(tasks);
             }
 
             Message::StockSearchInput(val) => {
